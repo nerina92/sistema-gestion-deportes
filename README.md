@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sistema de Gestión Integral - Ropa Deportiva
 
-## Getting Started
+Sistema web completo de gestión para negocio de ropa deportiva con:
+- ✅ Gestión de inventario (productos y variantes)
+- ✅ Control de stock con alertas
+- ✅ Compras y ventas
+- ✅ Facturación electrónica AFIP
+- ✅ Sincronización con Tienda Nube
+- ✅ Reportes y análisis
 
-First, run the development server:
+## Stack Tecnológico
+
+- **Frontend:** Next.js 14 + React + TypeScript + Tailwind CSS
+- **Backend:** Next.js API Routes
+- **Database:** Vercel Postgres + Prisma ORM
+- **Auth:** NextAuth.js
+- **Hosting:** Vercel
+
+## Desarrollo
+
+Este proyecto está siendo desarrollado con **Ralph**, un sistema de agentes de IA que trabaja de forma autónoma.
+
+### Setup
 
 ```bash
+# Instalar dependencias
+npm install
+
+# Configurar base de datos
+npx prisma generate
+npx prisma migrate dev
+
+# Iniciar servidor de desarrollo
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Ralph (Desarrollo Autónomo)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# Ejecutar Ralph para desarrollo automático
+cd scripts/ralph
+./ralph.sh 10
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Ralph trabaja en iteraciones, completando user stories de forma autónoma:
+- Lee `prd.json` con 19 user stories priorizadas
+- Implementa una historia por iteración
+- Ejecuta tests y typechecking
+- Hace commits automáticos
+- Actualiza `progress.txt` con aprendizajes
 
-## Learn More
+## Roadmap
 
-To learn more about Next.js, take a look at the following resources:
+### Fase 1: MVP (Semanas 1-5)
+- [x] Base de datos con productos y variantes
+- [ ] Importación desde Excel (193 productos)
+- [ ] CRUD de productos
+- [ ] Compras y ventas
+- [ ] Dashboard básico
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Fase 2: Facturación AFIP (Semanas 6-7)
+- [ ] Integración con AFIP
+- [ ] Emisión de facturas tipo B
+- [ ] PDFs legales
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Fase 3: Tienda Nube (Semanas 8-9)
+- [ ] Sincronización bidireccional
+- [ ] Webhooks de ventas
 
-## Deploy on Vercel
+### Fase 4: Reportes (Semanas 10+)
+- [ ] Analytics avanzados
+- [ ] Exportación de datos
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Licencia
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Privado - Deportes Laboulaye

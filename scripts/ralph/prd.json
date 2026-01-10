@@ -1,0 +1,397 @@
+{
+  "projectName": "Sistema de Gestión Integral para Venta de Ropa Deportiva",
+  "branchName": "feature/sistema-gestion-deportes",
+  "description": "Sistema web completo de gestión para negocio de ropa deportiva con inventario, compras, ventas, facturación AFIP y sincronización con Tienda Nube",
+  "context": {
+    "businessType": "Venta de ropa deportiva (retail)",
+    "currentSystem": "Excel - 193 productos en inventario",
+    "goals": [
+      "Migrar control de stock desde Excel a sistema web profesional",
+      "Automatizar actualización de stock en tiempo real",
+      "Emitir factura electrónica B validada por AFIP",
+      "Sincronizar stock con Tienda Nube automáticamente",
+      "Reducir tiempo de administración diaria de 2 horas a 30 minutos"
+    ],
+    "stack": {
+      "frontend": "Next.js 14 + React + TypeScript + Tailwind CSS",
+      "backend": "Next.js API Routes",
+      "database": "Vercel Postgres + Prisma ORM",
+      "auth": "NextAuth.js",
+      "hosting": "Vercel",
+      "integrations": [
+        "AFIP (afip.js)",
+        "Tienda Nube API",
+        "Excel (xlsx)"
+      ]
+    }
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Modelo de base de datos para productos",
+      "description": "Como administrador, necesito una estructura de base de datos que almacene toda la información de productos de ropa deportiva con sus variantes y múltiples precios (contado, débito, financiado).",
+      "priority": 1,
+      "phase": "Fase 1: MVP",
+      "acceptanceCriteria": [
+        "Tabla `products` con campos: id, name, brand, category, description, barcode, image_url, created_at, updated_at",
+        "Tabla `product_variants` con campos: id, product_id, size, color, sku, cost_price, price_cash, price_debit, price_financed, stock_quantity, min_stock_alert",
+        "Relación uno-a-muchos entre products y product_variants",
+        "Índices en barcode, sku, category para búsquedas rápidas",
+        "Campo image_url nullable (se agregará después de importación)",
+        "Migración de base de datos ejecutada exitosamente",
+        "Typecheck/lint pasa"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-019",
+      "title": "Importación de inventario desde Excel",
+      "description": "Como administrador, quiero importar mi inventario actual desde mi Excel existente para migrar todos los datos rápidamente al nuevo sistema.",
+      "priority": 2,
+      "phase": "Fase 1: MVP",
+      "acceptanceCriteria": [
+        "Página 'Importar desde Excel' accesible desde menú Productos",
+        "Upload de archivo .xlsx con validación de formato",
+        "Parseo de hoja 'STOCK INICIAL' con columnas esperadas",
+        "Preview de datos antes de importar (tabla con 10 primeras filas)",
+        "Mapeo automático: Descripción→name, Marca→brand, Art→sku, Color→color, Costo actualizado→cost_price",
+        "Para cada fila: selector manual de talle (XS/S/M/L/XL/XXL/XXXL/Único) porque columna Talle contiene códigos",
+        "Importar 3 precios: Columna G→price_cash, Columna H→price_debit, Columna I→price_financed",
+        "Filtro automático: solo importar filas donde 'Vendido?' = 'No' o vacío",
+        "Agrupación inteligente: productos con mismo nombre+marca se agrupan, cada fila es una variante",
+        "Asignación automática de categorías por palabra clave (remera→Remeras, short→Shorts, etc.)",
+        "Normalización: trim de espacios, lowercase de marcas/colores, limpieza de caracteres especiales",
+        "Log detallado de importación: productos creados, variantes agregadas, errores, warnings",
+        "Manejo de errores: continuar importación aunque algunas filas fallen",
+        "Transacción con rollback si falla completamente",
+        "Botón 'Confirmar importación' después de preview",
+        "Mensaje de éxito: 'X productos importados, Y variantes creadas'",
+        "Typecheck/lint pasa",
+        "Verificar en navegador usando dev-browser skill"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-002",
+      "title": "CRUD de productos - Backend",
+      "description": "Como administrador, necesito endpoints API para crear, leer, actualizar y eliminar productos con sus variantes.",
+      "priority": 3,
+      "phase": "Fase 1: MVP",
+      "acceptanceCriteria": [
+        "POST /api/products - crear producto con variantes",
+        "GET /api/products - listar productos con paginación y filtros",
+        "GET /api/products/:id - obtener producto con todas sus variantes",
+        "PUT /api/products/:id - actualizar producto y variantes",
+        "DELETE /api/products/:id - eliminar producto (soft delete)",
+        "Validación de datos (campos requeridos, precios positivos, stock no negativo)",
+        "Respuestas JSON estandarizadas con códigos HTTP apropiados",
+        "Typecheck/lint pasa",
+        "Tests unitarios de endpoints pasan"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-016",
+      "title": "Autenticación básica",
+      "description": "Como administrador, quiero ingresar con usuario y contraseña para proteger la información del negocio.",
+      "priority": 4,
+      "phase": "Fase 1: MVP",
+      "acceptanceCriteria": [
+        "Tabla `users` con campos: id, email, password_hash, name, role, created_at",
+        "Hash de contraseñas con bcrypt o similar",
+        "Página de login con email y contraseña",
+        "POST /api/auth/login valida credenciales y retorna token JWT",
+        "Middleware de autenticación para proteger rutas de API",
+        "Logout que invalida sesión",
+        "Redirección a login si no autenticado",
+        "Typecheck/lint pasa",
+        "Verificar en navegador usando dev-browser skill"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-018",
+      "title": "Navegación y layout principal",
+      "description": "Como administrador, quiero una interfaz clara con menú de navegación para acceder rápidamente a todas las funcionalidades.",
+      "priority": 5,
+      "phase": "Fase 1: MVP",
+      "acceptanceCriteria": [
+        "Layout con sidebar/navbar con logo del negocio",
+        "Menú con secciones: Dashboard, Productos, Ventas, Compras, Proveedores, Reportes (disabled por ahora), Configuración",
+        "Header con nombre de usuario y botón de logout",
+        "Diseño responsive: menú hamburguesa en móvil",
+        "Indicador visual de sección activa",
+        "Footer con versión del sistema",
+        "Typecheck/lint pasa",
+        "Verificar en navegador usando dev-browser skill"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-003",
+      "title": "Interfaz de listado de productos",
+      "description": "Como administrador, quiero ver todos mis productos en una tabla con búsqueda y filtros para encontrar artículos rápidamente.",
+      "priority": 6,
+      "phase": "Fase 1: MVP",
+      "acceptanceCriteria": [
+        "Tabla con columnas: Imagen, Nombre, Marca, Categoría, Variantes, Stock Total, Acciones",
+        "Buscador por nombre, marca o código de barras (búsqueda en tiempo real)",
+        "Filtros: categoría, marca, stock bajo (productos con variantes bajo mínimo)",
+        "Paginación (20 productos por página)",
+        "Indicador visual para productos con stock bajo (badge rojo)",
+        "Botones de acción: Editar, Eliminar, Ver detalles",
+        "Diseño responsive (funciona en móvil)",
+        "Typecheck/lint pasa",
+        "Verificar en navegador usando dev-browser skill"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-004",
+      "title": "Formulario de creación de producto",
+      "description": "Como administrador, quiero crear un nuevo producto con todas sus variantes (tallas, colores) desde una interfaz intuitiva.",
+      "priority": 7,
+      "phase": "Fase 1: MVP",
+      "acceptanceCriteria": [
+        "Formulario con campos: Nombre (requerido), Marca, Categoría (dropdown), Descripción, Código de barras, Imagen (upload)",
+        "Sección de variantes con botón 'Agregar variante'",
+        "Cada variante tiene: Talla (dropdown), Color (dropdown), SKU (auto-generado o manual), Precio costo, Precio contado, Precio débito, Precio financiado, Stock inicial, Stock mínimo",
+        "Validación en frontend: campos requeridos, precios > 0, stock >= 0",
+        "Botón 'Guardar' que llama a POST /api/products",
+        "Mensaje de éxito/error con feedback visual",
+        "Redirección a listado después de crear",
+        "Typecheck/lint pasa",
+        "Verificar en navegador usando dev-browser skill"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-005",
+      "title": "Formulario de edición de producto",
+      "description": "Como administrador, quiero editar la información de un producto existente y sus variantes.",
+      "priority": 8,
+      "phase": "Fase 1: MVP",
+      "acceptanceCriteria": [
+        "Carga datos actuales del producto en el formulario",
+        "Permite modificar todos los campos editables",
+        "Permite agregar nuevas variantes",
+        "Permite editar variantes existentes",
+        "Permite eliminar variantes (solo si stock = 0)",
+        "Validación igual que formulario de creación",
+        "Botón 'Guardar cambios' que llama a PUT /api/products/:id",
+        "Confirmación antes de eliminar variantes",
+        "Typecheck/lint pasa",
+        "Verificar en navegador usando dev-browser skill"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-006",
+      "title": "Modelo de base de datos para compras",
+      "description": "Como administrador, necesito registrar las compras a proveedores para actualizar stock y llevar historial de costos.",
+      "priority": 9,
+      "phase": "Fase 1: MVP",
+      "acceptanceCriteria": [
+        "Tabla `suppliers` con campos: id, name, contact_name, phone, email, address, notes",
+        "Tabla `purchases` con campos: id, supplier_id, purchase_date, invoice_number, total_amount, notes, created_at",
+        "Tabla `purchase_items` con campos: id, purchase_id, product_variant_id, quantity, unit_cost, subtotal",
+        "Relaciones: purchases -> supplier, purchase_items -> purchase y product_variant",
+        "Migración ejecutada exitosamente",
+        "Typecheck/lint pasa"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-017",
+      "title": "Gestión de proveedores",
+      "description": "Como administrador, quiero mantener un catálogo de proveedores para seleccionarlos rápidamente al registrar compras.",
+      "priority": 10,
+      "phase": "Fase 1: MVP",
+      "acceptanceCriteria": [
+        "Página 'Proveedores' con listado de todos los proveedores",
+        "Tabla con columnas: Nombre, Contacto, Teléfono, Email, Acciones",
+        "Botón 'Agregar proveedor' que abre formulario modal",
+        "Formulario con: Nombre (requerido), Persona de contacto, Teléfono, Email, Dirección, Notas",
+        "CRUD completo: Crear, Editar, Eliminar (solo si no tiene compras asociadas)",
+        "Buscador por nombre o contacto",
+        "Typecheck/lint pasa",
+        "Verificar en navegador usando dev-browser skill"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-007",
+      "title": "Registrar compra a proveedor - Backend",
+      "description": "Como administrador, necesito un endpoint para registrar una compra que actualice el stock automáticamente.",
+      "priority": 11,
+      "phase": "Fase 1: MVP",
+      "acceptanceCriteria": [
+        "POST /api/purchases - crear compra con items",
+        "Validar que todas las variantes existan",
+        "Calcular subtotales y total automáticamente",
+        "Actualizar stock_quantity de cada product_variant sumando cantidad comprada",
+        "Transacción atómica (si falla, no actualiza nada)",
+        "Retornar compra creada con items completos",
+        "Typecheck/lint pasa",
+        "Tests unitarios pasan"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-008",
+      "title": "Interfaz de registro de compra",
+      "description": "Como administrador, quiero registrar una compra a proveedor agregando productos y cantidades, y que el sistema actualice el stock automáticamente.",
+      "priority": 12,
+      "phase": "Fase 1: MVP",
+      "acceptanceCriteria": [
+        "Formulario con: Proveedor (dropdown con autocomplete), Fecha, Número de factura, Notas",
+        "Sección 'Agregar productos' con buscador de variantes (por nombre, SKU o código de barras)",
+        "Por cada item: Variante seleccionada, Cantidad, Costo unitario, Subtotal (calculado)",
+        "Total de compra calculado automáticamente",
+        "Botón 'Registrar compra' que llama a POST /api/purchases",
+        "Confirmación visual: 'Compra registrada. Stock actualizado.'",
+        "Redirección a historial de compras",
+        "Typecheck/lint pasa",
+        "Verificar en navegador usando dev-browser skill"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-009",
+      "title": "Modelo de base de datos para ventas",
+      "description": "Como administrador, necesito registrar ventas para descontar stock y llevar historial de ingresos.",
+      "priority": 13,
+      "phase": "Fase 1: MVP",
+      "acceptanceCriteria": [
+        "Tabla `sales` con campos: id, sale_date, payment_method (cash/card/transfer), price_type (cash/debit/financed), total_amount, notes, created_at",
+        "Tabla `sale_items` con campos: id, sale_id, product_variant_id, quantity, unit_price, subtotal",
+        "Relaciones: sale_items -> sale y product_variant",
+        "Migración ejecutada exitosamente",
+        "Typecheck/lint pasa"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-010",
+      "title": "Registrar venta - Backend",
+      "description": "Como administrador, necesito un endpoint para registrar una venta que descuente el stock automáticamente.",
+      "priority": 14,
+      "phase": "Fase 1: MVP",
+      "acceptanceCriteria": [
+        "POST /api/sales - crear venta con items y price_type",
+        "Validar que stock disponible >= cantidad vendida (por cada item)",
+        "Calcular subtotales y total automáticamente usando price_type seleccionado",
+        "Actualizar stock_quantity de cada product_variant restando cantidad vendida",
+        "Retornar error si stock insuficiente (con detalle de qué producto)",
+        "Transacción atómica",
+        "Typecheck/lint pasa",
+        "Tests unitarios pasan"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-011",
+      "title": "Interfaz de registro de venta",
+      "description": "Como administrador, quiero registrar una venta agregando productos y cantidades, eligiendo método de pago y tipo de precio (contado/débito/financiado), y que el sistema descuente el stock automáticamente.",
+      "priority": 15,
+      "phase": "Fase 1: MVP",
+      "acceptanceCriteria": [
+        "Formulario con: Fecha (default hoy), Método de pago (radio buttons: Efectivo/Tarjeta/Transferencia), Notas",
+        "Selector de tipo de precio: Contado / Débito / Financiado (afecta precio de todos los items)",
+        "Buscador de productos (por nombre, SKU o código de barras)",
+        "Por cada item: Variante, Cantidad, Los 3 precios mostrados (con el seleccionado resaltado), Stock disponible (mostrado), Subtotal",
+        "Precio unitario se actualiza automáticamente según tipo de precio seleccionado",
+        "Validación en tiempo real: no permitir cantidad > stock disponible",
+        "Total de venta calculado automáticamente",
+        "Botón 'Registrar venta' que llama a POST /api/sales",
+        "Mensaje de éxito con resumen de venta",
+        "Opción de imprimir comprobante simple (HTML)",
+        "Typecheck/lint pasa",
+        "Verificar en navegador usando dev-browser skill"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-012",
+      "title": "Dashboard principal",
+      "description": "Como administrador, quiero ver un resumen de métricas clave al ingresar al sistema para monitorear el estado del negocio.",
+      "priority": 16,
+      "phase": "Fase 1: MVP",
+      "acceptanceCriteria": [
+        "Card con 'Ventas de Hoy' (total en pesos)",
+        "Card con 'Ventas del Mes' (total en pesos)",
+        "Card con 'Productos con Stock Bajo' (cantidad de variantes bajo mínimo)",
+        "Card con 'Total de Productos' (cantidad de productos activos)",
+        "Lista de 'Últimas Ventas' (5 más recientes con fecha, total, método de pago)",
+        "Alerta visual si hay productos con stock crítico (< stock mínimo)",
+        "Diseño responsive",
+        "Typecheck/lint pasa",
+        "Verificar en navegador usando dev-browser skill"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-013",
+      "title": "Alertas de stock bajo",
+      "description": "Como administrador, quiero ver claramente qué productos tienen stock bajo para reponerlos a tiempo.",
+      "priority": 17,
+      "phase": "Fase 1: MVP",
+      "acceptanceCriteria": [
+        "Página 'Stock Bajo' accesible desde menú principal",
+        "Tabla con variantes donde stock_quantity <= min_stock_alert",
+        "Columnas: Producto, Variante (talla/color), Stock actual, Stock mínimo, Diferencia",
+        "Ordenado por diferencia (los más críticos primero)",
+        "Badge rojo para stock = 0, amarillo para stock <= mínimo",
+        "Botón 'Registrar compra' por cada item (link directo a compra con ese producto precargado)",
+        "Typecheck/lint pasa",
+        "Verificar en navegador usando dev-browser skill"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-014",
+      "title": "Historial de compras",
+      "description": "Como administrador, quiero ver un listado de todas las compras realizadas para auditoría y control de costos.",
+      "priority": 18,
+      "phase": "Fase 1: MVP",
+      "acceptanceCriteria": [
+        "Tabla con columnas: Fecha, Proveedor, Nº Factura, Total, Acciones",
+        "Filtro por rango de fechas",
+        "Filtro por proveedor",
+        "Paginación (20 registros por página)",
+        "Botón 'Ver detalle' que muestra items de la compra en modal",
+        "Modal de detalle muestra: productos, cantidades, costos unitarios, subtotales",
+        "Typecheck/lint pasa",
+        "Verificar en navegador usando dev-browser skill"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-015",
+      "title": "Historial de ventas",
+      "description": "Como administrador, quiero ver un listado de todas las ventas realizadas para control de ingresos y análisis.",
+      "priority": 19,
+      "phase": "Fase 1: MVP",
+      "acceptanceCriteria": [
+        "Tabla con columnas: Fecha, Total, Método de pago, Tipo de precio, Acciones",
+        "Filtro por rango de fechas",
+        "Filtro por método de pago",
+        "Filtro por tipo de precio (Contado/Débito/Financiado)",
+        "Paginación (20 registros por página)",
+        "Botón 'Ver detalle' que muestra items de la venta en modal",
+        "Modal de detalle muestra: productos vendidos, cantidades, precios, subtotales",
+        "Botón 'Reimprimir comprobante' en cada venta",
+        "Typecheck/lint pasa",
+        "Verificar en navegador usando dev-browser skill"
+      ],
+      "passes": false
+    }
+  ],
+  "metadata": {
+    "createdAt": "2026-01-10T16:18:19.156031",
+    "totalStories": 19,
+    "estimatedWeeks": "10-12 semanas",
+    "currentInventory": "193 productos en Excel",
+    "excelPath": "/Volumes/ExternoNeri/Downloads/Deportes Laboulaye.xlsx"
+  }
+}
