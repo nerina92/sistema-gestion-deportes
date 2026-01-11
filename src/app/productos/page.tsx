@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   Package, 
   Plus, 
@@ -72,6 +73,7 @@ export default function ProductosPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
   
   // Filtros y búsqueda
   const [searchTerm, setSearchTerm] = useState('');
@@ -492,7 +494,7 @@ export default function ProductosPage() {
               Actualizar
             </button>
             <button 
-              onClick={() => alert('Próximamente - US-005: Formulario de creación')}
+              onClick={() => router.push('/productos/nuevo')}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center"
             >
               <Plus className="mr-2 h-4 w-4" />
@@ -704,7 +706,7 @@ export default function ProductosPage() {
               Aún no tienes productos en tu inventario. ¡Comienza agregando tu primer producto!
             </p>
             <button 
-              onClick={() => alert('Próximamente - US-005: Formulario de creación')}
+              onClick={() => router.push('/productos/nuevo')}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center mx-auto"
             >
               <Plus className="mr-2 h-4 w-4" />
