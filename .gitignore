@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# Archivos sensibles
+.env
+*.xlsx
+deportes-laboulaye.xlsx
+Deportes Laboulaye.xlsx
+
+# Prisma
+prisma/*.db
+prisma/*.db-journal
+
+# Test files (opcional)
+test-import-api.js
+example-frontend-usage.tsx
