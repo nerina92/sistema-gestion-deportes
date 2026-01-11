@@ -5,7 +5,7 @@ import type { NextRequest } from 'next/server';
 export const config = {
   matcher: [
     '/dashboard/:path*',
-    '/api/((?!auth).*)'
+    '/api/((?!auth|seed-admin).*)'
   ],
 }
 
