@@ -41,11 +41,11 @@ async function getVariantWithStock(cookie) {
 
   const data = await response.json();
   
-  if (!data.success || !data.data?.products?.length) {
+  if (!data.products || !data.products.length) {
     throw new Error('No se encontraron productos');
   }
 
-  for (const product of data.data.products) {
+  for (const product of data.products) {
     for (const variant of product.variants) {
       if (variant.stockQuantity > 0) {
         return {
@@ -73,7 +73,7 @@ async function checkStock(cookie, variantId) {
 
   const data = await response.json();
   
-  for (const product of data.data.products) {
+  for (const product of data.products) {
     for (const variant of product.variants) {
       if (variant.id === variantId) {
         return variant.stockQuantity;

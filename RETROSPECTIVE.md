@@ -21,7 +21,7 @@
 | **PRD Implementation** | Ralph Manual Methodology |
 | **Architecture** | Next.js 14 + TypeScript + Prisma + PostgreSQL |
 | **Authentication** | JWT + Middleware Protection |
-| **Modules Completed** | Products, Suppliers, Purchases (Complete Inventory System) |
+| **Modules Completed** | Products (Full CRUD), Suppliers (Full CRUD), Purchases (Full CRUD + Inventory) |
 
 ---
 
@@ -276,6 +276,26 @@
 - Formato de moneda y fechas en español argentino
 - Diseño responsive con estados de carga
 
+### ✏️ **US-005: Formulario de Edición de Producto**
+**Status:** ✅ **COMPLETED**  
+**Story Points:** 8  
+**Key Features:**
+- Página de edición completa (/productos/[id]/editar)
+- Carga automática de datos existentes con GET /api/products/[id]
+- Pre-llenado de todos los campos del producto
+- Gestión avanzada de variantes con distinción visual
+- Badges "Existente" (verde) vs "Nueva" (azul)
+- Mantención de IDs para variantes existentes
+- Validación de stock antes de eliminar variantes
+- Modal de confirmación para eliminación con stock
+- Actualización con PUT /api/products/[id]
+- Validaciones completas (nombre, precios, stocks, SKUs únicos)
+- Distinción entre variantes nuevas y existentes en el payload
+- Navegación desde listado habilitada
+- Feedback visual de éxito/error
+- 850+ líneas de código TypeScript/React
+- UI consistente reutilizando código del US-004
+
 ---
 
 ## 🚧 What Could Be Improved
@@ -309,8 +329,8 @@
 ## 📈 Sprint Metrics
 
 ### ⚡ **Productivity Metrics - Complete Project**
-- **Lines of Code**: ~6,000+ lines of production code
-- **User Stories Delivered**: 9 complete user stories (11 if counting US-001 and US-019 separately)
+- **Lines of Code**: ~7,000+ lines of production code
+- **User Stories Delivered**: 10 complete user stories (12 if counting US-001 and US-019 separately)
 - **API Endpoints Created**: 15+ endpoints (auth, products, suppliers, purchases)
 - **Components Created**: 25+ major components (Auth, Products, Suppliers, Purchases, Navigation)
 - **Database Models**: 6 core models (Product, ProductVariant, User, Supplier, Purchase, PurchaseItem)
@@ -494,7 +514,7 @@ This project successfully implemented a comprehensive sports retail management s
 
 **PRD Implementation Status:**
 - **Foundation Phase**: ✅ 100% Complete (US-001, US-016, US-018, US-019)
-- **Product Management**: ✅ 75% Complete (US-002, US-003, US-004) | 🔄 Edit Pending (US-005)
+- **Product Management**: ✅ 100% Complete (US-002, US-003, US-004, US-005)
 - **Supplier Management**: ✅ 100% Complete (US-017)
 - **Purchase Management**: ✅ 100% Complete (US-006, US-007, US-008)
 - **Sales Management**: 📋 Ready to begin (US-009, US-010, US-011)
@@ -502,11 +522,11 @@ This project successfully implemented a comprehensive sports retail management s
 
 **Modules Completed:**
 - ✅ Authentication & Authorization
-- ✅ Product Management (Create + List + UI) | 🔄 Edit Pending
+- ✅ Product Management (Full CRUD + UI)
 - ✅ Supplier Management (Full CRUD + UI)
 - ✅ Purchase Management (Full CRUD + UI + Stock Updates)
 
-**Ready for Production:** ✅ Authentication, Products, Suppliers, Purchases  
+**Ready for Production:** ✅ Authentication, Products (Full CRUD), Suppliers, Purchases  
 **Ready for Business Users:** ✅ Yes (4 complete modules)  
 **Inventory System:** ✅ Fully functional with automatic stock management  
 **Next Phase Planning:** ✅ PRD roadmap available
@@ -524,107 +544,153 @@ This project successfully implemented a comprehensive sports retail management s
 ---
 
 *Generated on: 12 de enero de 2026*  
-*Sprint: US-008 Completion - Purchase Frontend Complete*  
+*Sprint: US-005 Completion - Product Management Complete*  
 *Team: Sistema Gestión Deportes*  
-*Status: 9 User Stories Completed | Inventory System Complete | Ready for US-005*
+*Status: 10 User Stories Completed | Core System Complete | Ready for Sales Module*
 
 ---
 
-## 🎯 NEXT: US-005 - Formulario de Edición de Producto
+## 🎯 NEXT STEPS: Sales Module (US-009, US-010, US-011)
 
-### **Prompt para Copilot en VS Code:**
+Has completado exitosamente el **Core System** con 10 User Stories:
+- ✅ Autenticación completa
+- ✅ Productos (Full CRUD + UI)
+- ✅ Proveedores (Full CRUD + UI)
+- ✅ Compras (Full CRUD + UI + Stock automático)
+
+### **Opciones para continuar:**
+
+#### **Opción 1: Implementar Sistema de Ventas** (Recomendado)
+Completa el ciclo de inventario implementando ventas:
+
+**US-009: Modelo de base de datos para ventas**
+- Modelos: Sale, SaleItem, Customer
+- Relaciones con ProductVariant
+- Tracking de ingresos y stock
+
+**US-010: Backend de ventas**
+- APIs para registrar ventas
+- Decrementar stock automáticamente
+- Cálculo de totales e ingresos
+
+**US-011: Interfaz de ventas**
+- Punto de venta (POS)
+- Búsqueda de productos
+- Carrito de compra
+- Registro de cliente
+
+#### **Opción 2: Reportes y Analytics** (US-012)
+- Dashboard con métricas
+- Reportes de ventas/compras
+- Gráficos de inventario
+- Productos más vendidos
+
+#### **Opción 3: Mejoras de UX/Testing**
+- Testing automatizado (Jest, Cypress)
+- Performance optimization
+- Accessibility improvements
+- Error boundaries
+
+### **Prompt para US-009 (Ventas - Base de Datos):**
 
 ```
-Implementa el US-005: Formulario de edición de producto
+Implementa el US-009: Modelo de base de datos para ventas
 
 📋 CONTEXTO:
 Ya tenemos:
-- US-004: Formulario de creación de productos funcionando
-- US-002: Backend con PUT /api/products/[id] implementado
-- US-003: Listado con botón "✏️ Editar" que debe activarse
+- Sistema completo de productos, proveedores y compras
+- Stock que se incrementa con compras
+- Necesitamos ahora registrar ventas que decremente stock
 
-🎯 OBJETIVO US-005:
-Permitir editar productos existentes y sus variantes, agregando nuevas variantes, editando existentes y eliminando variantes con validaciones de stock.
+🎯 OBJETIVO US-009:
+Crear el modelo de base de datos para registrar ventas, tracking de clientes, y preparar el sistema para decrementar stock automáticamente.
 
 ✅ CRITERIOS DE ACEPTACIÓN:
 
-1. **Cargar datos existentes**:
-   - Ruta: `/productos/[id]/editar`
-   - Al entrar, hacer GET a `/api/products/[id]` para cargar producto completo
-   - Pre-llenar formulario con todos los campos actuales
-   - Pre-llenar variantes existentes con sus datos
-   - Mostrar loading spinner mientras carga
-   - Manejar error 404 si el producto no existe
-   - Mensaje de error: "Producto no encontrado"
+1. **Crear modelo Customer (Cliente)** en prisma/schema.prisma:
+   ```prisma
+   model Customer {
+     id          String   @id @default(cuid())
+     firstName   String
+     lastName    String
+     email       String?  @unique
+     phone       String?
+     address     String?
+     dni         String?  @unique
+     notes       String?
+     isActive    Boolean  @default(true)
+     createdAt   DateTime @default(now())
+     updatedAt   DateTime @updatedAt
+     
+     sales       Sale[]
+   }
+   ```
 
-2. **Formulario principal** (igual que US-004):
-   - Nombre (requerido, pre-llenado)
-   - Marca (pre-llenado)
-   - Categoría (dropdown, pre-seleccionado)
-   - Descripción (textarea, pre-llenado)
-   - Código de barras (pre-llenado)
-   - URL de imagen (pre-llenado)
+2. **Crear modelo Sale (Venta)** en prisma/schema.prisma:
+   ```prisma
+   model Sale {
+     id              String    @id @default(cuid())
+     customerId      String?
+     customer        Customer? @relation(fields: [customerId], references: [id])
+     saleDate        DateTime  @default(now())
+     totalAmount     Float
+     paymentMethod   String    // cash, debit, credit_3, credit_6, credit_12
+     notes           String?
+     status          String    @default("completed") // completed, cancelled
+     createdAt       DateTime  @default(now())
+     updatedAt       DateTime  @updatedAt
+     
+     items           SaleItem[]
+   }
+   ```
 
-3. **Sección de variantes mejorada**:
-   - **Variantes existentes**: Mostrar con sus datos actuales
-     * Marcar visualmente como "existente" (ej: badge "Existente")
-     * Permitir editar: talla, color, SKU, precios, stocks
-     * Mostrar ID de la variante (oculto, para el backend)
-   - **Botón "➕ Agregar variante"**: Para crear nuevas variantes
-   - **Botón "🗑️ Eliminar variante"** con validación:
-     * Si la variante tiene stock > 0: Mostrar confirmación
-     * Modal: "⚠️ Esta variante tiene stock de X unidades. ¿Estás seguro de eliminarla?"
-     * Botones: "Cancelar" / "Eliminar de todas formas"
-     * Si stock = 0: Confirmar con mensaje simple
-   - **Variantes nuevas**: Marcar como "Nueva" (badge opcional)
-   - Mínimo 1 variante siempre requerida
+3. **Crear modelo SaleItem (Item de venta)** en prisma/schema.prisma:
+   ```prisma
+   model SaleItem {
+     id               String          @id @default(cuid())
+     saleId           String
+     sale             Sale            @relation(fields: [saleId], references: [id], onDelete: Cascade)
+     productVariantId String
+     productVariant   ProductVariant  @relation(fields: [productVariantId], references: [id])
+     quantity         Int
+     unitPrice        Float
+     subtotal         Float
+     createdAt        DateTime        @default(now())
+     updatedAt        DateTime        @updatedAt
+   }
+   ```
 
-4. **Validaciones** (igual que US-004):
-   - Nombre requerido
-   - Mínimo 1 variante
-   - Todos los precios > 0
-   - Stocks >= 0
-   - No permitir SKU duplicados
-   - Mostrar errores bajo cada campo
+4. **Actualizar modelo ProductVariant** para relación:
+   - Agregar campo: saleItems SaleItem[]
 
-5. **Funcionalidad de guardado**:
-   - Botón "💾 Guardar cambios" que:
-     * Valida todos los campos
-     * Muestra loading spinner
-     * Hace PUT a /api/products/[id] con estructura completa
-   - Botón "❌ Cancelar" que vuelve a /productos
-   - Toast de éxito: "✅ Producto actualizado exitosamente"
-   - Toast de error: "❌ Error al actualizar: [detalle]"
-   - Redirección a /productos tras éxito
+5. **Ejecutar migración**:
+   - Generar migración: npx prisma migrate dev --name add-sales-models
+   - Verificar que la migración se aplica correctamente
+   - Actualizar Prisma Client: npx prisma generate
 
-6. **Diseño UI**:
-   - Reutilizar componentes del US-004 (máxima reutilización)
-   - Considerar crear componente compartido ProductForm.tsx
-   - Título: "Editar Producto"
-   - Breadcrumb visual: "Productos > Editar > [Nombre]"
-   - Diferenciar variantes existentes vs nuevas visualmente
-   - Mismo diseño responsive que US-004
+6. **Seed de datos de ejemplo** (opcional):
+   - Agregar 2-3 clientes de ejemplo en prisma/seed.ts
+   - Ejemplo: "Juan Pérez", "María García"
 
-7. **Navegación**:
-   - Modificar botón "✏️ Editar" del listado (US-003)
-   - Debe navegar a: /productos/[id]/editar
-   - Link en app/productos/page.tsx
-
-8. **Testing**:
-   - Verificar typecheck: npm run typecheck
-   - Verificar lint: npm run lint
-   - Probar en navegador todas las funcionalidades
+7. **Verificación**:
+   - Revisar que los modelos están correctamente relacionados
+   - Verificar que las cascadas de eliminación están configuradas
+   - Confirmar que npx prisma studio muestra los nuevos modelos
+   - Verificar que typecheck pasa
 
 🚀 ARCHIVOS A CREAR/MODIFICAR:
-- app/productos/[id]/editar/page.tsx (nuevo)
-- app/productos/page.tsx (modificar - habilitar botón Editar)
-- Opcional: components/ProductForm.tsx (reutilización)
+- prisma/schema.prisma (modificar - agregar 3 modelos nuevos)
+- prisma/migrations/ (nuevo - archivos de migración)
+- prisma/seed.ts (opcional - agregar clientes)
 
-💡 TIPS:
-- Reutiliza TODO el código posible del US-004
-- La diferencia principal: cargar datos con GET y usar PUT
-- Agrega lógica para distinguir variantes con id (existentes) vs sin id (nuevas)
-- El backend debe eliminar variantes que ya no están en el array
+📝 NOTAS:
+- Este US es solo base de datos, NO incluye APIs ni UI
+- Los siguientes US (010, 011) agregarán backend y frontend
+- El campo totalAmount se calcula como suma de subtotales
+- El campo subtotal es quantity * unitPrice
+- paymentMethod determina qué precio usar (cash, debit, financedPrice)
 
-Implementa esta funcionalidad completa. ¡Gracias! 🎉
+Implementa estos modelos y ejecuta la migración. ¡Gracias! 🎉
 ```
+
+¿Con cuál opción quieres continuar? 🚀
