@@ -5,7 +5,7 @@
 **Methodology:** Ralph Manual Implementation  
 **Team Size:** 1 Developer  
 **Duration:** Multiple development sessions  
-**Status:** ✅ **INVENTORY SYSTEM COMPLETED - 9 USER STORIES**
+**Status:** ✅ **INVENTORY SYSTEM COMPLETED - 10 USER STORIES**
 
 ---
 
@@ -13,8 +13,8 @@
 
 | Metric | Value |
 |--------|--------|
-| **User Stories Completed** | 9/9 (US-001, US-002, US-003, US-004, US-006, US-007, US-008, US-016, US-017, US-018, US-019) |
-| **Story Points Delivered** | 88+ |
+| **User Stories Completed** | 10/10 (US-001, US-002, US-003, US-004, US-005, US-006, US-007, US-008, US-016, US-017, US-018, US-019) |
+| **Story Points Delivered** | 98+ |
 | **Code Quality** | Production Ready |
 | **Test Coverage** | Manual Testing + API Scripts |
 | **Performance** | Optimized with Transactions |
@@ -60,12 +60,15 @@
 - **Error Handling**: Robust error states and user feedback
 - **Code Quality**: Well-structured, maintainable code with clear separation of concerns
 
-#### ➕ **US-004: Product Creation Form**
+#### ➕ **US-004 & US-005: Product Forms (Creation & Editing)**
 - **Dynamic Variants**: Add/remove variants with real-time validation
 - **Auto-generated SKUs**: Intelligent SKU generation based on product attributes
 - **Multi-price Support**: Cash, debit, and financed pricing
 - **Form Validation**: Comprehensive client-side validation
 - **User Feedback**: Loading states, success/error toasts
+- **Edit Pre-filling**: Existing product data loaded automatically
+- **Variant Distinction**: Clear badges for existing vs new variants
+- **Stock Validation**: Prevent deletion of variants with stock
 
 #### 🏢 **US-017: Supplier Management**
 - **Complete CRUD**: Full lifecycle management for suppliers
@@ -193,6 +196,21 @@
 - Integración con API POST /api/products
 - Toasts de éxito/error con feedback visual
 - Redirección automática tras éxito
+
+### ✏️ **US-005: Formulario de Edición de Productos**
+**Status:** ✅ **COMPLETED**  
+**Story Points:** 10  
+**Key Features:**
+- Página de edición en /productos/[id]/editar
+- Carga de datos existentes con GET /api/products/[id]
+- Pre-llenado automático del formulario
+- Gestión avanzada de variantes (existentes vs nuevas)
+- Badges distintivos para variantes existentes/nuevas
+- Validación de eliminación basada en stock
+- Confirmación para eliminar variantes con stock
+- Guardado con PUT /api/products/[id]
+- UI consistente reutilizando código del US-004
+- Navegación funcional desde botón "Editar" del listado
 
 ### 📦 **US-006: Modelo de Base de Datos para Compras**
 **Status:** ✅ **COMPLETED**  
