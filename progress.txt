@@ -40,3 +40,23 @@
   - Mensajes de error detallados (incluyen producto y variante específica)
   - Importante: Los productos importados tienen precios en 0, necesitan actualización manual antes de poder vender
 - **Próximo paso**: US-011 - Interfaz de registro de ventas (formulario + listado)
+
+---
+
+## 2026-01-12 21:40 - US-011 Sales Registration Interface
+- **Implementado**: Interfaz completa de ventas con formulario y listado
+- **Archivos creados**:
+  - src/app/ventas/nueva/page.tsx (formulario de nueva venta - 650 líneas)
+  - src/app/ventas/page.tsx (actualizado - listado y detalle de ventas)
+- **Learnings para futuras iteraciones**:
+  - useEffect para actualizar precios cuando cambia priceType evita recalcular manualmente
+  - Búsqueda en tiempo real con filter() de array local es más rápida que API calls
+  - showResults flag para controlar dropdown evita renderizado innecesario
+  - Validación de stock en updateQuantity previene errores antes de submit
+  - Sticky summary panel (position: sticky) mantiene visibilidad del total al hacer scroll
+  - Router.push() después del éxito proporciona mejor UX que recargar página
+  - Modal de detalle reutiliza estructura de datos del listado
+  - Calcular stats (hoy/mes/total/promedio) en el cliente es eficiente con datasets pequeños
+  - Badges con colores diferentes para payment method y price type mejoran escaneabilidad visual
+  - Empty state con CTA incrementa conversión de usuarios a primera acción
+- **Próximo paso**: Testing en navegador y correcciones de UX si es necesario
