@@ -49,6 +49,7 @@ model ProductVariant {
   
   product         Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
   purchaseItems   PurchaseItem[]
+  saleItems       SaleItem[]
   
   @@index([sku])
   @@index([productId])
@@ -147,14 +148,15 @@ model Sale {
 }
 
 model SaleItem {
-  id               String   @id @default(cuid())
-  saleId           String   @map("sale_id")
-  productVariantId String   @map("product_variant_id")
+  id               String         @id @default(cuid())
+  saleId           String         @map("sale_id")
+  productVariantId String         @map("product_variant_id")
   quantity         Int
-  unitPrice        Decimal  @map("unit_price") @db.Decimal(10, 2)
-  subtotal         Decimal  @db.Decimal(10, 2)
+  unitPrice        Decimal        @map("unit_price") @db.Decimal(10, 2)
+  subtotal         Decimal        @db.Decimal(10, 2)
   
-  sale             Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  sale             Sale           @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
   
   @@index([saleId])
   @@index([productVariantId])
