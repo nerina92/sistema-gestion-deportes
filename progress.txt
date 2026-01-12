@@ -20,3 +20,23 @@
   - price_type: cash/debit/financed para determinar qué precio usar al calcular
   - Importante: SaleItem NO tiene timestamps (createdAt/updatedAt) para simplificar
 - **Próximo paso**: US-010 - Implementar API backend para registrar ventas con decremento automático de stock
+
+---
+
+## 2026-01-12 20:50 - US-010 Sales Backend API
+- **Implementado**: API completa de ventas con validación y decremento automático de stock
+- **Archivos creados**:
+  - src/app/api/sales/route.ts (POST y GET /api/sales)
+  - src/app/api/sales/[id]/route.ts (GET /api/sales/:id)
+  - test-sales-api.js (tests con autenticación)
+  - test-sales-api.sh (tests alternativos en bash)
+- **Learnings para futuras iteraciones**:
+  - Transacciones Prisma con $transaction garantizan atomicidad completa
+  - Patrón: verificar stock → calcular precios → crear venta → decrementar stock (todo en una transacción)
+  - Usar .mul() y .add() de Decimal para cálculos monetarios precisos
+  - Errores de negocio lanzados en transacción hacen rollback automático
+  - priceType determina qué campo de precio usar: cash→priceCash, debit→priceDebit, financed→priceFinanced
+  - Validaciones exhaustivas antes de transacción evitan rollbacks innecesarios
+  - Mensajes de error detallados (incluyen producto y variante específica)
+  - Importante: Los productos importados tienen precios en 0, necesitan actualización manual antes de poder vender
+- **Próximo paso**: US-011 - Interfaz de registro de ventas (formulario + listado)
