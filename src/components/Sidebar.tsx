@@ -7,11 +7,11 @@ import {
   FaBox, 
   FaShoppingCart, 
   FaTruck, 
-  FaUsers, 
   FaChartBar, 
   FaCog,
   FaTimes
 } from 'react-icons/fa';
+import { Building2 } from 'lucide-react';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -46,7 +46,7 @@ const menuItems = [
   {
     name: 'Proveedores',
     href: '/proveedores',
-    icon: FaUsers,
+    icon: Building2,
     disabled: false,
   },
   {
