@@ -309,7 +309,7 @@
         "Typecheck/lint pasa",
         "Verificar en navegador usando dev-browser skill"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-012",
