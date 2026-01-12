@@ -1,0 +1,22 @@
+## Codebase Patterns
+- Database models use snake_case for field names (mapped with @map)
+- All monetary values use Decimal type with @db.Decimal(10, 2)
+- All tables have createdAt/updatedAt timestamps
+- Relations use onDelete: Cascade for items, RESTRICT for references
+- Indexes added for foreign keys and frequently queried fields
+
+---
+
+## 2026-01-12 20:23 - US-009 Sales Database Models
+- **Implementado**: Modelos de base de datos para sistema de ventas
+- **Archivos modificados**:
+  - prisma/schema.prisma (agregado Sale y SaleItem models)
+  - prisma/migrations/20260112202326_add_sales_models/migration.sql
+- **Learnings para futuras iteraciones**:
+  - Los modelos Sale y SaleItem ya existían parcialmente, solo faltaba agregar la relación en ProductVariant
+  - La migración solo agregó la foreign key faltante (sale_items -> product_variants)
+  - El esquema sigue el patrón establecido: snake_case para campos DB, camelCase en Prisma
+  - payment_method: cash/card/transfer para método de pago
+  - price_type: cash/debit/financed para determinar qué precio usar al calcular
+  - Importante: SaleItem NO tiene timestamps (createdAt/updatedAt) para simplificar
+- **Próximo paso**: US-010 - Implementar API backend para registrar ventas con decremento automático de stock
