@@ -269,7 +269,7 @@
         "Migración ejecutada exitosamente",
         "Typecheck/lint pasa"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-010",
