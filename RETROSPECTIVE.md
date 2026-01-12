@@ -5,7 +5,7 @@
 **Methodology:** Ralph Manual Implementation  
 **Team Size:** 1 Developer  
 **Duration:** Multiple development sessions  
-**Status:** ✅ **ADVANCED PHASE COMPLETED - 8 USER STORIES**
+**Status:** ✅ **INVENTORY SYSTEM COMPLETED - 9 USER STORIES**
 
 ---
 
@@ -13,15 +13,15 @@
 
 | Metric | Value |
 |--------|--------|
-| **User Stories Completed** | 8/8 (US-001, US-002, US-003, US-004, US-006, US-007, US-016, US-017, US-018, US-019) |
-| **Story Points Delivered** | 75+ |
+| **User Stories Completed** | 9/9 (US-001, US-002, US-003, US-004, US-006, US-007, US-008, US-016, US-017, US-018, US-019) |
+| **Story Points Delivered** | 88+ |
 | **Code Quality** | Production Ready |
 | **Test Coverage** | Manual Testing + API Scripts |
 | **Performance** | Optimized with Transactions |
 | **PRD Implementation** | Ralph Manual Methodology |
 | **Architecture** | Next.js 14 + TypeScript + Prisma + PostgreSQL |
 | **Authentication** | JWT + Middleware Protection |
-| **Modules Completed** | Products, Suppliers, Purchases (Inventory Management) |
+| **Modules Completed** | Products, Suppliers, Purchases (Complete Inventory System) |
 
 ---
 
@@ -234,6 +234,30 @@
 - Manejo de errores con rollback automático
 - Scripts de testing incluidos
 
+### 📱 **US-008: Interfaz de Registro de Compras**
+**Status:** ✅ **COMPLETED**  
+**Story Points:** 13  
+**Key Features:**
+- Página de listado completo (/compras)
+- Tabla con todas las compras y sus detalles
+- Filtros de búsqueda por proveedor o ID
+- Modal de detalle con información completa
+- Estados visuales con badges (Pendiente, Aprobada, Cancelada)
+- Formulario de nueva compra (/compras/nueva)
+- Selector de proveedor con carga desde API
+- Búsqueda de productos en tiempo real con debounce
+- Selector dinámico de productos y variantes
+- Campos de cantidad y costo unitario
+- Cálculo automático de subtotales y total general
+- Botones para agregar/eliminar items dinámicamente
+- Auto-llenado del costo con precio anterior
+- Muestra stock actual de cada variante
+- Validaciones completas (proveedor, productos, cantidades)
+- Prevención de variantes duplicadas
+- Integración completa con APIs existentes
+- Formato de moneda y fechas en español argentino
+- Diseño responsive con estados de carga
+
 ---
 
 ## 🚧 What Could Be Improved
@@ -267,8 +291,8 @@
 ## 📈 Sprint Metrics
 
 ### ⚡ **Productivity Metrics - Complete Project**
-- **Lines of Code**: ~5,000+ lines of production code
-- **User Stories Delivered**: 8 complete user stories (10 if counting US-001 and US-019 separately)
+- **Lines of Code**: ~6,000+ lines of production code
+- **User Stories Delivered**: 9 complete user stories (11 if counting US-001 and US-019 separately)
 - **API Endpoints Created**: 15+ endpoints (auth, products, suppliers, purchases)
 - **Components Created**: 25+ major components (Auth, Products, Suppliers, Purchases, Navigation)
 - **Database Models**: 6 core models (Product, ProductVariant, User, Supplier, Purchase, PurchaseItem)
@@ -452,22 +476,21 @@ This project successfully implemented a comprehensive sports retail management s
 
 **PRD Implementation Status:**
 - **Foundation Phase**: ✅ 100% Complete (US-001, US-016, US-018, US-019)
-- **Product Management**: ✅ 100% Complete (US-002, US-003, US-004)
+- **Product Management**: ✅ 75% Complete (US-002, US-003, US-004) | 🔄 Edit Pending (US-005)
 - **Supplier Management**: ✅ 100% Complete (US-017)
-- **Purchase Management**: ✅ Backend Complete (US-006, US-007) | 🔄 Frontend Pending (US-008)
+- **Purchase Management**: ✅ 100% Complete (US-006, US-007, US-008)
 - **Sales Management**: 📋 Ready to begin (US-009, US-010, US-011)
 - **Advanced Features**: 📋 Roadmap defined
 
 **Modules Completed:**
 - ✅ Authentication & Authorization
-- ✅ Product Management (Full CRUD + UI)
+- ✅ Product Management (Create + List + UI) | 🔄 Edit Pending
 - ✅ Supplier Management (Full CRUD + UI)
-- ✅ Purchase Management (Backend + Stock Updates)
-- 🔄 Purchase Management UI (US-008 - Next)
+- ✅ Purchase Management (Full CRUD + UI + Stock Updates)
 
-**Ready for Production:** ✅ Authentication, Products, Suppliers  
-**Ready for Business Users:** ✅ Yes (3 complete modules)  
-**Inventory System:** ✅ Functional with automatic stock updates  
+**Ready for Production:** ✅ Authentication, Products, Suppliers, Purchases  
+**Ready for Business Users:** ✅ Yes (4 complete modules)  
+**Inventory System:** ✅ Fully functional with automatic stock management  
 **Next Phase Planning:** ✅ PRD roadmap available
 
 **System Highlights:**
@@ -483,6 +506,107 @@ This project successfully implemented a comprehensive sports retail management s
 ---
 
 *Generated on: 12 de enero de 2026*  
-*Sprint: US-007 Completion - Purchase Backend*  
+*Sprint: US-008 Completion - Purchase Frontend Complete*  
 *Team: Sistema Gestión Deportes*  
-*Status: 8 User Stories Completed | Ready for US-008*
+*Status: 9 User Stories Completed | Inventory System Complete | Ready for US-005*
+
+---
+
+## 🎯 NEXT: US-005 - Formulario de Edición de Producto
+
+### **Prompt para Copilot en VS Code:**
+
+```
+Implementa el US-005: Formulario de edición de producto
+
+📋 CONTEXTO:
+Ya tenemos:
+- US-004: Formulario de creación de productos funcionando
+- US-002: Backend con PUT /api/products/[id] implementado
+- US-003: Listado con botón "✏️ Editar" que debe activarse
+
+🎯 OBJETIVO US-005:
+Permitir editar productos existentes y sus variantes, agregando nuevas variantes, editando existentes y eliminando variantes con validaciones de stock.
+
+✅ CRITERIOS DE ACEPTACIÓN:
+
+1. **Cargar datos existentes**:
+   - Ruta: `/productos/[id]/editar`
+   - Al entrar, hacer GET a `/api/products/[id]` para cargar producto completo
+   - Pre-llenar formulario con todos los campos actuales
+   - Pre-llenar variantes existentes con sus datos
+   - Mostrar loading spinner mientras carga
+   - Manejar error 404 si el producto no existe
+   - Mensaje de error: "Producto no encontrado"
+
+2. **Formulario principal** (igual que US-004):
+   - Nombre (requerido, pre-llenado)
+   - Marca (pre-llenado)
+   - Categoría (dropdown, pre-seleccionado)
+   - Descripción (textarea, pre-llenado)
+   - Código de barras (pre-llenado)
+   - URL de imagen (pre-llenado)
+
+3. **Sección de variantes mejorada**:
+   - **Variantes existentes**: Mostrar con sus datos actuales
+     * Marcar visualmente como "existente" (ej: badge "Existente")
+     * Permitir editar: talla, color, SKU, precios, stocks
+     * Mostrar ID de la variante (oculto, para el backend)
+   - **Botón "➕ Agregar variante"**: Para crear nuevas variantes
+   - **Botón "🗑️ Eliminar variante"** con validación:
+     * Si la variante tiene stock > 0: Mostrar confirmación
+     * Modal: "⚠️ Esta variante tiene stock de X unidades. ¿Estás seguro de eliminarla?"
+     * Botones: "Cancelar" / "Eliminar de todas formas"
+     * Si stock = 0: Confirmar con mensaje simple
+   - **Variantes nuevas**: Marcar como "Nueva" (badge opcional)
+   - Mínimo 1 variante siempre requerida
+
+4. **Validaciones** (igual que US-004):
+   - Nombre requerido
+   - Mínimo 1 variante
+   - Todos los precios > 0
+   - Stocks >= 0
+   - No permitir SKU duplicados
+   - Mostrar errores bajo cada campo
+
+5. **Funcionalidad de guardado**:
+   - Botón "💾 Guardar cambios" que:
+     * Valida todos los campos
+     * Muestra loading spinner
+     * Hace PUT a /api/products/[id] con estructura completa
+   - Botón "❌ Cancelar" que vuelve a /productos
+   - Toast de éxito: "✅ Producto actualizado exitosamente"
+   - Toast de error: "❌ Error al actualizar: [detalle]"
+   - Redirección a /productos tras éxito
+
+6. **Diseño UI**:
+   - Reutilizar componentes del US-004 (máxima reutilización)
+   - Considerar crear componente compartido ProductForm.tsx
+   - Título: "Editar Producto"
+   - Breadcrumb visual: "Productos > Editar > [Nombre]"
+   - Diferenciar variantes existentes vs nuevas visualmente
+   - Mismo diseño responsive que US-004
+
+7. **Navegación**:
+   - Modificar botón "✏️ Editar" del listado (US-003)
+   - Debe navegar a: /productos/[id]/editar
+   - Link en app/productos/page.tsx
+
+8. **Testing**:
+   - Verificar typecheck: npm run typecheck
+   - Verificar lint: npm run lint
+   - Probar en navegador todas las funcionalidades
+
+🚀 ARCHIVOS A CREAR/MODIFICAR:
+- app/productos/[id]/editar/page.tsx (nuevo)
+- app/productos/page.tsx (modificar - habilitar botón Editar)
+- Opcional: components/ProductForm.tsx (reutilización)
+
+💡 TIPS:
+- Reutiliza TODO el código posible del US-004
+- La diferencia principal: cargar datos con GET y usar PUT
+- Agrega lógica para distinguir variantes con id (existentes) vs sin id (nuevas)
+- El backend debe eliminar variantes que ya no están en el array
+
+Implementa esta funcionalidad completa. ¡Gracias! 🎉
+```

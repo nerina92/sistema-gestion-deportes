@@ -672,8 +672,8 @@ export default function ProductosPage() {
                           Ver
                         </button>
                         <button
-                          onClick={() => alert('Próximamente - US-005: Editar producto')}
-                          className="text-gray-600 hover:text-gray-900 inline-flex items-center"
+                          onClick={() => router.push(`/productos/${product.id}/editar`)}
+                          className="text-blue-600 hover:text-blue-900 inline-flex items-center"
                         >
                           <Edit className="h-4 w-4 mr-1" />
                           Editar
