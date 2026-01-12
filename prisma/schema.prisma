@@ -47,7 +47,8 @@ model ProductVariant {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
   
-  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product         Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  purchaseItems   PurchaseItem[]
   
   @@index([sku])
   @@index([productId])
@@ -77,11 +78,11 @@ model User {
 model Supplier {
   id          String     @id @default(cuid())
   name        String
-  contactName String?    @map("contact_name")
-  phone       String?
   email       String?
+  phone       String?
   address     String?
   notes       String?
+  isActive    Boolean    @default(true) @map("is_active")
   createdAt   DateTime   @default(now()) @map("created_at")
   updatedAt   DateTime   @updatedAt @map("updated_at")
   
@@ -93,11 +94,12 @@ model Supplier {
 model Purchase {
   id            String         @id @default(cuid())
   supplierId    String         @map("supplier_id")
-  purchaseDate  DateTime       @map("purchase_date")
-  invoiceNumber String?        @map("invoice_number")
+  purchaseDate  DateTime       @default(now()) @map("purchase_date")
   totalAmount   Decimal        @map("total_amount") @db.Decimal(10, 2)
   notes         String?
+  status        String         @default("completed") // completed, pending, cancelled
   createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
   
   supplier      Supplier       @relation(fields: [supplierId], references: [id])
   items         PurchaseItem[]
@@ -114,8 +116,11 @@ model PurchaseItem {
   quantity         Int
   unitCost         Decimal        @map("unit_cost") @db.Decimal(10, 2)
   subtotal         Decimal        @db.Decimal(10, 2)
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
   
   purchase         Purchase       @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
   
   @@index([purchaseId])
   @@index([productVariantId])

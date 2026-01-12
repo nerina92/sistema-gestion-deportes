@@ -44,6 +44,52 @@ async function main() {
     const userCount = await prisma.user.count();
     console.log(`📊 Total de usuarios en la base de datos: ${userCount}`);
 
+    // Crear proveedores de ejemplo
+    console.log('🏢 Creando proveedores de ejemplo...');
+    
+    const suppliersData = [
+      {
+        name: 'Nike Argentina',
+        email: 'contacto@nike.com.ar',
+        phone: '+54 11 4444-5555',
+        address: 'Av. Corrientes 1000, CABA, Argentina',
+        notes: 'Proveedor oficial de productos Nike para Argentina'
+      },
+      {
+        name: 'Adidas Proveedor',
+        email: 'ventas@adidas.com.ar',
+        phone: '+54 11 6666-7777',
+        address: 'Av. Santa Fe 2000, CABA, Argentina',
+        notes: 'Distribuidor autorizado de productos Adidas'
+      },
+      {
+        name: 'Distribuidor Local',
+        email: 'info@distribuidorlocal.com',
+        phone: '+54 358 123-4567',
+        address: 'Calle Principal 123, Laboulaye, Córdoba',
+        notes: 'Distribuidor local con productos de varias marcas'
+      }
+    ];
+
+    for (const supplierData of suppliersData) {
+      // Verificar si el proveedor ya existe
+      const existingSupplier = await prisma.supplier.findFirst({
+        where: { name: supplierData.name }
+      });
+
+      if (existingSupplier) {
+        console.log(`⏭️ Proveedor "${supplierData.name}" ya existe, saltando...`);
+      } else {
+        const supplier = await prisma.supplier.create({
+          data: supplierData
+        });
+        console.log(`✅ Proveedor creado: ${supplier.name}`);
+      }
+    }
+
+    const supplierCount = await prisma.supplier.count();
+    console.log(`📊 Total de proveedores en la base de datos: ${supplierCount}`);
+
     console.log('🎉 Seeding completado exitosamente!');
     
     if (!existingAdmin) {
