@@ -2,14 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  FaHome, 
-  FaBox, 
-  FaShoppingCart, 
-  FaTruck, 
-  FaChartBar, 
+import {
+  FaHome,
+  FaBox,
+  FaShoppingCart,
+  FaTruck,
+  FaChartBar,
   FaCog,
-  FaTimes
+  FaTimes,
+  FaExclamationTriangle
 } from 'react-icons/fa';
 import { Building2 } from 'lucide-react';
 
@@ -29,6 +30,12 @@ const menuItems = [
     name: 'Productos',
     href: '/productos',
     icon: FaBox,
+    disabled: false,
+  },
+  {
+    name: 'Stock Bajo',
+    href: '/productos/stock-bajo',
+    icon: FaExclamationTriangle,
     disabled: false,
   },
   {
