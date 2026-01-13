@@ -139,18 +139,18 @@ export default function EditarProductoPage() {
           category: productData.category || '',
           description: productData.description || '',
           barcode: productData.barcode || '',
-          imageUrl: productData.imageUrl || '',
+          imageUrl: productData.imageUrl || productData.image_url || '',
           variants: productData.variants.map((variant: any) => ({
-            id: variant.id, // Importante: mantener el ID para variantes existentes
+            id: variant.id,
             size: variant.size,
             color: variant.color,
             sku: variant.sku,
-            costPrice: variant.costPrice,
-            priceCash: variant.priceCash,
-            priceDebit: variant.priceDebit,
-            priceFinanced: variant.priceFinanced,
-            stockQuantity: variant.stockQuantity,
-            minStockAlert: variant.minStockAlert
+            costPrice: variant.costPrice || variant.cost_price || 0,
+            priceCash: variant.priceCash || variant.price_cash || 0,
+            priceDebit: variant.priceDebit || variant.price_debit || 0,
+            priceFinanced: variant.priceFinanced || variant.price_financed || 0,
+            stockQuantity: variant.stockQuantity || variant.stock_quantity || 0,
+            minStockAlert: variant.minStockAlert || variant.min_stock_alert || 0
           }))
         });
         
