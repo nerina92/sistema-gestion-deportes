@@ -26,9 +26,13 @@ interface ProductVariant {
   id: string;
   size: string;
   color: string;
-  stock_quantity: number;
-  min_stock_alert: number;
-  price_cash: number;
+  sku: string;
+  stockQuantity: number;
+  minStockAlert: number;
+  priceCash: number;
+  priceDebit: number;
+  priceFinanced: number;
+  costPrice: number;
 }
 
 interface Product {
@@ -127,9 +131,11 @@ export default function ProductosPage() {
       // Procesar productos para agregar campos calculados
       const processedProducts = data.products.map((product: any) => ({
         ...product,
-        totalStock: product.variants.reduce((sum: number, variant: ProductVariant) => sum + variant.stock_quantity, 0),
+        totalStock: product.variants.reduce((sum: number, variant: any) => 
+          sum + (variant.stockQuantity || variant.stock_quantity || 0), 0),
         variantCount: product.variants.length,
-        hasLowStock: product.variants.some((variant: ProductVariant) => variant.stock_quantity <= variant.min_stock_alert)
+        hasLowStock: product.variants.some((variant: any) => 
+          (variant.stockQuantity || variant.stock_quantity || 0) <= (variant.minStockAlert || variant.min_stock_alert || 5))
       }));
 
       setProducts(processedProducts);
@@ -433,21 +439,21 @@ export default function ProductosPage() {
                         {variant.color}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {variant.stock_quantity}
+                        {(variant as any).stockQuantity || (variant as any).stock_quantity || 0}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {variant.min_stock_alert}
+                        {(variant as any).minStockAlert || (variant as any).min_stock_alert || 5}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ${variant.price_cash.toFixed(2)}
+                        ${((variant as any).priceCash || (variant as any).price_cash || 0).toFixed(2)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {variant.stock_quantity <= variant.min_stock_alert ? (
+                        {((variant as any).stockQuantity || (variant as any).stock_quantity || 0) <= ((variant as any).minStockAlert || (variant as any).min_stock_alert || 5) ? (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                             <AlertTriangle className="h-3 w-3 mr-1" />
                             Bajo
                           </span>
-                        ) : variant.stock_quantity === 0 ? (
+                        ) : ((variant as any).stockQuantity || (variant as any).stock_quantity || 0) === 0 ? (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                             <XCircle className="h-3 w-3 mr-1" />
                             Sin stock
