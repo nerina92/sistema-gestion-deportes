@@ -60,3 +60,22 @@
   - Badges con colores diferentes para payment method y price type mejoran escaneabilidad visual
   - Empty state con CTA incrementa conversión de usuarios a primera acción
 - **Próximo paso**: Testing en navegador y correcciones de UX si es necesario
+
+---
+
+## 2026-01-12 22:00 - US-012 Dashboard Principal
+- **Implementado**: Dashboard completo con métricas reales en tiempo real
+- **Archivos modificados**:
+  - src/app/dashboard/page.tsx (reescrito completamente - 430 líneas)
+- **Learnings para futuras iteraciones**:
+  - Fetch paralelo de múltiples APIs (sales + products) optimiza tiempo de carga
+  - calculateStats como función separada facilita testing y mantenimiento
+  - Filtrado de fechas con .startsWith() es más rápido que Date comparisons para mismo día/mes
+  - Color coding en cards (green/blue/red/purple) mejora escaneabilidad de métricas
+  - Banner de alerta condicional (solo si lowStockCount > 0) reduce ruido visual
+  - Empty states específicos por sección (ventas vs stock) mejoran UX
+  - Links directos desde dashboard a acciones (ej: lowStock → /productos?filter=lowStock) acelera workflow
+  - Animaciones CSS con group-hover y scale transform agregan polish sin JavaScript
+  - Badge de "Sin stock" vs "Bajo" con colores diferentes ayuda a priorizar
+  - Loading state genérico ("Cargando...") es suficiente para dashboard, no necesita skeleton
+- **Próximo paso**: Opcional - Implementar filtro de stock bajo en página de productos o continuar con siguiente US
