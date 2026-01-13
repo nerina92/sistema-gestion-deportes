@@ -1,8 +1,124 @@
 'use client';
 
-import { FaHome, FaBox, FaShoppingCart, FaTruck, FaChartLine, FaExclamationTriangle, FaCheckCircle } from 'react-icons/fa';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { 
+  FaHome, 
+  FaBox, 
+  FaShoppingCart, 
+  FaTruck, 
+  FaChartLine, 
+  FaExclamationTriangle,
+  FaArrowRight,
+  FaCalendar
+} from 'react-icons/fa';
+
+interface DashboardStats {
+  salesToday: number;
+  salesMonth: number;
+  lowStockCount: number;
+  totalProducts: number;
+}
+
+interface RecentSale {
+  id: string;
+  saleDate: string;
+  totalAmount: string;
+  paymentMethod: string;
+  itemCount: number;
+}
+
+interface LowStockItem {
+  id: string;
+  productName: string;
+  size: string;
+  color: string;
+  stockQuantity: number;
+  minStockAlert: number;
+}
 
 export default function DashboardPage() {
+  const [stats, setStats] = useState<DashboardStats>({
+    salesToday: 0,
+    salesMonth: 0,
+    lowStockCount: 0,
+    totalProducts: 0
+  });
+  const [recentSales, setRecentSales] = useState<RecentSale[]>([]);
+  const [lowStockItems, setLowStockItems] = useState<LowStockItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      // Fetch sales
+      const salesRes = await fetch('/api/sales');
+      const salesData = await salesRes.json();
+      
+      // Fetch products
+      const productsRes = await fetch('/api/products?page=1&pageSize=1000');
+      const productsData = await productsRes.json();
+
+      if (salesData.success && productsData.products) {
+        calculateStats(salesData.data, productsData.products);
+        setRecentSales(salesData.data.slice(0, 5));
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const calculateStats = (sales: RecentSale[], products: any[]) => {
+    const today = new Date().toISOString().split('T')[0];
+    const thisMonth = new Date().toISOString().substring(0, 7);
+
+    // Calculate sales
+    const salesToday = sales
+      .filter(s => s.saleDate.startsWith(today))
+      .reduce((sum, s) => sum + parseFloat(s.totalAmount), 0);
+
+    const salesMonth = sales
+      .filter(s => s.saleDate.startsWith(thisMonth))
+      .reduce((sum, s) => sum + parseFloat(s.totalAmount), 0);
+
+    // Calculate low stock items
+    const lowStock: LowStockItem[] = [];
+    products.forEach(product => {
+      product.variants?.forEach((variant: any) => {
+        if (variant.stockQuantity <= variant.minStockAlert) {
+          lowStock.push({
+            id: variant.id,
+            productName: product.name,
+            size: variant.size,
+            color: variant.color,
+            stockQuantity: variant.stockQuantity,
+            minStockAlert: variant.minStockAlert
+          });
+        }
+      });
+    });
+
+    setLowStockItems(lowStock.slice(0, 5));
+
+    setStats({
+      salesToday,
+      salesMonth,
+      lowStockCount: lowStock.length,
+      totalProducts: products.length
+    });
+  };
+
+  const paymentMethodLabels: Record<string, string> = {
+    cash: 'Efectivo',
+    card: 'Tarjeta',
+    transfer: 'Transferencia'
+  };
+
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
@@ -12,200 +128,267 @@ export default function DashboardPage() {
           Dashboard
         </h1>
         <p className="mt-2 text-gray-600">
-          Resumen general del sistema de gestión de Deportes Laboulaye
+          Resumen general del negocio - {new Date().toLocaleDateString('es-AR', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })}
         </p>
       </div>
 
-      {/* Cards de resumen */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Sales Today */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <FaBox className="h-6 w-6 text-blue-600" />
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Ventas de Hoy</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">
+                ${isLoading ? '...' : stats.salesToday.toFixed(0)}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">Total del día</p>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Productos</p>
-              <p className="text-2xl font-bold text-gray-900">0</p>
-              <p className="text-xs text-gray-500">Total en inventario</p>
+            <div className="p-3 bg-green-100 rounded-lg">
+              <FaShoppingCart className="h-8 w-8 text-green-600" />
             </div>
           </div>
         </div>
 
+        {/* Sales Month */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <FaShoppingCart className="h-6 w-6 text-green-600" />
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Ventas del Mes</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">
+                ${isLoading ? '...' : stats.salesMonth.toFixed(0)}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">Total mensual</p>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Ventas Hoy</p>
-              <p className="text-2xl font-bold text-gray-900">$0</p>
-              <p className="text-xs text-gray-500">Total del día</p>
+            <div className="p-3 bg-blue-100 rounded-lg">
+              <FaChartLine className="h-8 w-8 text-blue-600" />
             </div>
           </div>
         </div>
 
+        {/* Low Stock */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <FaTruck className="h-6 w-6 text-purple-600" />
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Stock Bajo</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">
+                {isLoading ? '...' : stats.lowStockCount}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">Productos críticos</p>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Compras</p>
-              <p className="text-2xl font-bold text-gray-900">0</p>
-              <p className="text-xs text-gray-500">Órdenes activas</p>
+            <div className={`p-3 rounded-lg ${stats.lowStockCount > 0 ? 'bg-red-100' : 'bg-gray-100'}`}>
+              <FaExclamationTriangle className={`h-8 w-8 ${stats.lowStockCount > 0 ? 'text-red-600' : 'text-gray-400'}`} />
             </div>
           </div>
+          {stats.lowStockCount > 0 && (
+            <Link 
+              href="/productos?filter=lowStock"
+              className="mt-3 text-xs text-red-600 hover:text-red-800 font-medium flex items-center"
+            >
+              Ver productos <FaArrowRight className="ml-1" />
+            </Link>
+          )}
         </div>
 
+        {/* Total Products */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-orange-100 rounded-lg">
-              <FaChartLine className="h-6 w-6 text-orange-600" />
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Productos</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">
+                {isLoading ? '...' : stats.totalProducts}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">En inventario</p>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Ingresos</p>
-              <p className="text-2xl font-bold text-gray-900">$0</p>
-              <p className="text-xs text-gray-500">Este mes</p>
+            <div className="p-3 bg-purple-100 rounded-lg">
+              <FaBox className="h-8 w-8 text-purple-600" />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Estado del Sistema */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900 flex items-center">
-              <FaCheckCircle className="mr-2 text-green-500" />
-              Estado del Sistema
-            </h3>
-          </div>
-          <div className="p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <FaCheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                <span className="text-sm text-gray-600">Autenticación</span>
-              </div>
-              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Activo</span>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <FaCheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                <span className="text-sm text-gray-600">API de Productos</span>
-              </div>
-              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Operativo</span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <FaCheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                <span className="text-sm text-gray-600">Base de Datos</span>
-              </div>
-              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Conectada</span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <FaExclamationTriangle className="h-5 w-5 text-yellow-500 mr-3" />
-                <span className="text-sm text-gray-600">Integraciones AFIP</span>
-              </div>
-              <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">Pendiente</span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <FaExclamationTriangle className="h-5 w-5 text-yellow-500 mr-3" />
-                <span className="text-sm text-gray-600">Tienda Nube</span>
-              </div>
-              <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">Pendiente</span>
+      {/* Critical Stock Alert */}
+      {stats.lowStockCount > 0 && (
+        <div className="mb-8 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+          <div className="flex items-start">
+            <FaExclamationTriangle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">
+                Alerta: {stats.lowStockCount} producto{stats.lowStockCount !== 1 ? 's' : ''} con stock crítico
+              </h3>
+              <p className="text-sm text-red-700 mt-1">
+                Algunos productos están por debajo del stock mínimo. Considera realizar una orden de compra.
+              </p>
+              <Link
+                href="/compras/nueva"
+                className="mt-2 inline-flex items-center text-sm font-medium text-red-800 hover:text-red-900"
+              >
+                Registrar compra <FaArrowRight className="ml-1" />
+              </Link>
             </div>
           </div>
         </div>
+      )}
 
-        {/* Actividad Reciente */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Recent Sales */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Actividad Reciente</h3>
+          <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+            <h3 className="text-lg font-semibold text-gray-900">Últimas Ventas</h3>
+            <Link 
+              href="/ventas"
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center"
+            >
+              Ver todas <FaArrowRight className="ml-1 h-3 w-3" />
+            </Link>
           </div>
           <div className="p-6">
-            <div className="text-center py-8">
-              <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FaChartLine className="h-8 w-8 text-gray-400" />
+            {isLoading ? (
+              <div className="text-center py-8 text-gray-500">Cargando...</div>
+            ) : recentSales.length === 0 ? (
+              <div className="text-center py-8">
+                <FaShoppingCart className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 text-sm">No hay ventas registradas</p>
+                <Link
+                  href="/ventas/nueva"
+                  className="mt-3 inline-block text-sm text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Registrar primera venta
+                </Link>
               </div>
-              <p className="text-gray-500 text-sm">
-                No hay actividad reciente para mostrar
-              </p>
-              <p className="text-gray-400 text-xs mt-2">
-                La actividad aparecerá aquí cuando comiences a usar el sistema
-              </p>
-            </div>
+            ) : (
+              <div className="space-y-3">
+                {recentSales.map((sale) => (
+                  <div key={sale.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div className="flex items-center">
+                      <div className="p-2 bg-green-100 rounded">
+                        <FaShoppingCart className="h-4 w-4 text-green-600" />
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-gray-900">
+                          ${parseFloat(sale.totalAmount).toFixed(2)}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(sale.saleDate).toLocaleDateString('es-AR')} • {paymentMethodLabels[sale.paymentMethod]} • {sale.itemCount} items
+                        </p>
+                      </div>
+                    </div>
+                    <Link
+                      href="/ventas"
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      <FaArrowRight className="h-4 w-4" />
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Low Stock Items */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+            <h3 className="text-lg font-semibold text-gray-900">Stock Crítico</h3>
+            <Link 
+              href="/productos?filter=lowStock"
+              className="text-sm text-red-600 hover:text-red-800 font-medium flex items-center"
+            >
+              Ver todos <FaArrowRight className="ml-1 h-3 w-3" />
+            </Link>
+          </div>
+          <div className="p-6">
+            {isLoading ? (
+              <div className="text-center py-8 text-gray-500">Cargando...</div>
+            ) : lowStockItems.length === 0 ? (
+              <div className="text-center py-8">
+                <FaBox className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 text-sm">
+                  ✓ Todos los productos tienen stock adecuado
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {lowStockItems.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center">
+                      <div className={`p-2 rounded ${item.stockQuantity === 0 ? 'bg-red-100' : 'bg-yellow-100'}`}>
+                        <FaExclamationTriangle className={`h-4 w-4 ${item.stockQuantity === 0 ? 'text-red-600' : 'text-yellow-600'}`} />
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-gray-900">
+                          {item.productName}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {item.size} - {item.color} • Stock: {item.stockQuantity} (Mín: {item.minStockAlert})
+                        </p>
+                      </div>
+                    </div>
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      item.stockQuantity === 0 
+                        ? 'bg-red-100 text-red-800' 
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {item.stockQuantity === 0 ? 'Sin stock' : 'Bajo'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Acciones Rápidas */}
-      <div className="mt-8 bg-white rounded-lg shadow-sm border border-gray-200">
+      {/* Quick Actions */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Acciones Rápidas</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Acciones Rápidas</h3>
           <p className="text-sm text-gray-600 mt-1">
-            Funcionalidades principales para gestionar tu negocio
+            Accede rápidamente a las funcionalidades principales
           </p>
         </div>
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <button className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-left">
-              <FaBox className="h-8 w-8 text-blue-600 mb-3" />
-              <h4 className="font-medium text-gray-900">Gestionar Productos</h4>
-              <p className="text-sm text-gray-600 mt-1">Agregar, editar y organizar productos</p>
-            </button>
+            <Link
+              href="/ventas/nueva"
+              className="p-4 border-2 border-gray-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-all text-left group"
+            >
+              <FaShoppingCart className="h-8 w-8 text-green-600 mb-3 group-hover:scale-110 transition-transform" />
+              <h4 className="font-semibold text-gray-900">Nueva Venta</h4>
+              <p className="text-sm text-gray-600 mt-1">Registrar venta rápidamente</p>
+            </Link>
 
-            <button className="p-4 border border-gray-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-colors text-left">
-              <FaShoppingCart className="h-8 w-8 text-green-600 mb-3" />
-              <h4 className="font-medium text-gray-900">Registrar Venta</h4>
-              <p className="text-sm text-gray-600 mt-1">Procesar ventas rápidamente</p>
-            </button>
+            <Link
+              href="/compras/nueva"
+              className="p-4 border-2 border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all text-left group"
+            >
+              <FaTruck className="h-8 w-8 text-purple-600 mb-3 group-hover:scale-110 transition-transform" />
+              <h4 className="font-semibold text-gray-900">Nueva Compra</h4>
+              <p className="text-sm text-gray-600 mt-1">Registrar orden de compra</p>
+            </Link>
 
-            <button className="p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors text-left">
-              <FaTruck className="h-8 w-8 text-purple-600 mb-3" />
-              <h4 className="font-medium text-gray-900">Orden de Compra</h4>
-              <p className="text-sm text-gray-600 mt-1">Crear órdenes a proveedores</p>
-            </button>
+            <Link
+              href="/productos/nuevo"
+              className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all text-left group"
+            >
+              <FaBox className="h-8 w-8 text-blue-600 mb-3 group-hover:scale-110 transition-transform" />
+              <h4 className="font-semibold text-gray-900">Nuevo Producto</h4>
+              <p className="text-sm text-gray-600 mt-1">Agregar producto al inventario</p>
+            </Link>
 
-            <button className="p-4 border border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-colors text-left">
-              <FaChartLine className="h-8 w-8 text-orange-600 mb-3" />
-              <h4 className="font-medium text-gray-900">Ver Reportes</h4>
-              <p className="text-sm text-gray-600 mt-1">Análisis de ventas y inventario</p>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Información del Proyecto */}
-      <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <div className="flex items-start">
-          <div className="flex-shrink-0">
-            <div className="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold">DL</span>
-            </div>
-          </div>
-          <div className="ml-4">
-            <h3 className="text-lg font-medium text-blue-900">
-              ¡Bienvenido al Sistema de Gestión de Deportes Laboulaye!
-            </h3>
-            <p className="mt-2 text-blue-800">
-              El sistema está configurado y listo para usar. Todas las funcionalidades de autenticación 
-              y APIs de productos están operativas. Las demás secciones se irán activando progresivamente.
-            </p>
-            <div className="mt-4">
-              <h4 className="font-medium text-blue-900 mb-2">Funcionalidades Activas:</h4>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>• Sistema de autenticación completo</li>
-                <li>• APIs de productos (CRUD completo)</li>
-                <li>• Layout responsivo con navegación</li>
-                <li>• Base de datos configurada y funcionando</li>
-              </ul>
-            </div>
+            <Link
+              href="/reportes"
+              className="p-4 border-2 border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-all text-left group"
+            >
+              <FaChartLine className="h-8 w-8 text-orange-600 mb-3 group-hover:scale-110 transition-transform" />
+              <h4 className="font-semibold text-gray-900">Reportes</h4>
+              <p className="text-sm text-gray-600 mt-1">Ver análisis y métricas</p>
+            </Link>
           </div>
         </div>
       </div>
