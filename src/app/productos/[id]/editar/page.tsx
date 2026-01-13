@@ -719,7 +719,7 @@ export default function EditarProductoPage() {
                       <input
                         type="number"
                         min="0"
-                        value={variant.stockQuantity}
+                        value={variant.stockQuantity || 0}
                         onChange={(e) => updateVariant(index, 'stockQuantity', parseInt(e.target.value) || 0)}
                         className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                           variantErrors.stockQuantity ? 'border-red-300' : 'border-gray-300'
@@ -739,7 +739,7 @@ export default function EditarProductoPage() {
                         type="number"
                         min="0"
                         step="0.01"
-                        value={variant.costPrice}
+                        value={variant.costPrice || 0}
                         onChange={(e) => updateVariant(index, 'costPrice', parseFloat(e.target.value) || 0)}
                         className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                           variantErrors.costPrice ? 'border-red-300' : 'border-gray-300'
@@ -756,7 +756,7 @@ export default function EditarProductoPage() {
                         type="number"
                         min="0"
                         step="0.01"
-                        value={variant.priceCash}
+                        value={variant.priceCash || 0}
                         onChange={(e) => updateVariant(index, 'priceCash', parseFloat(e.target.value) || 0)}
                         className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                           variantErrors.priceCash ? 'border-red-300' : 'border-gray-300'
@@ -773,7 +773,7 @@ export default function EditarProductoPage() {
                         type="number"
                         min="0"
                         step="0.01"
-                        value={variant.priceDebit}
+                        value={variant.priceDebit || 0}
                         onChange={(e) => updateVariant(index, 'priceDebit', parseFloat(e.target.value) || 0)}
                         className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                           variantErrors.priceDebit ? 'border-red-300' : 'border-gray-300'
@@ -790,7 +790,7 @@ export default function EditarProductoPage() {
                         type="number"
                         min="0"
                         step="0.01"
-                        value={variant.priceFinanced}
+                        value={variant.priceFinanced || 0}
                         onChange={(e) => updateVariant(index, 'priceFinanced', parseFloat(e.target.value) || 0)}
                         className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                           variantErrors.priceFinanced ? 'border-red-300' : 'border-gray-300'
@@ -806,7 +806,7 @@ export default function EditarProductoPage() {
                       <input
                         type="number"
                         min="0"
-                        value={variant.minStockAlert}
+                        value={variant.minStockAlert || 0}
                         onChange={(e) => updateVariant(index, 'minStockAlert', parseInt(e.target.value) || 0)}
                         className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                           variantErrors.minStockAlert ? 'border-red-300' : 'border-gray-300'
