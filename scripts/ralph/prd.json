@@ -41,7 +41,8 @@
         "Migración de base de datos ejecutada exitosamente",
         "Typecheck/lint pasa"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Verificado 2026-01-13: Modelos Product y ProductVariant implementados en schema.prisma con índices y relaciones correctas"
     },
     {
       "id": "US-019",
@@ -69,7 +70,8 @@
         "Typecheck/lint pasa",
         "Verificar en navegador usando dev-browser skill"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Verificado 2026-01-13: Página de importación creada en /productos/importar con upload, preview con selector de talle, y conexión a API existente"
     },
     {
       "id": "US-002",
@@ -88,7 +90,8 @@
         "Typecheck/lint pasa",
         "Tests unitarios de endpoints pasan"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Verificado 2026-01-13: API completa en /api/products con GET, POST, PUT, DELETE implementados"
     },
     {
       "id": "US-016",
@@ -107,7 +110,8 @@
         "Typecheck/lint pasa",
         "Verificar en navegador usando dev-browser skill"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Verificado 2026-01-13: Auth completo con login/logout/me endpoints y middleware"
     },
     {
       "id": "US-018",
@@ -125,7 +129,8 @@
         "Typecheck/lint pasa",
         "Verificar en navegador usando dev-browser skill"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Verificado 2026-01-13: Layout con sidebar, navegación responsive y header implementados"
     },
     {
       "id": "US-003",
@@ -144,7 +149,8 @@
         "Typecheck/lint pasa",
         "Verificar en navegador usando dev-browser skill"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Verificado 2026-01-13: Listado completo con búsqueda, filtros y paginación en productos/page.tsx"
     },
     {
       "id": "US-004",
@@ -163,7 +169,8 @@
         "Typecheck/lint pasa",
         "Verificar en navegador usando dev-browser skill"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Verificado 2026-01-13: Formulario de creación en productos/nuevo/page.tsx"
     },
     {
       "id": "US-005",
@@ -183,7 +190,8 @@
         "Typecheck/lint pasa",
         "Verificar en navegador usando dev-browser skill"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Verificado 2026-01-13: Formulario de edición en productos/[id]/editar/page.tsx"
     },
     {
       "id": "US-006",
@@ -199,7 +207,8 @@
         "Migración ejecutada exitosamente",
         "Typecheck/lint pasa"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Verificado 2026-01-13: Modelos Supplier, Purchase, PurchaseItem en schema.prisma"
     },
     {
       "id": "US-017",
@@ -217,7 +226,8 @@
         "Typecheck/lint pasa",
         "Verificar en navegador usando dev-browser skill"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Verificado 2026-01-13: CRUD completo de proveedores en /proveedores y /api/suppliers"
     },
     {
       "id": "US-007",
@@ -235,7 +245,8 @@
         "Typecheck/lint pasa",
         "Tests unitarios pasan"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Verificado 2026-01-13: API de compras en /api/purchases con incremento automático de stock"
     },
     {
       "id": "US-008",
@@ -254,7 +265,8 @@
         "Typecheck/lint pasa",
         "Verificar en navegador usando dev-browser skill"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Verificado 2026-01-13: Interfaz de compra en /compras/nueva con formulario completo"
     },
     {
       "id": "US-009",
@@ -364,7 +376,8 @@
         "Typecheck/lint pasa",
         "Verificar en navegador usando dev-browser skill"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Verificado 2026-01-13: Historial de compras en /compras con filtros y modal de detalle"
     },
     {
       "id": "US-015",
@@ -384,7 +397,8 @@
         "Typecheck/lint pasa",
         "Verificar en navegador usando dev-browser skill"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Verificado 2026-01-13: Historial de ventas en /ventas con filtros, modal de detalle y stats"
     }
   ],
   "metadata": {

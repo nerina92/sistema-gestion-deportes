@@ -1,0 +1,51 @@
+# Ralph Progress Log
+Started: 2026-01-13
+---
+
+## Codebase Patterns
+- Database models use snake_case for field names (mapped with @map in Prisma)
+- All monetary values use Decimal type with @db.Decimal(10, 2)
+- All tables have createdAt/updatedAt timestamps
+- Relations use onDelete: Cascade for items, RESTRICT for references
+- Indexes added for foreign keys and frequently queried fields
+- API responses use camelCase (Prisma models)
+- Frontend expects camelCase property names
+- Use 'use client' directive for React components with hooks
+- Tailwind CSS for styling, no external CSS files
+- All pages under src/app/ follow Next.js 14 App Router conventions
+
+## Important Notes
+- Los productos importados desde Excel tienen precios en 0 - necesitan actualización manual
+- priceType determina qué campo de precio usar: cash→priceCash, debit→priceDebit, financed→priceFinanced
+- Transacciones Prisma con $transaction garantizan atomicidad completa
+
+---
+
+## 2026-01-13 - PRD Update
+- PRD actualizado: 17/19 user stories marcadas como completadas
+- US pendientes: US-019 (Importación Excel - falta UI), US-013 (Alertas Stock Bajo)
+- Se verificó estado real de implementación vs estado registrado en PRD
+- ralph.sh adaptado para usar 'claude' en lugar de 'amp'
+
+---
+
+## 2026-01-13 - US-019
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- What was implemented:
+  - Created /productos/importar page with multi-step wizard (upload → preview → result)
+  - File upload with format validation (.xlsx/.xls only)
+  - Client-side Excel parsing using xlsx library
+  - Preview table showing first 50 rows with manual size selector per row
+  - Statistics display: valid rows, sold rows (skipped), invalid rows
+  - Added "Importar Excel" button (green) to products page header
+  - Connected to existing /api/import/excel endpoint
+  - Detailed import results with products created, variants created, errors, warnings
+- Files changed:
+  - src/app/productos/importar/page.tsx (new)
+  - src/app/productos/page.tsx (added import button)
+- **Learnings for future iterations:**
+  - The xlsx library can be dynamically imported on client-side: `const XLSX = await import('xlsx')`
+  - Excel column indices: G=6, H=7, I=8, L=11 for prices
+  - API at /api/import/excel already handles all backend logic including grouping and normalization
+  - TypeScript strict mode requires careful handling of conditional class names to avoid unreachable code
+---
