@@ -70,15 +70,48 @@ src/app/productos/page.tsx (442:46)
 
 ---
 
+### Bug #3 - NaN in Edit Product Form [FIXED]
+**Severity:** 🔴 **CRÍTICA**  
+**Módulo:** Productos (Editar)  
+**Test Case:** TC-PROD-006
+
+**Pasos para Reproducir:**
+1. Click en "Editar" en cualquier producto
+2. Formulario mostraba error en console
+
+**Error:**
+```
+Received NaN for the `children` attribute
+```
+
+**Esperado vs Actual:**
+- Esperado: Formulario cargado con valores del producto
+- Actual: Campos mostraban NaN, error en console
+
+**Root Cause:**
+- Misma causa que Bug #1 y #2
+- API devuelve snake_case, form esperaba camelCase
+- Al cargar datos del producto, campos quedaban undefined
+
+**Fix Applied:**
+- Commit: `d5f42da`
+- Cambios en `src/app/productos/[id]/editar/page.tsx`
+- Dual-format al cargar: `variant.stockQuantity || variant.stock_quantity || 0`
+- Todos los campos de precio y stock con fallback
+
+**Status:** ✅ FIXED
+
+---
+
 ## 📊 Testing Summary
 
-### Total Bugs Found: 2
-- 🔴 Críticos: 2
+### Total Bugs Found: 3
+- 🔴 Críticos: 3
 - 🟠 Altos: 0
 - 🟡 Medios: 0
 - 🟢 Bajos: 0
 
-### Fixed: 2/2 (100%)
+### Fixed: 3/3 (100%)
 
 ---
 
