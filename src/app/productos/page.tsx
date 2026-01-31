@@ -140,12 +140,15 @@ export default function ProductosPage() {
       }));
 
       setProducts(processedProducts);
-      setPagination(data.pagination);
 
-      // Extraer categorías y marcas únicas para los filtros
-      if (data.filters) {
-        setCategories(data.filters.categories || []);
-        setBrands(data.filters.brands || []);
+      // Mapear campos de paginación de la API al formato del frontend
+      if (data.pagination) {
+        setPagination({
+          currentPage: data.pagination.page || 1,
+          totalPages: data.pagination.totalPages || 1,
+          totalItems: data.pagination.total || 0,
+          itemsPerPage: data.pagination.limit || 20
+        });
       }
 
     } catch (err) {
@@ -155,6 +158,30 @@ export default function ProductosPage() {
       setLoading(false);
     }
   }, [currentPage, debouncedSearchTerm, selectedCategory, selectedBrand, showLowStock]);
+
+  // Cargar categorías y marcas disponibles al inicio (una sola vez)
+  useEffect(() => {
+    const loadFilters = async () => {
+      try {
+        // Cargar todos los productos sin paginación para extraer filtros
+        const response = await fetch('/api/products?limit=1000');
+        if (response.ok) {
+          const data = await response.json();
+          const products = data.products || [];
+
+          const allCategories = [...new Set(products.map((p: any) => p.category).filter(Boolean))] as string[];
+          const allBrands = [...new Set(products.map((p: any) => p.brand).filter(Boolean))] as string[];
+
+          setCategories(allCategories.sort());
+          setBrands(allBrands.sort());
+        }
+      } catch (err) {
+        console.error('Error loading filters:', err);
+      }
+    };
+
+    loadFilters();
+  }, []);
 
   // Cargar productos cuando cambien los filtros
   useEffect(() => {

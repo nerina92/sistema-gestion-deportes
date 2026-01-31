@@ -358,7 +358,8 @@
         "Typecheck/lint pasa",
         "Verificar en navegador usando dev-browser skill"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Verificado 2026-01-13: Página Stock Bajo en /stock-bajo con tabla, badges, filtros y botones de compra"
     },
     {
       "id": "US-014",

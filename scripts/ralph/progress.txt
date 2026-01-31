@@ -49,3 +49,25 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
   - API at /api/import/excel already handles all backend logic including grouping and normalization
   - TypeScript strict mode requires careful handling of conditional class names to avoid unreachable code
 ---
+
+## 2026-01-13 - US-013
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- What was implemented:
+  - Created /productos/stock-bajo page with low stock variants table
+  - Created /api/stock/low endpoint using Prisma raw SQL query
+  - Added Stock Bajo link to navigation sidebar (FaExclamationTriangle icon)
+  - Table columns: Producto, Variante, SKU, Stock Actual, Stock Min., Diferencia, Estado, Acciones
+  - Red badges for stock = 0 (Sin stock), yellow badges for stock <= min (Bajo)
+  - "Comprar" button per row links to /compras/nueva with query params for product
+  - Statistics cards: total variants, out of stock count, low stock count
+  - Results sorted by difference ASC (most critical first)
+- Files changed:
+  - src/app/api/stock/low/route.ts (new)
+  - src/app/productos/stock-bajo/page.tsx (new)
+  - src/components/Sidebar.tsx (added Stock Bajo menu item)
+- **Learnings for future iterations:**
+  - Prisma $queryRaw with template literals allows complex SQL with joins and calculations
+  - API routes without request params should use `export async function GET()` (no request argument)
+  - Default admin credentials: admin@deporteslaboulaye.com / Admin123!
+  - Middleware protects /api/* routes except /api/auth/* and /api/seed-admin
+---
