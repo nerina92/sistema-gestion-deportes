@@ -285,6 +285,9 @@ export async function PUT(
 
 /**
  * DELETE /api/products/:id - Eliminar producto
+ *
+ * Headers opcionales:
+ * - X-Force-Delete: "true" - Fuerza eliminación eliminando también las referencias en ventas/compras
  */
 export async function DELETE(
   request: NextRequest,
@@ -292,6 +295,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const forceDelete = request.headers.get('X-Force-Delete') === 'true';
 
     if (!id || typeof id !== 'string') {
       return NextResponse.json(
@@ -304,7 +308,12 @@ export async function DELETE(
     const product = await prisma.product.findUnique({
       where: { id },
       include: {
-        variants: true
+        variants: {
+          include: {
+            saleItems: true,
+            purchaseItems: true
+          }
+        }
       }
     });
 
@@ -319,7 +328,7 @@ export async function DELETE(
     const variantsWithStock = product.variants.filter(variant => variant.stockQuantity > 0);
     if (variantsWithStock.length > 0) {
       return NextResponse.json(
-        { 
+        {
           error: 'No se puede eliminar el producto porque tiene stock',
           details: [
             `El producto tiene ${variantsWithStock.length} variante(s) con stock:`,
@@ -330,10 +339,60 @@ export async function DELETE(
       );
     }
 
-    // Eliminar producto (las variantes se eliminan en cascada por la configuración de Prisma)
-    await prisma.product.delete({
-      where: { id }
-    });
+    // Verificar si hay ventas o compras asociadas
+    const variantIds = product.variants.map(v => v.id);
+    const [saleItemsCount, purchaseItemsCount] = await Promise.all([
+      prisma.saleItem.count({ where: { productVariantId: { in: variantIds } } }),
+      prisma.purchaseItem.count({ where: { productVariantId: { in: variantIds } } })
+    ]);
+
+    const hasReferences = saleItemsCount > 0 || purchaseItemsCount > 0;
+
+    if (hasReferences && !forceDelete) {
+      return NextResponse.json(
+        {
+          error: 'No se puede eliminar el producto porque tiene historial de ventas o compras',
+          details: [
+            `El producto "${product.name}" tiene:`,
+            saleItemsCount > 0 ? `- ${saleItemsCount} registro(s) de venta` : null,
+            purchaseItemsCount > 0 ? `- ${purchaseItemsCount} registro(s) de compra` : null,
+            '',
+            'Para eliminar el producto y su historial, use X-Force-Delete: true'
+          ].filter(Boolean),
+          hasReferences: true,
+          references: {
+            saleItems: saleItemsCount,
+            purchaseItems: purchaseItemsCount
+          }
+        },
+        { status: 400 }
+      );
+    }
+
+    // Si hay referencias y se fuerza eliminación, eliminar primero las referencias
+    if (hasReferences && forceDelete) {
+      await prisma.$transaction(async (tx) => {
+        // Eliminar items de ventas asociados
+        await tx.saleItem.deleteMany({
+          where: { productVariantId: { in: variantIds } }
+        });
+
+        // Eliminar items de compras asociados
+        await tx.purchaseItem.deleteMany({
+          where: { productVariantId: { in: variantIds } }
+        });
+
+        // Eliminar producto (las variantes se eliminan en cascada)
+        await tx.product.delete({
+          where: { id }
+        });
+      });
+    } else {
+      // Eliminar producto (las variantes se eliminan en cascada por la configuración de Prisma)
+      await prisma.product.delete({
+        where: { id }
+      });
+    }
 
     return NextResponse.json({
       success: true,
@@ -341,12 +400,30 @@ export async function DELETE(
       deletedProduct: {
         id: product.id,
         name: product.name,
-        variantsDeleted: product.variants.length
+        variantsDeleted: product.variants.length,
+        ...(hasReferences && {
+          referencesDeleted: {
+            saleItems: saleItemsCount,
+            purchaseItems: purchaseItemsCount
+          }
+        })
       }
     });
 
   } catch (error) {
     console.error('Error deleting product:', error);
+
+    // Manejar errores de foreign key constraint
+    if (error instanceof Error && error.message.includes('Foreign key constraint')) {
+      return NextResponse.json(
+        {
+          error: 'No se puede eliminar el producto porque tiene referencias en otras tablas',
+          details: ['El producto tiene ventas o compras asociadas. Use X-Force-Delete: true para forzar la eliminación.']
+        },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
       { error: 'Error interno del servidor al eliminar producto' },
       { status: 500 }

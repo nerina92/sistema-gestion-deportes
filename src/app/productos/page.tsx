@@ -41,6 +41,7 @@ interface Product {
   name: string;
   brand: string;
   category: string;
+  description?: string;
   barcode?: string;
   image_url?: string;
   variants: ProductVariant[];
@@ -205,26 +206,46 @@ export default function ProductosPage() {
   };
 
   // Función para eliminar producto
-  const handleDelete = async (product: Product) => {
+  const handleDelete = async (product: Product, forceDelete = false) => {
     if (product.totalStock > 0) {
       alert('No se puede eliminar un producto con stock disponible. Primero ajuste el stock a 0.');
       return;
     }
 
-    const confirmed = window.confirm(`¿Está seguro que desea eliminar "${product.name}"? Esta acción no se puede deshacer.`);
+    const confirmed = window.confirm(
+      forceDelete
+        ? `ADVERTENCIA: Esto eliminará "${product.name}" junto con todo su historial de ventas y compras. ¿Continuar?`
+        : `¿Está seguro que desea eliminar "${product.name}"? Esta acción no se puede deshacer.`
+    );
     if (!confirmed) return;
 
     try {
+      const headers: HeadersInit = {};
+      if (forceDelete) {
+        headers['X-Force-Delete'] = 'true';
+      }
+
       const response = await fetch(`/api/products/${product.id}`, {
         method: 'DELETE',
+        headers,
       });
+
+      const result = await response.json();
 
       if (response.ok) {
         alert('Producto eliminado exitosamente');
         loadProducts(); // Recargar la lista
+      } else if (result.hasReferences) {
+        // El producto tiene historial de ventas/compras
+        const forceConfirmed = window.confirm(
+          `${result.error}\n\n${result.details.join('\n')}\n\n¿Desea eliminar el producto junto con todo su historial?`
+        );
+        if (forceConfirmed) {
+          // Reintentar con force delete
+          handleDelete(product, true);
+        }
       } else {
-        const error = await response.json();
-        alert(`Error al eliminar: ${error.message}`);
+        alert(`Error al eliminar: ${result.error || result.message}`);
       }
     } catch (err) {
       alert('Error al conectar con el servidor');
@@ -232,16 +253,11 @@ export default function ProductosPage() {
   };
 
   // Componente para placeholder de imagen
-  const ProductImage = ({ product }: { product: Product }) => {
-    if (product.image_url) {
-      return (
-        <img
-          src={product.image_url}
-          alt={product.name}
-          className="w-12 h-12 object-cover rounded-lg"
-        />
-      );
-    }
+  const ProductImage = ({ product, size = 'small' }: { product: Product; size?: 'small' | 'large' }) => {
+    const [imageError, setImageError] = useState(false);
+
+    const sizeClasses = size === 'large' ? 'w-48 h-48' : 'w-12 h-12';
+    const textSizeClass = size === 'large' ? 'text-3xl' : 'text-sm';
 
     const initials = product.name
       .split(' ')
@@ -250,9 +266,22 @@ export default function ProductosPage() {
       .substring(0, 2)
       .toUpperCase();
 
+    if (product.image_url && !imageError) {
+      return (
+        <div className={`${sizeClasses} relative rounded-lg overflow-hidden bg-gray-100`}>
+          <img
+            src={product.image_url}
+            alt={product.name}
+            className="w-full h-full object-cover"
+            onError={() => setImageError(true)}
+          />
+        </div>
+      );
+    }
+
     return (
-      <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-        <span className="text-gray-600 font-semibold text-sm">{initials}</span>
+      <div className={`${sizeClasses} bg-gray-200 rounded-lg flex items-center justify-center`}>
+        <span className={`text-gray-600 font-semibold ${textSizeClass}`}>{initials}</span>
       </div>
     );
   };
@@ -412,9 +441,9 @@ export default function ProductosPage() {
           
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div>
-                <ProductImage product={selectedProduct} />
-                <h4 className="text-xl font-bold text-gray-900 mt-3">{selectedProduct.name}</h4>
+              <div className="flex flex-col items-center md:items-start">
+                <ProductImage product={selectedProduct} size="large" />
+                <h4 className="text-xl font-bold text-gray-900 mt-4">{selectedProduct.name}</h4>
                 <p className="text-gray-600">{selectedProduct.brand} • {selectedProduct.category}</p>
                 {selectedProduct.barcode && (
                   <p className="text-sm text-gray-500 mt-1">Código: {selectedProduct.barcode}</p>
@@ -427,6 +456,12 @@ export default function ProductosPage() {
                     {selectedProduct.totalStock} unidades totales
                   </span>
                 </div>
+                {selectedProduct.description && (
+                  <div className="mt-4">
+                    <p className="text-sm font-medium text-gray-700">Descripción:</p>
+                    <p className="text-sm text-gray-600 mt-1">{selectedProduct.description}</p>
+                  </div>
+                )}
               </div>
             </div>
             

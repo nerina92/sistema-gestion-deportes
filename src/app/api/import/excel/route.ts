@@ -4,51 +4,24 @@ import * as XLSX from 'xlsx';
 
 const prisma = new PrismaClient();
 
+// Hojas válidas para importar (cada una es una categoría)
+const VALID_SHEETS = ['Hombre', 'Mujer', 'Calzado', 'Paletas', 'Accesorios', 'Niños'];
+
 // Tipos para manejo de datos Excel
 interface ExcelRow {
   [key: number]: string | number | undefined;
 }
 
-// Mapeo de categorías por palabras clave
-const CATEGORY_MAPPING: { [key: string]: string } = {
-  'remera': 'Remeras',
-  'camisa': 'Remeras',
-  'polo': 'Remeras',
-  'musculosa': 'Remeras',
-  'short': 'Shorts',
-  'bermuda': 'Shorts',
-  'pantalon': 'Pantalones',
-  'jean': 'Pantalones',
-  'joggin': 'Pantalones',
-  'campera': 'Camperas',
-  'buzo': 'Camperas',
-  'chaleco': 'Camperas',
-  'sudadera': 'Camperas',
-  'zapatilla': 'Calzado',
-  'zapato': 'Calzado',
-  'sandalia': 'Calzado',
-  'medias': 'Accesorios',
-  'gorra': 'Accesorios',
-  'guantes': 'Accesorios',
-};
-
 // Normalizar texto
-function normalizeText(text: string): string {
+function normalizeText(text: string | null | undefined): string {
   if (!text) return '';
   return text.toString().trim().toLowerCase();
 }
 
-// Asignar categoría automáticamente
-function assignCategory(productName: string): string {
-  const normalized = normalizeText(productName);
-  
-  for (const [keyword, category] of Object.entries(CATEGORY_MAPPING)) {
-    if (normalized.includes(keyword)) {
-      return category;
-    }
-  }
-  
-  return 'Otros'; // Categoría por defecto
+// Capitalizar primera letra
+function capitalize(text: string): string {
+  if (!text) return '';
+  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
 }
 
 // Convertir valor de celda a número decimal
@@ -59,9 +32,23 @@ function parseDecimal(value: unknown): number {
 }
 
 // Limpiar SKU
-function cleanSku(sku: unknown): string {
-  if (!sku) return '';
-  return sku.toString().trim().replace(/[^a-zA-Z0-9-_]/g, '');
+function cleanSku(sku: unknown, rowIndex: number, sheetName: string): string {
+  if (!sku) return `${sheetName.substring(0, 3).toUpperCase()}-${rowIndex}`;
+  return sku.toString().trim().replace(/[^a-zA-Z0-9-_]/g, '') || `${sheetName.substring(0, 3).toUpperCase()}-${rowIndex}`;
+}
+
+// Detectar índice de columna por nombre (case-insensitive, con variantes)
+function findColumnIndex(headers: Record<number, string>, ...keywords: string[]): number {
+  const headerValues = Object.values(headers);
+  for (let i = 0; i < headerValues.length; i++) {
+    const normalized = normalizeText(headerValues[i]);
+    for (const keyword of keywords) {
+      if (normalized.includes(keyword.toLowerCase())) {
+        return i;
+      }
+    }
+  }
+  return -1;
 }
 
 interface ImportLog {
@@ -70,6 +57,7 @@ interface ImportLog {
   errors: string[];
   warnings: string[];
   skippedRows: number;
+  sheetStats: { [sheet: string]: { rows: number; imported: number; skipped: number } };
 }
 
 interface ProductData {
@@ -90,19 +78,50 @@ interface VariantData {
   stockQuantity: number;
 }
 
+interface SheetColumnMapping {
+  description: number;
+  brand: number;
+  sku: number;
+  size: number;
+  color: number;
+  priceCash: number;
+  priceDebit: number;
+  priceFinanced: number;
+  costPrice: number;
+  sold: number;
+}
+
+// Detectar columnas de una hoja
+function detectColumns(headers: Record<number, string>): SheetColumnMapping {
+  return {
+    description: findColumnIndex(headers, 'descripcion', 'descripción'),
+    brand: findColumnIndex(headers, 'marca'),
+    sku: findColumnIndex(headers, 'art'),
+    size: findColumnIndex(headers, 'talle'),
+    color: findColumnIndex(headers, 'color'),
+    priceCash: findColumnIndex(headers, 'cdo'), // Precio Contado
+    priceDebit: findColumnIndex(headers, 'débito', 'debito'),
+    priceFinanced: findColumnIndex(headers, 'financiado'),
+    costPrice: findColumnIndex(headers, 'costo actualizado', 'costo de compra', 'costo'),
+    sold: findColumnIndex(headers, 'vendido'),
+  };
+}
+
 export async function POST(request: NextRequest) {
   const log: ImportLog = {
     productsCreated: 0,
     variantsCreated: 0,
     errors: [],
     warnings: [],
-    skippedRows: 0
+    skippedRows: 0,
+    sheetStats: {}
   };
 
   try {
     // Obtener el archivo del FormData
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const selectedSheets = formData.get('sheets')?.toString().split(',') || VALID_SHEETS;
 
     if (!file) {
       return NextResponse.json(
@@ -123,55 +142,17 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const workbook = XLSX.read(arrayBuffer, { type: 'array' });
 
-    // Verificar que existe la hoja "STOCK INICIAL"
-    if (!workbook.SheetNames.includes('STOCK INICIAL')) {
-      return NextResponse.json(
-        { error: 'No se encontró la hoja "STOCK INICIAL" en el archivo Excel' },
-        { status: 400 }
-      );
-    }
-
-    const worksheet = workbook.Sheets['STOCK INICIAL'];
-    const data = XLSX.utils.sheet_to_json(worksheet, { 
-      header: 1,
-      defval: '',
-      raw: false
-    }) as ExcelRow[];
-
-    if (data.length < 2) {
-      return NextResponse.json(
-        { error: 'La hoja Excel está vacía o no contiene datos' },
-        { status: 400 }
-      );
-    }
-
-    // Encontrar las columnas necesarias en la primera fila (headers)
-    const headers = data[0] as Record<number, string>;
-    const descriptionCol = Object.values(headers).findIndex(h => 
-      h && (normalizeText(h).includes('descripcion') || normalizeText(h) === 'descripción')
+    // Filtrar hojas válidas que existen en el archivo
+    const sheetsToProcess = selectedSheets.filter(
+      sheet => VALID_SHEETS.includes(sheet) && workbook.SheetNames.includes(sheet)
     );
-    const brandCol = Object.values(headers).findIndex(h => h && normalizeText(h).includes('marca'));
-    const skuCol = Object.values(headers).findIndex(h => h && normalizeText(h).includes('art'));
-    const sizeCol = Object.values(headers).findIndex(h => h && normalizeText(h).includes('talle'));
-    const colorCol = Object.values(headers).findIndex(h => h && normalizeText(h).includes('color'));
-    const soldCol = Object.values(headers).findIndex(h => h && normalizeText(h).includes('vendido'));
 
-    // Validar que se encontraron las columnas esenciales
-    if (descriptionCol === -1) {
-      log.errors.push('No se encontró la columna "Descripción"');
-    }
-    if (brandCol === -1) {
-      log.errors.push('No se encontró la columna "Marca"');
-    }
-    if (skuCol === -1) {
-      log.errors.push('No se encontró la columna "Art" (SKU)');
-    }
-
-    if (log.errors.length > 0) {
+    if (sheetsToProcess.length === 0) {
       return NextResponse.json(
-        { 
-          error: 'Faltan columnas requeridas en el Excel',
-          details: log.errors 
+        {
+          error: 'No se encontraron hojas válidas para importar',
+          availableSheets: workbook.SheetNames,
+          validSheets: VALID_SHEETS
         },
         { status: 400 }
       );
@@ -180,80 +161,116 @@ export async function POST(request: NextRequest) {
     // Agrupar productos por descripción + marca
     const productsMap = new Map<string, ProductData>();
 
-    // Procesar cada fila de datos (saltear header)
-    for (let rowIndex = 1; rowIndex < data.length; rowIndex++) {
-      const row = data[rowIndex] as ExcelRow;
-      
-      try {
-        // Obtener valores de la fila
-        const description = row[descriptionCol]?.toString().trim() || '';
-        const brand = row[brandCol]?.toString().trim() || '';
-        const sku = cleanSku(row[skuCol]);
-        const size = row[sizeCol]?.toString().trim() || 'Único';
-        const color = normalizeText(row[colorCol]?.toString() || '');
-        const sold = normalizeText(row[soldCol]?.toString() || '');
+    // Procesar cada hoja
+    for (const sheetName of sheetsToProcess) {
+      log.sheetStats[sheetName] = { rows: 0, imported: 0, skipped: 0 };
 
-        // Filtrar solo productos no vendidos
-        if (sold === 'si' || sold === 'sí' || sold === 'yes') {
-          log.skippedRows++;
-          continue;
-        }
+      const worksheet = workbook.Sheets[sheetName];
+      const data = XLSX.utils.sheet_to_json(worksheet, {
+        header: 1,
+        defval: '',
+        raw: false
+      }) as ExcelRow[];
 
-        // Validar datos esenciales
-        if (!description || !sku) {
-          log.warnings.push(`Fila ${rowIndex + 1}: Faltan descripción o SKU`);
-          log.skippedRows++;
-          continue;
-        }
+      if (data.length < 2) {
+        log.warnings.push(`Hoja "${sheetName}" está vacía o no tiene datos`);
+        continue;
+      }
 
-        // Obtener precios de las columnas G, H, I, L
-        const priceCash = parseDecimal(row[6]); // Columna G (índice 6)
-        const priceDebit = parseDecimal(row[7]); // Columna H (índice 7)
-        const priceFinanced = parseDecimal(row[8]); // Columna I (índice 8)
-        const costPrice = parseDecimal(row[11]); // Columna L (índice 11)
+      // Detectar columnas
+      const headers = data[0] as Record<number, string>;
+      const cols = detectColumns(headers);
 
-        // Validar precios
-        if (priceCash <= 0 && priceDebit <= 0 && priceFinanced <= 0) {
-          log.warnings.push(`Fila ${rowIndex + 1}: Todos los precios son 0 o inválidos`);
-        }
+      // Validar columnas esenciales
+      if (cols.description === -1) {
+        log.errors.push(`Hoja "${sheetName}": No se encontró columna de descripción`);
+        continue;
+      }
 
-        // Crear clave única para agrupar productos
-        const productKey = `${normalizeText(description)}_${normalizeText(brand)}`;
+      log.sheetStats[sheetName].rows = data.length - 1;
 
-        // Si el producto no existe, crearlo
-        if (!productsMap.has(productKey)) {
-          productsMap.set(productKey, {
-            name: description,
-            brand: brand,
-            category: assignCategory(description),
-            variants: []
+      // Procesar cada fila de datos (saltear header)
+      for (let rowIndex = 1; rowIndex < data.length; rowIndex++) {
+        const row = data[rowIndex] as ExcelRow;
+
+        try {
+          // Obtener valores de la fila
+          const description = row[cols.description]?.toString().trim() || '';
+          const brand = cols.brand !== -1 ? (row[cols.brand]?.toString().trim() || '') : '';
+          const sku = cleanSku(row[cols.sku], rowIndex, sheetName);
+          const size = cols.size !== -1 ? (row[cols.size]?.toString().trim() || 'Único') : 'Único';
+          const color = cols.color !== -1 ? capitalize(row[cols.color]?.toString().trim() || '') : '';
+          const soldValue = cols.sold !== -1 ? normalizeText(row[cols.sold]?.toString() || '') : '';
+
+          // Filtrar solo productos no vendidos (Vendido = "No" o vacío)
+          if (soldValue === 'si' || soldValue === 'sí' || soldValue === 'yes') {
+            log.skippedRows++;
+            log.sheetStats[sheetName].skipped++;
+            continue;
+          }
+
+          // También saltar "devuelta", "retirado", etc.
+          if (soldValue && soldValue !== 'no' && soldValue !== '') {
+            log.skippedRows++;
+            log.sheetStats[sheetName].skipped++;
+            continue;
+          }
+
+          // Validar datos esenciales
+          if (!description) {
+            log.warnings.push(`${sheetName} fila ${rowIndex + 1}: Sin descripción`);
+            log.skippedRows++;
+            log.sheetStats[sheetName].skipped++;
+            continue;
+          }
+
+          // Obtener precios
+          const priceCash = cols.priceCash !== -1 ? parseDecimal(row[cols.priceCash]) : 0;
+          const priceDebit = cols.priceDebit !== -1 ? parseDecimal(row[cols.priceDebit]) : 0;
+          const priceFinanced = cols.priceFinanced !== -1 ? parseDecimal(row[cols.priceFinanced]) : 0;
+          const costPrice = cols.costPrice !== -1 ? parseDecimal(row[cols.costPrice]) : 0;
+
+          // Crear clave única para agrupar productos
+          const productKey = `${normalizeText(description)}_${normalizeText(brand)}`;
+
+          // Si el producto no existe, crearlo con la categoría = nombre de hoja
+          if (!productsMap.has(productKey)) {
+            productsMap.set(productKey, {
+              name: description,
+              brand: brand,
+              category: sheetName, // Usar nombre de hoja como categoría
+              variants: []
+            });
+          }
+
+          // Agregar variante al producto
+          const product = productsMap.get(productKey)!;
+          product.variants.push({
+            size: size,
+            color: color || 'Sin color',
+            sku: sku,
+            costPrice: costPrice,
+            priceCash: priceCash,
+            priceDebit: priceDebit,
+            priceFinanced: priceFinanced,
+            stockQuantity: 1 // Por defecto 1 unidad en stock
           });
+
+          log.sheetStats[sheetName].imported++;
+
+        } catch (error) {
+          log.errors.push(`${sheetName} fila ${rowIndex + 1}: ${error}`);
+          log.sheetStats[sheetName].skipped++;
         }
-
-        // Agregar variante al producto
-        const product = productsMap.get(productKey)!;
-        product.variants.push({
-          size: size,
-          color: color || 'sin-color',
-          sku: sku,
-          costPrice: costPrice,
-          priceCash: priceCash,
-          priceDebit: priceDebit,
-          priceFinanced: priceFinanced,
-          stockQuantity: 1 // Por defecto, se puede ajustar después
-        });
-
-      } catch (error) {
-        log.errors.push(`Error procesando fila ${rowIndex + 1}: ${error}`);
       }
     }
 
     // Validar que hay productos para importar
     if (productsMap.size === 0) {
       return NextResponse.json(
-        { 
+        {
           error: 'No se encontraron productos válidos para importar',
-          log 
+          log
         },
         { status: 400 }
       );
@@ -285,7 +302,6 @@ export async function POST(request: NextRequest) {
                 updatedAt: new Date()
               }
             });
-            log.warnings.push(`Producto existente actualizado: ${productData.name} - ${productData.brand}`);
           } else {
             // Crear nuevo producto
             const newProduct = await tx.product.create({
@@ -293,7 +309,7 @@ export async function POST(request: NextRequest) {
                 name: productData.name,
                 brand: productData.brand,
                 category: productData.category,
-                description: `${productData.name} - ${productData.brand}`
+                description: productData.brand ? `${productData.name} - ${productData.brand}` : productData.name
               }
             });
             productId = newProduct.id;
@@ -323,7 +339,6 @@ export async function POST(request: NextRequest) {
                     updatedAt: new Date()
                   }
                 });
-                log.warnings.push(`Variante existente actualizada: SKU ${variant.sku}`);
               } else {
                 // Crear nueva variante
                 await tx.productVariant.create({
@@ -343,38 +358,39 @@ export async function POST(request: NextRequest) {
                 log.variantsCreated++;
               }
             } catch (variantError) {
-              log.errors.push(`Error creando variante SKU ${variant.sku}: ${variantError}`);
+              log.errors.push(`Error variante SKU ${variant.sku}: ${variantError}`);
             }
           }
         } catch (productError) {
-          log.errors.push(`Error procesando producto ${productData.name}: ${productError}`);
+          log.errors.push(`Error producto ${productData.name}: ${productError}`);
         }
       }
     }, {
-      maxWait: 30000, // 30 segundos máximo de espera
-      timeout: 60000, // 60 segundos timeout total
+      maxWait: 60000, // 60 segundos máximo de espera
+      timeout: 120000, // 120 segundos timeout total
     });
 
     // Respuesta exitosa con log detallado
     return NextResponse.json({
       success: true,
-      message: `Importación completada: ${log.productsCreated} productos creados, ${log.variantsCreated} variantes creadas`,
+      message: `Importación completada: ${log.productsCreated} productos, ${log.variantsCreated} variantes`,
       log: {
         productsCreated: log.productsCreated,
         variantsCreated: log.variantsCreated,
         skippedRows: log.skippedRows,
         totalErrors: log.errors.length,
         totalWarnings: log.warnings.length,
-        errors: log.errors.slice(0, 10), // Mostrar solo los primeros 10 errores
-        warnings: log.warnings.slice(0, 10) // Mostrar solo los primeros 10 warnings
+        sheetStats: log.sheetStats,
+        errors: log.errors.slice(0, 20),
+        warnings: log.warnings.slice(0, 20)
       }
     });
 
   } catch (error) {
     log.errors.push(`Error general: ${error}`);
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Error interno del servidor durante la importación',
         details: error instanceof Error ? error.message : 'Error desconocido',
         log
@@ -384,4 +400,12 @@ export async function POST(request: NextRequest) {
   } finally {
     await prisma.$disconnect();
   }
+}
+
+// GET endpoint para obtener información de hojas disponibles
+export async function GET() {
+  return NextResponse.json({
+    validSheets: VALID_SHEETS,
+    description: 'Hojas válidas para importar. Cada hoja se usará como categoría.'
+  });
 }

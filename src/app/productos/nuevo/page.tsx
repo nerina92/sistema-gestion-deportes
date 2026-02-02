@@ -418,6 +418,37 @@ export default function NuevoProductoPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="https://ejemplo.com/imagen.jpg"
               />
+              {/* Preview de imagen */}
+              {formData.imageUrl && (
+                <div className="mt-3">
+                  <p className="text-sm text-gray-500 mb-2">Vista previa:</p>
+                  <div className="relative w-40 h-40 border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                    <img
+                      src={formData.imageUrl}
+                      alt="Vista previa"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const parent = target.parentElement;
+                        if (parent && !parent.querySelector('.error-msg')) {
+                          const errorDiv = document.createElement('div');
+                          errorDiv.className = 'error-msg absolute inset-0 flex items-center justify-center text-red-500 text-xs text-center p-2';
+                          errorDiv.textContent = 'Error al cargar imagen. Verifica la URL.';
+                          parent.appendChild(errorDiv);
+                        }
+                      }}
+                      onLoad={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'block';
+                        const parent = target.parentElement;
+                        const errorMsg = parent?.querySelector('.error-msg');
+                        if (errorMsg) errorMsg.remove();
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Descripción */}

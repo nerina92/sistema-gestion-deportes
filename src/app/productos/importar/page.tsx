@@ -7,31 +7,24 @@ import {
   FileSpreadsheet,
   ArrowLeft,
   Check,
-  X,
   AlertCircle,
   Loader2,
   FileUp,
   CheckCircle,
   AlertTriangle,
-  Info
+  Info,
+  Trash2
 } from 'lucide-react';
 
-// Tipos para los datos de preview
-interface PreviewRow {
-  rowIndex: number;
-  description: string;
-  brand: string;
-  sku: string;
-  color: string;
-  originalSize: string;
-  selectedSize: string;
-  priceCash: number;
-  priceDebit: number;
-  priceFinanced: number;
-  costPrice: number;
-  sold: string;
-  isValid: boolean;
-  validationErrors: string[];
+// Hojas válidas para importar
+const VALID_SHEETS = ['Hombre', 'Mujer', 'Calzado', 'Paletas', 'Accesorios', 'Niños'];
+
+interface SheetInfo {
+  name: string;
+  totalRows: number;
+  validRows: number;
+  soldRows: number;
+  selected: boolean;
 }
 
 interface ImportLog {
@@ -42,10 +35,8 @@ interface ImportLog {
   skippedRows: number;
   totalErrors: number;
   totalWarnings: number;
+  sheetStats?: { [sheet: string]: { rows: number; imported: number; skipped: number } };
 }
-
-// Opciones de talle disponibles
-const SIZE_OPTIONS = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'Único'];
 
 export default function ImportarExcelPage() {
   const router = useRouter();
@@ -53,12 +44,14 @@ export default function ImportarExcelPage() {
 
   // Estados
   const [file, setFile] = useState<File | null>(null);
-  const [previewData, setPreviewData] = useState<PreviewRow[]>([]);
+  const [sheets, setSheets] = useState<SheetInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<{success: boolean; message: string; log?: ImportLog} | null>(null);
   const [step, setStep] = useState<'upload' | 'preview' | 'result'>('upload');
+  const [clearDbBeforeImport, setClearDbBeforeImport] = useState(false);
 
   // Función para manejar selección de archivo
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,9 +67,10 @@ export default function ImportarExcelPage() {
     setFile(selectedFile);
     setError(null);
     setImportResult(null);
+    setSheets([]);
   };
 
-  // Función para procesar el Excel y generar preview
+  // Función para procesar el Excel y detectar hojas
   const handlePreview = async () => {
     if (!file) return;
 
@@ -89,106 +83,60 @@ export default function ImportarExcelPage() {
       const XLSX = await import('xlsx');
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
 
-      // Verificar que existe la hoja "STOCK INICIAL"
-      if (!workbook.SheetNames.includes('STOCK INICIAL')) {
-        setError('No se encontró la hoja "STOCK INICIAL" en el archivo Excel');
-        setLoading(false);
-        return;
-      }
+      // Detectar hojas válidas
+      const detectedSheets: SheetInfo[] = [];
 
-      const worksheet = workbook.Sheets['STOCK INICIAL'];
-      const data = XLSX.utils.sheet_to_json(worksheet, {
-        header: 1,
-        defval: '',
-        raw: false
-      }) as (string | number | undefined)[][];
+      for (const sheetName of VALID_SHEETS) {
+        if (!workbook.SheetNames.includes(sheetName)) continue;
 
-      if (data.length < 2) {
-        setError('La hoja Excel está vacía o no contiene datos');
-        setLoading(false);
-        return;
-      }
+        const worksheet = workbook.Sheets[sheetName];
+        const data = XLSX.utils.sheet_to_json(worksheet, {
+          header: 1,
+          defval: '',
+          raw: false
+        }) as (string | number | undefined)[][];
 
-      // Encontrar columnas
-      const headers = data[0] as string[];
-      const normalizeText = (text: string) => text?.toString().trim().toLowerCase() || '';
+        if (data.length < 2) continue;
 
-      const descriptionCol = headers.findIndex(h =>
-        h && (normalizeText(h).includes('descripcion') || normalizeText(h) === 'descripción')
-      );
-      const brandCol = headers.findIndex(h => h && normalizeText(h).includes('marca'));
-      const skuCol = headers.findIndex(h => h && normalizeText(h).includes('art'));
-      const sizeCol = headers.findIndex(h => h && normalizeText(h).includes('talle'));
-      const colorCol = headers.findIndex(h => h && normalizeText(h).includes('color'));
-      const soldCol = headers.findIndex(h => h && normalizeText(h).includes('vendido'));
+        // Encontrar columna "Vendido"
+        const headers = data[0] as string[];
+        const normalizeText = (text: string) => text?.toString().trim().toLowerCase() || '';
+        const soldCol = headers.findIndex(h => h && normalizeText(h).includes('vendido'));
 
-      if (descriptionCol === -1 || skuCol === -1) {
-        setError('No se encontraron las columnas requeridas (Descripción, Art/SKU)');
-        setLoading(false);
-        return;
-      }
+        let validRows = 0;
+        let soldRows = 0;
 
-      // Procesar filas para preview
-      const previewRows: PreviewRow[] = [];
+        for (let i = 1; i < data.length; i++) {
+          const row = data[i];
+          if (!row || row.length === 0) continue;
 
-      for (let i = 1; i < data.length; i++) {
-        const row = data[i];
-        if (!row || row.length === 0) continue;
+          const soldValue = soldCol !== -1 ? normalizeText(row[soldCol]?.toString() || '') : '';
 
-        const description = row[descriptionCol]?.toString().trim() || '';
-        const brand = brandCol !== -1 ? row[brandCol]?.toString().trim() || '' : '';
-        const sku = row[skuCol]?.toString().trim() || '';
-        const originalSize = sizeCol !== -1 ? row[sizeCol]?.toString().trim() || '' : '';
-        const color = colorCol !== -1 ? row[colorCol]?.toString().trim() || '' : '';
-        const sold = soldCol !== -1 ? row[soldCol]?.toString().trim().toLowerCase() || '' : '';
-
-        // Obtener precios (columnas G=6, H=7, I=8, L=11)
-        const parseDecimal = (val: string | number | undefined): number => {
-          if (!val) return 0;
-          const num = typeof val === 'string' ? parseFloat(val.replace(',', '.')) : Number(val);
-          return isNaN(num) ? 0 : num;
-        };
-
-        const priceCash = parseDecimal(row[6]);
-        const priceDebit = parseDecimal(row[7]);
-        const priceFinanced = parseDecimal(row[8]);
-        const costPrice = parseDecimal(row[11]);
-
-        // Validar fila
-        const validationErrors: string[] = [];
-        if (!description) validationErrors.push('Sin descripción');
-        if (!sku) validationErrors.push('Sin SKU');
-        if (sold === 'si' || sold === 'sí' || sold === 'yes') validationErrors.push('Ya vendido');
-
-        // Intentar determinar talle automáticamente
-        let selectedSize = 'Único';
-        const sizeUpper = originalSize.toUpperCase();
-        if (SIZE_OPTIONS.includes(sizeUpper)) {
-          selectedSize = sizeUpper;
-        } else if (originalSize.match(/^\d+$/)) {
-          // Si es un número, dejarlo como Único
-          selectedSize = 'Único';
+          if (soldValue === 'si' || soldValue === 'sí' || soldValue === 'yes') {
+            soldRows++;
+          } else if (soldValue && soldValue !== 'no' && soldValue !== '') {
+            soldRows++; // "devuelta", "retirado", etc.
+          } else {
+            validRows++;
+          }
         }
 
-        previewRows.push({
-          rowIndex: i + 1,
-          description,
-          brand,
-          sku,
-          color,
-          originalSize,
-          selectedSize,
-          priceCash,
-          priceDebit,
-          priceFinanced,
-          costPrice,
-          sold,
-          isValid: validationErrors.length === 0 || (validationErrors.length === 1 && validationErrors[0] === 'Ya vendido'),
-          validationErrors
+        detectedSheets.push({
+          name: sheetName,
+          totalRows: data.length - 1,
+          validRows,
+          soldRows,
+          selected: true // Por defecto todas seleccionadas
         });
       }
 
-      setPreviewData(previewRows);
+      if (detectedSheets.length === 0) {
+        setError(`No se encontraron hojas válidas. El archivo debe tener alguna de estas hojas: ${VALID_SHEETS.join(', ')}`);
+        setLoading(false);
+        return;
+      }
+
+      setSheets(detectedSheets);
       setStep('preview');
     } catch (err) {
       setError(`Error al procesar el archivo: ${err instanceof Error ? err.message : 'Error desconocido'}`);
@@ -197,16 +145,97 @@ export default function ImportarExcelPage() {
     }
   };
 
-  // Función para actualizar el talle de una fila
-  const updateRowSize = (rowIndex: number, newSize: string) => {
-    setPreviewData(prev => prev.map(row =>
-      row.rowIndex === rowIndex ? { ...row, selectedSize: newSize } : row
+  // Función para toggle de hoja
+  const toggleSheet = (sheetName: string) => {
+    setSheets(prev => prev.map(sheet =>
+      sheet.name === sheetName ? { ...sheet, selected: !sheet.selected } : sheet
     ));
+  };
+
+  // Función para seleccionar/deseleccionar todas
+  const toggleAllSheets = (selected: boolean) => {
+    setSheets(prev => prev.map(sheet => ({ ...sheet, selected })));
+  };
+
+  // Función para limpiar la base de datos
+  const handleClearDb = async () => {
+    const confirmed = window.confirm(
+      '¿Está seguro de eliminar TODOS los productos de la base de datos?\n\n' +
+      'Esta acción también eliminará:\n' +
+      '- Todas las variantes\n' +
+      '- Todo el historial de ventas\n' +
+      '- Todo el historial de compras\n\n' +
+      'Esta acción NO se puede deshacer.'
+    );
+
+    if (!confirmed) return;
+
+    setClearing(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/admin/clear-products', {
+        method: 'POST',
+        headers: {
+          'X-Confirm': 'DELETE_ALL_PRODUCTS'
+        }
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        alert(`Base de datos limpiada:\n- ${result.deleted.products} productos eliminados\n- ${result.deleted.variants} variantes eliminadas\n- ${result.deleted.sales} ventas eliminadas\n- ${result.deleted.purchases} compras eliminadas`);
+      } else {
+        setError(result.error || 'Error al limpiar la base de datos');
+      }
+    } catch (err) {
+      setError(`Error de conexión: ${err instanceof Error ? err.message : 'Error desconocido'}`);
+    } finally {
+      setClearing(false);
+    }
   };
 
   // Función para ejecutar la importación
   const handleImport = async () => {
     if (!file) return;
+
+    const selectedSheets = sheets.filter(s => s.selected).map(s => s.name);
+    if (selectedSheets.length === 0) {
+      setError('Debe seleccionar al menos una hoja para importar');
+      return;
+    }
+
+    // Si se marcó limpiar DB primero
+    if (clearDbBeforeImport) {
+      const confirmed = window.confirm(
+        '¿Confirma eliminar todos los productos antes de importar?\n\n' +
+        'Esta acción eliminará todo el inventario actual.'
+      );
+
+      if (!confirmed) return;
+
+      setClearing(true);
+      try {
+        const clearResponse = await fetch('/api/admin/clear-products', {
+          method: 'POST',
+          headers: {
+            'X-Confirm': 'DELETE_ALL_PRODUCTS'
+          }
+        });
+
+        if (!clearResponse.ok) {
+          const clearResult = await clearResponse.json();
+          setError(`Error al limpiar DB: ${clearResult.error}`);
+          setClearing(false);
+          return;
+        }
+      } catch (err) {
+        setError(`Error de conexión al limpiar: ${err instanceof Error ? err.message : 'Error'}`);
+        setClearing(false);
+        return;
+      }
+      setClearing(false);
+    }
 
     setImporting(true);
     setError(null);
@@ -214,6 +243,7 @@ export default function ImportarExcelPage() {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('sheets', selectedSheets.join(','));
 
       const response = await fetch('/api/import/excel', {
         method: 'POST',
@@ -247,19 +277,20 @@ export default function ImportarExcelPage() {
   // Función para volver al inicio
   const resetImport = () => {
     setFile(null);
-    setPreviewData([]);
+    setSheets([]);
     setError(null);
     setImportResult(null);
     setStep('upload');
+    setClearDbBeforeImport(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  // Estadísticas del preview
-  const validRows = previewData.filter(r => r.isValid && !r.validationErrors.includes('Ya vendido')).length;
-  const soldRows = previewData.filter(r => r.validationErrors.includes('Ya vendido')).length;
-  const invalidRows = previewData.filter(r => !r.isValid && !r.validationErrors.includes('Ya vendido')).length;
+  // Estadísticas totales
+  const selectedSheets = sheets.filter(s => s.selected);
+  const totalValidRows = selectedSheets.reduce((sum, s) => sum + s.validRows, 0);
+  const totalSoldRows = selectedSheets.reduce((sum, s) => sum + s.soldRows, 0);
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -279,7 +310,7 @@ export default function ImportarExcelPage() {
                 Importar desde Excel
               </h1>
               <p className="mt-2 text-gray-600">
-                Importa tu inventario desde el archivo Excel existente
+                Importa tu inventario desde el archivo Excel
               </p>
             </div>
           </div>
@@ -300,7 +331,7 @@ export default function ImportarExcelPage() {
             <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${step === 'preview' ? 'border-blue-600 bg-blue-50' : step === 'result' ? 'border-green-600 bg-green-50' : 'border-gray-300'}`}>
               {step === 'result' ? <Check className="h-4 w-4 text-green-600" /> : '2'}
             </div>
-            <span className="ml-2 font-medium">Vista previa</span>
+            <span className="ml-2 font-medium">Seleccionar hojas</span>
           </div>
           <div className="w-16 h-0.5 bg-gray-200"></div>
           <div className={`flex items-center ${step === 'result' ? 'text-blue-600' : 'text-gray-400'}`}>
@@ -383,13 +414,13 @@ export default function ImportarExcelPage() {
                 <div className="text-sm text-blue-800">
                   <p className="font-medium mb-2">Formato esperado del Excel:</p>
                   <ul className="list-disc list-inside space-y-1 text-blue-700">
-                    <li>Hoja llamada &quot;STOCK INICIAL&quot;</li>
-                    <li>Columnas: Descripción, Marca, Art (SKU), Talle, Color</li>
-                    <li>Columna G: Precio contado</li>
-                    <li>Columna H: Precio débito</li>
-                    <li>Columna I: Precio financiado</li>
-                    <li>Columna L: Costo actualizado</li>
-                    <li>Columna &quot;Vendido?&quot; para filtrar productos vendidos</li>
+                    <li>Hojas: <strong>Hombre, Mujer, Calzado, Paletas, Accesorios, Niños</strong></li>
+                    <li>Columnas: Descripcion, Marca, Art (SKU), Talle, Color</li>
+                    <li>Columna Cdo: Precio contado</li>
+                    <li>Columna Débito: Precio débito</li>
+                    <li>Columna Financiado: Precio financiado</li>
+                    <li>Columna Costo: Costo del producto</li>
+                    <li>Columna Vendido?: Solo importa filas con &quot;No&quot; o vacío</li>
                   </ul>
                 </div>
               </div>
@@ -405,11 +436,11 @@ export default function ImportarExcelPage() {
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Procesando...
+                    Analizando...
                   </>
                 ) : (
                   <>
-                    Ver Vista Previa
+                    Analizar Archivo
                     <Upload className="ml-2 h-5 w-5" />
                   </>
                 )}
@@ -419,137 +450,124 @@ export default function ImportarExcelPage() {
         </div>
       )}
 
-      {/* Paso 2: Preview */}
+      {/* Paso 2: Selección de hojas */}
       {step === 'preview' && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          {/* Estadísticas */}
+          {/* Estadísticas totales */}
           <div className="p-6 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Vista Previa de Datos</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600">Total de filas</p>
-                <p className="text-2xl font-bold text-gray-900">{previewData.length}</p>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Hojas Detectadas</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-blue-50 rounded-lg p-4">
+                <p className="text-sm text-blue-700">Hojas seleccionadas</p>
+                <p className="text-2xl font-bold text-blue-600">{selectedSheets.length} de {sheets.length}</p>
               </div>
               <div className="bg-green-50 rounded-lg p-4">
-                <p className="text-sm text-green-700">Válidas para importar</p>
-                <p className="text-2xl font-bold text-green-600">{validRows}</p>
+                <p className="text-sm text-green-700">Total a importar</p>
+                <p className="text-2xl font-bold text-green-600">{totalValidRows.toLocaleString()}</p>
               </div>
               <div className="bg-yellow-50 rounded-lg p-4">
-                <p className="text-sm text-yellow-700">Ya vendidos (se omiten)</p>
-                <p className="text-2xl font-bold text-yellow-600">{soldRows}</p>
-              </div>
-              <div className="bg-red-50 rounded-lg p-4">
-                <p className="text-sm text-red-700">Inválidas</p>
-                <p className="text-2xl font-bold text-red-600">{invalidRows}</p>
+                <p className="text-sm text-yellow-700">Vendidos (se omiten)</p>
+                <p className="text-2xl font-bold text-yellow-600">{totalSoldRows.toLocaleString()}</p>
               </div>
             </div>
           </div>
 
-          {/* Tabla de preview */}
-          <div className="overflow-x-auto" style={{ maxHeight: '500px' }}>
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 sticky top-0">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Fila
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Descripción
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Marca
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    SKU
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Color
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Talle Original
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Talle a Importar
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    P. Contado
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Estado
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {previewData.slice(0, 50).map((row) => (
-                  <tr
-                    key={row.rowIndex}
-                    className={`${
-                      row.validationErrors.includes('Ya vendido')
-                        ? 'bg-yellow-50 opacity-60'
-                        : !row.isValid
-                          ? 'bg-red-50'
-                          : ''
-                    }`}
-                  >
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                      {row.rowIndex}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate">
-                      {row.description || <span className="text-red-500 italic">Sin descripción</span>}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                      {row.brand || '-'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                      {row.sku || <span className="text-red-500 italic">Sin SKU</span>}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                      {row.color || '-'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                      {row.originalSize || '-'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <select
-                        value={row.selectedSize}
-                        onChange={(e) => updateRowSize(row.rowIndex, e.target.value)}
-                        disabled={row.validationErrors.includes('Ya vendido')}
-                        className="text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                      >
-                        {SIZE_OPTIONS.map(size => (
-                          <option key={size} value={size}>{size}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                      ${row.priceCash.toFixed(2)}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {row.validationErrors.includes('Ya vendido') ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                          Vendido
-                        </span>
-                      ) : row.isValid ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          <Check className="h-3 w-3 mr-1" />
-                          Válido
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800" title={row.validationErrors.join(', ')}>
-                          <X className="h-3 w-3 mr-1" />
-                          Inválido
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {previewData.length > 50 && (
-              <div className="p-4 text-center text-sm text-gray-500 bg-gray-50">
-                Mostrando primeras 50 filas de {previewData.length} totales
+          {/* Lista de hojas */}
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-medium text-gray-900">Selecciona las hojas a importar:</h3>
+              <div className="space-x-2">
+                <button
+                  onClick={() => toggleAllSheets(true)}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  Seleccionar todas
+                </button>
+                <span className="text-gray-300">|</span>
+                <button
+                  onClick={() => toggleAllSheets(false)}
+                  className="text-sm text-gray-600 hover:text-gray-800"
+                >
+                  Deseleccionar todas
+                </button>
               </div>
-            )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {sheets.map((sheet) => (
+                <div
+                  key={sheet.name}
+                  className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                    sheet.selected
+                      ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => toggleSheet(sheet.name)}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold text-gray-900">{sheet.name}</h4>
+                    <input
+                      type="checkbox"
+                      checked={sheet.selected}
+                      onChange={() => toggleSheet(sheet.name)}
+                      className="h-5 w-5 text-blue-600 rounded"
+                    />
+                  </div>
+                  <div className="text-sm space-y-1">
+                    <p className="text-gray-600">
+                      Total: <span className="font-medium">{sheet.totalRows.toLocaleString()}</span> filas
+                    </p>
+                    <p className="text-green-600">
+                      A importar: <span className="font-medium">{sheet.validRows.toLocaleString()}</span>
+                    </p>
+                    <p className="text-yellow-600">
+                      Vendidos: <span className="font-medium">{sheet.soldRows.toLocaleString()}</span>
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Opción de limpiar DB */}
+            <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start">
+                <input
+                  type="checkbox"
+                  id="clearDb"
+                  checked={clearDbBeforeImport}
+                  onChange={(e) => setClearDbBeforeImport(e.target.checked)}
+                  className="h-5 w-5 text-red-600 rounded mt-0.5"
+                />
+                <label htmlFor="clearDb" className="ml-3">
+                  <span className="font-medium text-red-800">Limpiar base de datos antes de importar</span>
+                  <p className="text-sm text-red-600 mt-1">
+                    Elimina todos los productos, variantes, ventas y compras existentes antes de importar.
+                    Use esta opción si desea reemplazar completamente el inventario.
+                  </p>
+                </label>
+              </div>
+            </div>
+
+            {/* Botón manual de limpiar DB */}
+            <div className="mt-4 flex justify-start">
+              <button
+                onClick={handleClearDb}
+                disabled={clearing}
+                className="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors flex items-center text-sm"
+              >
+                {clearing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Limpiando...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Limpiar DB ahora
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Botones de acción */}
@@ -563,18 +581,18 @@ export default function ImportarExcelPage() {
             </button>
             <button
               onClick={handleImport}
-              disabled={importing || validRows === 0}
+              disabled={importing || clearing || selectedSheets.length === 0}
               className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
-              {importing ? (
+              {importing || clearing ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Importando...
+                  {clearing ? 'Limpiando...' : 'Importando...'}
                 </>
               ) : (
                 <>
                   <Check className="mr-2 h-5 w-5" />
-                  Confirmar Importación ({validRows} productos)
+                  Importar ({totalValidRows.toLocaleString()} productos)
                 </>
               )}
             </button>
@@ -630,6 +648,22 @@ export default function ImportarExcelPage() {
                     <p className="text-xl font-bold text-red-600">{importResult.log.totalErrors || 0}</p>
                   </div>
                 </div>
+
+                {/* Estadísticas por hoja */}
+                {importResult.log.sheetStats && (
+                  <div className="mt-4">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Por hoja:</p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {Object.entries(importResult.log.sheetStats).map(([sheet, stats]) => (
+                        <div key={sheet} className="bg-white p-2 rounded border text-sm">
+                          <p className="font-medium text-gray-900">{sheet}</p>
+                          <p className="text-green-600">Importados: {stats.imported}</p>
+                          <p className="text-yellow-600">Omitidos: {stats.skipped}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Errores */}
                 {importResult.log.errors && importResult.log.errors.length > 0 && (

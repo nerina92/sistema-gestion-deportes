@@ -244,3 +244,65 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+/**
+ * DELETE /api/products - Eliminar todos los productos
+ * Requiere header X-Confirm: "DELETE_ALL_PRODUCTS" para ejecutar
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    // Verificar header de confirmación
+    const confirmHeader = request.headers.get('X-Confirm');
+    if (confirmHeader !== 'DELETE_ALL_PRODUCTS') {
+      return NextResponse.json({
+        error: 'Se requiere header X-Confirm: "DELETE_ALL_PRODUCTS" para eliminar todos los productos'
+      }, { status: 400 });
+    }
+
+    // Contar registros antes de eliminar
+    const [
+      productsCount,
+      variantsCount,
+      saleItemsCount,
+      purchaseItemsCount
+    ] = await Promise.all([
+      prisma.product.count(),
+      prisma.productVariant.count(),
+      prisma.saleItem.count(),
+      prisma.purchaseItem.count()
+    ]);
+
+    // Eliminar en orden correcto (respetando foreign keys)
+    await prisma.$transaction(async (tx) => {
+      // 1. Eliminar items de ventas (tienen FK a product_variants)
+      await tx.saleItem.deleteMany({});
+
+      // 2. Eliminar items de compras (tienen FK a product_variants)
+      await tx.purchaseItem.deleteMany({});
+
+      // 3. Eliminar variantes de productos
+      await tx.productVariant.deleteMany({});
+
+      // 4. Eliminar productos
+      await tx.product.deleteMany({});
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Todos los productos eliminados exitosamente',
+      deleted: {
+        products: productsCount,
+        variants: variantsCount,
+        saleItems: saleItemsCount,
+        purchaseItems: purchaseItemsCount
+      }
+    });
+
+  } catch (error) {
+    console.error('Error eliminando todos los productos:', error);
+    return NextResponse.json({
+      error: 'Error al eliminar productos',
+      details: error instanceof Error ? error.message : 'Error desconocido'
+    }, { status: 500 });
+  }
+}
