@@ -276,99 +276,108 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Importar a la base de datos usando transacción con timeout extendido
-    await prisma.$transaction(async (tx) => {
-      for (const productData of productsMap.values()) {
-        try {
-          // Verificar si el producto ya existe por nombre y marca
-          const existingProduct = await tx.product.findFirst({
-            where: {
-              AND: [
-                { name: { equals: productData.name, mode: 'insensitive' } },
-                { brand: { equals: productData.brand, mode: 'insensitive' } }
-              ]
-            }
-          });
+    // Convertir Map a Array para procesar en lotes
+    const productsArray = Array.from(productsMap.values());
+    const BATCH_SIZE = 50; // Procesar 50 productos por lote
 
-          let productId: string;
+    // Procesar en lotes para evitar timeout de transacción
+    for (let i = 0; i < productsArray.length; i += BATCH_SIZE) {
+      const batch = productsArray.slice(i, i + BATCH_SIZE);
 
-          if (existingProduct) {
-            // Actualizar producto existente
-            productId = existingProduct.id;
-            await tx.product.update({
-              where: { id: productId },
-              data: {
-                category: productData.category,
-                updatedAt: new Date()
+      // Cada lote en su propia transacción
+      await prisma.$transaction(async (tx) => {
+        for (const productData of batch) {
+          try {
+            // Verificar si el producto ya existe por nombre y marca
+            const existingProduct = await tx.product.findFirst({
+              where: {
+                AND: [
+                  { name: { equals: productData.name, mode: 'insensitive' } },
+                  { brand: { equals: productData.brand, mode: 'insensitive' } }
+                ]
               }
             });
-          } else {
-            // Crear nuevo producto
-            const newProduct = await tx.product.create({
-              data: {
-                name: productData.name,
-                brand: productData.brand,
-                category: productData.category,
-                description: productData.brand ? `${productData.name} - ${productData.brand}` : productData.name
-              }
-            });
-            productId = newProduct.id;
-            log.productsCreated++;
-          }
 
-          // Crear variantes
-          for (const variant of productData.variants) {
-            try {
-              // Verificar si la variante ya existe por SKU
-              const existingVariant = await tx.productVariant.findUnique({
-                where: { sku: variant.sku }
+            let productId: string;
+
+            if (existingProduct) {
+              // Actualizar producto existente
+              productId = existingProduct.id;
+              await tx.product.update({
+                where: { id: productId },
+                data: {
+                  category: productData.category,
+                  updatedAt: new Date()
+                }
               });
-
-              if (existingVariant) {
-                // Actualizar variante existente
-                await tx.productVariant.update({
-                  where: { sku: variant.sku },
-                  data: {
-                    size: variant.size,
-                    color: variant.color,
-                    costPrice: variant.costPrice,
-                    priceCash: variant.priceCash,
-                    priceDebit: variant.priceDebit,
-                    priceFinanced: variant.priceFinanced,
-                    stockQuantity: variant.stockQuantity,
-                    updatedAt: new Date()
-                  }
-                });
-              } else {
-                // Crear nueva variante
-                await tx.productVariant.create({
-                  data: {
-                    productId: productId,
-                    size: variant.size,
-                    color: variant.color,
-                    sku: variant.sku,
-                    costPrice: variant.costPrice,
-                    priceCash: variant.priceCash,
-                    priceDebit: variant.priceDebit,
-                    priceFinanced: variant.priceFinanced,
-                    stockQuantity: variant.stockQuantity,
-                    minStockAlert: 1
-                  }
-                });
-                log.variantsCreated++;
-              }
-            } catch (variantError) {
-              log.errors.push(`Error variante SKU ${variant.sku}: ${variantError}`);
+            } else {
+              // Crear nuevo producto
+              const newProduct = await tx.product.create({
+                data: {
+                  name: productData.name,
+                  brand: productData.brand,
+                  category: productData.category,
+                  description: productData.brand ? `${productData.name} - ${productData.brand}` : productData.name
+                }
+              });
+              productId = newProduct.id;
+              log.productsCreated++;
             }
+
+            // Crear variantes
+            for (const variant of productData.variants) {
+              try {
+                // Verificar si la variante ya existe por SKU
+                const existingVariant = await tx.productVariant.findUnique({
+                  where: { sku: variant.sku }
+                });
+
+                if (existingVariant) {
+                  // Actualizar variante existente
+                  await tx.productVariant.update({
+                    where: { sku: variant.sku },
+                    data: {
+                      size: variant.size,
+                      color: variant.color,
+                      costPrice: variant.costPrice,
+                      priceCash: variant.priceCash,
+                      priceDebit: variant.priceDebit,
+                      priceFinanced: variant.priceFinanced,
+                      stockQuantity: variant.stockQuantity,
+                      updatedAt: new Date()
+                    }
+                  });
+                } else {
+                  // Crear nueva variante
+                  await tx.productVariant.create({
+                    data: {
+                      productId: productId,
+                      size: variant.size,
+                      color: variant.color,
+                      sku: variant.sku,
+                      costPrice: variant.costPrice,
+                      priceCash: variant.priceCash,
+                      priceDebit: variant.priceDebit,
+                      priceFinanced: variant.priceFinanced,
+                      stockQuantity: variant.stockQuantity,
+                      minStockAlert: 1
+                    }
+                  });
+                  log.variantsCreated++;
+                }
+              } catch (variantError) {
+                log.errors.push(`Error variante SKU ${variant.sku}: ${variantError}`);
+              }
+            }
+          } catch (productError) {
+            log.errors.push(`Error producto ${productData.name}: ${productError}`);
           }
-        } catch (productError) {
-          log.errors.push(`Error producto ${productData.name}: ${productError}`);
         }
-      }
-    }, {
-      maxWait: 60000, // 60 segundos máximo de espera
-      timeout: 120000, // 120 segundos timeout total
-    });
+      }, {
+        maxWait: 30000,
+        timeout: 60000,
+      });
+    }
 
     // Respuesta exitosa con log detallado
     return NextResponse.json({
