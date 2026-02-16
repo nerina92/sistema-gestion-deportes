@@ -109,13 +109,28 @@ export async function GET(request: NextRequest) {
       }))
     }));
 
+    // Obtener categorías y marcas únicas para filtros
+    const allProducts = await prisma.product.findMany({
+      select: {
+        category: true,
+        brand: true
+      }
+    });
+
+    const uniqueCategories = [...new Set(allProducts.map(p => p.category).filter(Boolean))];
+    const uniqueBrands = [...new Set(allProducts.map(p => p.brand).filter(Boolean))];
+
     const response: ProductsListResponse = {
       products: formattedProducts,
       pagination: {
-        page,
-        limit,
-        total,
+        currentPage: page,
+        itemsPerPage: limit,
+        totalItems: total,
         totalPages: Math.ceil(total / limit)
+      },
+      filters: {
+        categories: uniqueCategories,
+        brands: uniqueBrands
       }
     };
 

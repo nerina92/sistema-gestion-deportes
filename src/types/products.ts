@@ -54,10 +54,14 @@ export interface ProductVariantResponse {
 export interface ProductsListResponse {
   products: ProductWithVariants[];
   pagination: {
-    page: number;
-    limit: number;
-    total: number;
+    currentPage: number;
+    itemsPerPage: number;
+    totalItems: number;
     totalPages: number;
+  };
+  filters?: {
+    categories: string[];
+    brands: string[];
   };
 }
 
