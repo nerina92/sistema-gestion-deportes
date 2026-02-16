@@ -142,9 +142,10 @@ model Sale {
   totalAmount   Decimal    @map("total_amount") @db.Decimal(10, 2)
   notes         String?
   createdAt     DateTime   @default(now()) @map("created_at")
-  
+
   items         SaleItem[]
-  
+  invoice       Invoice?
+
   @@index([saleDate])
   @@map("sales")
 }
@@ -191,4 +192,44 @@ model SyncLog {
 
   @@index([createdAt])
   @@map("sync_logs")
+}
+
+// ============================================
+// USER STORY US-021: Facturación Electrónica AFIP
+// ============================================
+
+model AfipConfig {
+  id             String   @id @default(cuid())
+  cuit           String
+  certPath       String   @map("cert_path")
+  keyPath        String   @map("key_path")
+  puntoVenta     Int      @map("punto_venta")
+  productionMode Boolean  @default(false) @map("production_mode")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("afip_config")
+}
+
+model Invoice {
+  id              String    @id @default(cuid())
+  saleId          String    @unique @map("sale_id")
+  sale            Sale      @relation(fields: [saleId], references: [id])
+  invoiceType     String    @default("B") @map("invoice_type")
+  invoiceNumber   String    @map("invoice_number")
+  puntoVenta      Int       @map("punto_venta")
+  cae             String?
+  caeExpiration   DateTime? @map("cae_expiration")
+  invoiceDate     DateTime  @default(now()) @map("invoice_date")
+  totalAmount     Decimal   @db.Decimal(10, 2) @map("total_amount")
+  customerName    String?   @map("customer_name")
+  customerDni     String?   @map("customer_dni")
+  pdfPath         String?   @map("pdf_path")
+  status          String    @default("pending") // pending, issued, error
+  errorMessage    String?   @db.Text @map("error_message")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("invoices")
 }

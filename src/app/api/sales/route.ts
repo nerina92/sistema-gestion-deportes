@@ -34,6 +34,14 @@ export async function GET(request: NextRequest) {
               }
             }
           }
+        },
+        invoice: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            status: true,
+            pdfPath: true
+          }
         }
       },
       orderBy: {
@@ -50,7 +58,8 @@ export async function GET(request: NextRequest) {
       totalAmount: sale.totalAmount,
       itemCount: sale.items.length,
       notes: sale.notes,
-      createdAt: sale.createdAt
+      createdAt: sale.createdAt,
+      invoice: sale.invoice
     }));
 
     return NextResponse.json({
