@@ -2,15 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Package, 
-  Plus, 
-  Search, 
-  Filter, 
-  RefreshCw, 
-  Eye, 
-  Edit, 
-  Trash2, 
+import {
+  Package,
+  Plus,
+  Search,
+  Filter,
+  RefreshCw,
+  Eye,
+  Edit,
+  Trash2,
   AlertTriangle,
   CheckCircle,
   XCircle,
@@ -18,7 +18,8 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  X
+  X,
+  FileSpreadsheet
 } from 'lucide-react';
 
 // Tipos para los datos
@@ -499,7 +500,14 @@ export default function ProductosPage() {
               <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               Actualizar
             </button>
-            <button 
+            <button
+              onClick={() => router.push('/productos/importar')}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center"
+            >
+              <FileSpreadsheet className="mr-2 h-4 w-4" />
+              Importar Excel
+            </button>
+            <button
               onClick={() => router.push('/productos/nuevo')}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center"
             >
