@@ -1,9 +1,9 @@
--- CreateTable: AFIP Configuration
+-- CreateTable: AFIP Configuration (with certificate content stored in DB)
 CREATE TABLE "afip_config" (
     "id" TEXT NOT NULL,
     "cuit" TEXT NOT NULL,
-    "cert_path" TEXT NOT NULL,
-    "key_path" TEXT NOT NULL,
+    "cert_content" TEXT NOT NULL,
+    "key_content" TEXT NOT NULL,
     "punto_venta" INTEGER NOT NULL,
     "production_mode" BOOLEAN NOT NULL DEFAULT false,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
