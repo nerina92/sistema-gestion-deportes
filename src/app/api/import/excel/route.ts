@@ -288,6 +288,9 @@ export async function POST(request: NextRequest) {
           }
         }
       }
+    }, {
+      maxWait: 20000, // Esperar hasta 20 segundos para que comience la transacción
+      timeout: 60000, // Permitir hasta 60 segundos para completar la transacción
     });
 
     // Calcular totales
