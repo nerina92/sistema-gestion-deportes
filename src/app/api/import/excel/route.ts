@@ -114,10 +114,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Agrupar productos por descripción + marca
-    const productsMap = new Map<string, ProductData>();
-
-    // Procesar cada hoja
+    // Procesar cada hoja en su propia transacción
     for (const sheetName of availableSheets) {
       const category = SHEETS_TO_IMPORT[sheetName as keyof typeof SHEETS_TO_IMPORT];
       const worksheet = workbook.Sheets[sheetName];
@@ -131,6 +128,9 @@ export async function POST(request: NextRequest) {
         log.warnings.push(`Hoja "${sheetName}" está vacía`);
         continue;
       }
+
+      // Agrupar productos de esta hoja por descripción + marca
+      const sheetProductsMap = new Map<string, ProductData>();
 
       // Estructura de columnas según tu Excel:
       // Columna A (0): Index
@@ -192,8 +192,8 @@ export async function POST(request: NextRequest) {
           const productKey = `${normalizeText(description)}_${normalizeText(brand)}`;
 
           // Si el producto no existe, crearlo
-          if (!productsMap.has(productKey)) {
-            productsMap.set(productKey, {
+          if (!sheetProductsMap.has(productKey)) {
+            sheetProductsMap.set(productKey, {
               name: description,
               brand: brand,
               category: category,
@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
           }
 
           // Agregar variante al producto
-          const product = productsMap.get(productKey)!;
+          const product = sheetProductsMap.get(productKey)!;
           product.variants.push({
             size,
             color,
@@ -218,80 +218,87 @@ export async function POST(request: NextRequest) {
           log.errors.push(`Hoja "${sheetName}", Fila ${rowIndex + 1}: ${error.message}`);
         }
       }
-    }
 
-    // Insertar productos en la base de datos
-    await prisma.$transaction(async (tx) => {
-      for (const [, productData] of productsMap) {
-        // Verificar si el producto ya existe
-        let product = await tx.product.findFirst({
-          where: {
-            name: productData.name,
-            brand: productData.brand
+      // Insertar productos de esta hoja en una transacción separada
+      try {
+        await prisma.$transaction(async (tx) => {
+          for (const [, productData] of sheetProductsMap) {
+            // Verificar si el producto ya existe
+            let product = await tx.product.findFirst({
+              where: {
+                name: productData.name,
+                brand: productData.brand
+              }
+            });
+
+            // Si no existe, crear el producto
+            if (!product) {
+              product = await tx.product.create({
+                data: {
+                  name: productData.name,
+                  brand: productData.brand,
+                  category: productData.category,
+                }
+              });
+              log.productsCreated++;
+            } else {
+              log.warnings.push(`Producto existente actualizado: ${product.name}`);
+            }
+
+            // Insertar variantes
+            for (const variant of productData.variants) {
+              // Verificar si la variante ya existe por SKU
+              const existingVariant = await tx.productVariant.findUnique({
+                where: { sku: variant.sku }
+              });
+
+              if (existingVariant) {
+                // Actualizar variante existente
+                await tx.productVariant.update({
+                  where: { sku: variant.sku },
+                  data: {
+                    size: variant.size,
+                    color: variant.color,
+                    costPrice: variant.costPrice,
+                    priceCash: variant.priceCash,
+                    priceDebit: variant.priceDebit,
+                    priceFinanced: variant.priceFinanced,
+                    stockQuantity: variant.stockQuantity,
+                    minStockAlert: 5 // Valor por defecto
+                  }
+                });
+                log.warnings.push(`Variante existente actualizada: SKU ${variant.sku}`);
+              } else {
+                // Crear nueva variante
+                await tx.productVariant.create({
+                  data: {
+                    productId: product.id,
+                    size: variant.size,
+                    color: variant.color,
+                    sku: variant.sku,
+                    costPrice: variant.costPrice,
+                    priceCash: variant.priceCash,
+                    priceDebit: variant.priceDebit,
+                    priceFinanced: variant.priceFinanced,
+                    stockQuantity: variant.stockQuantity,
+                    minStockAlert: 5 // Valor por defecto
+                  }
+                });
+                log.variantsCreated++;
+              }
+            }
           }
+        }, {
+          maxWait: 20000, // Esperar hasta 20 segundos para que comience la transacción
+          timeout: 60000, // Permitir hasta 60 segundos para completar la transacción
         });
 
-        // Si no existe, crear el producto
-        if (!product) {
-          product = await tx.product.create({
-            data: {
-              name: productData.name,
-              brand: productData.brand,
-              category: productData.category,
-            }
-          });
-          log.productsCreated++;
-        } else {
-          log.warnings.push(`Producto existente actualizado: ${product.name}`);
-        }
-
-        // Insertar variantes
-        for (const variant of productData.variants) {
-          // Verificar si la variante ya existe por SKU
-          const existingVariant = await tx.productVariant.findUnique({
-            where: { sku: variant.sku }
-          });
-
-          if (existingVariant) {
-            // Actualizar variante existente
-            await tx.productVariant.update({
-              where: { sku: variant.sku },
-              data: {
-                size: variant.size,
-                color: variant.color,
-                costPrice: variant.costPrice,
-                priceCash: variant.priceCash,
-                priceDebit: variant.priceDebit,
-                priceFinanced: variant.priceFinanced,
-                stockQuantity: variant.stockQuantity,
-                minStockAlert: 5 // Valor por defecto
-              }
-            });
-            log.warnings.push(`Variante existente actualizada: SKU ${variant.sku}`);
-          } else {
-            // Crear nueva variante
-            await tx.productVariant.create({
-              data: {
-                productId: product.id,
-                size: variant.size,
-                color: variant.color,
-                sku: variant.sku,
-                costPrice: variant.costPrice,
-                priceCash: variant.priceCash,
-                priceDebit: variant.priceDebit,
-                priceFinanced: variant.priceFinanced,
-                stockQuantity: variant.stockQuantity,
-                minStockAlert: 5 // Valor por defecto
-              }
-            });
-            log.variantsCreated++;
-          }
-        }
+        log.warnings.push(`✓ Hoja "${sheetName}" procesada exitosamente`);
+      } catch (error: any) {
+        log.errors.push(`Error al procesar hoja "${sheetName}": ${error.message}`);
+        // Continuar con la siguiente hoja
       }
-    }, {
-      maxWait: 20000, // Esperar hasta 20 segundos para que comience la transacción
-      timeout: 60000, // Permitir hasta 60 segundos para completar la transacción
-    });
+    }
 
     // Calcular totales
     log.totalErrors = log.errors.length;
