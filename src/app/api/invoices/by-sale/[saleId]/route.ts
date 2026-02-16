@@ -6,10 +6,10 @@ const prisma = new PrismaClient();
 // GET - Obtener factura de una venta
 export async function GET(
   request: NextRequest,
-  { params }: { params: { saleId: string } }
+  { params }: { params: Promise<{ saleId: string }> }
 ) {
   try {
-    const { saleId } = params;
+    const { saleId } = await params;
 
     const invoice = await prisma.invoice.findUnique({
       where: { saleId },
