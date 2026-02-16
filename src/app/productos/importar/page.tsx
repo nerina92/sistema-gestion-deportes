@@ -76,18 +76,34 @@ export default function ImportarProductosPage() {
           Formato del Archivo
         </h3>
         <div className="text-sm text-blue-800 space-y-2">
-          <p><strong>El archivo Excel debe tener:</strong></p>
+          <p><strong>El archivo Excel debe tener estas hojas:</strong></p>
           <ul className="list-disc list-inside space-y-1 ml-4">
-            <li>Una hoja llamada <strong>"STOCK INICIAL"</strong></li>
-            <li>Columnas: Descripción, Marca, Art (SKU), Talle, Color, Vendido?</li>
-            <li>Columnas de precios: G (Contado), H (Débito), I (Financiado), L (Costo)</li>
+            <li><strong>Hombre</strong> → Se importa como categoría "Hombres"</li>
+            <li><strong>Mujer</strong> → Se importa como categoría "Mujeres"</li>
+            <li><strong>Calzado</strong> → Se importa como categoría "Calzado"</li>
+            <li><strong>Paletas</strong> → Se importa como categoría "Paletas"</li>
+            <li><strong>Accesorios</strong> → Se importa como categoría "Accesorios"</li>
+            <li><strong>Niños</strong> → Se importa como categoría "Niños"</li>
+          </ul>
+          <p className="mt-3"><strong>Estructura de columnas esperada:</strong></p>
+          <ul className="list-disc list-inside space-y-1 ml-4">
+            <li>Columna B: Descripción (nombre del producto)</li>
+            <li>Columna C: Marca</li>
+            <li>Columna D: ART (SKU/código único)</li>
+            <li>Columna E: Talle</li>
+            <li>Columna F: Color</li>
+            <li>Columna G: Precio Contado (Cdo)</li>
+            <li>Columna I: Precio Débito</li>
+            <li>Columna J: Precio Financiado</li>
+            <li>Columna M: Costo actualizado</li>
+            <li>Columna Q: Vendido? (se omiten los marcados como "Si")</li>
           </ul>
           <p className="mt-3"><strong>Lógica de importación:</strong></p>
           <ul className="list-disc list-inside space-y-1 ml-4">
             <li>Solo importa productos donde "Vendido?" = "No" o esté vacío</li>
             <li>Agrupa productos por nombre + marca</li>
             <li>Cada fila del Excel = 1 variante del producto</li>
-            <li>Categorización automática por palabras clave</li>
+            <li>Categoría asignada según la hoja de origen</li>
           </ul>
         </div>
       </div>
@@ -238,50 +254,53 @@ export default function ImportarProductosPage() {
 
       {/* Documentación */}
       <div className="mt-8 bg-gray-50 rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-3">Ejemplo de Estructura</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-3">Ejemplo de Estructura (Hoja "Hombre")</h3>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead className="bg-gray-100">
               <tr>
-                <th className="px-3 py-2 text-left">Descripción</th>
-                <th className="px-3 py-2 text-left">Marca</th>
-                <th className="px-3 py-2 text-left">Art</th>
-                <th className="px-3 py-2 text-left">Talle</th>
-                <th className="px-3 py-2 text-left">Color</th>
-                <th className="px-3 py-2 text-left">Vendido?</th>
-                <th className="px-3 py-2 text-left">G</th>
-                <th className="px-3 py-2 text-left">H</th>
-                <th className="px-3 py-2 text-left">I</th>
+                <th className="px-3 py-2 text-left">B: Descripción</th>
+                <th className="px-3 py-2 text-left">C: Marca</th>
+                <th className="px-3 py-2 text-left">D: ART</th>
+                <th className="px-3 py-2 text-left">E: Talle</th>
+                <th className="px-3 py-2 text-left">F: Color</th>
+                <th className="px-3 py-2 text-left">G: Cdo</th>
+                <th className="px-3 py-2 text-left">I: Débito</th>
+                <th className="px-3 py-2 text-left">J: Fin</th>
+                <th className="px-3 py-2 text-left">Q: Vendido?</th>
               </tr>
             </thead>
             <tbody>
               <tr className="border-t">
-                <td className="px-3 py-2">Remera Básica</td>
-                <td className="px-3 py-2">Nike</td>
-                <td className="px-3 py-2">REM001</td>
-                <td className="px-3 py-2">M</td>
-                <td className="px-3 py-2">Azul</td>
+                <td className="px-3 py-2">boxer</td>
+                <td className="px-3 py-2">XY</td>
+                <td className="px-3 py-2">1358</td>
+                <td className="px-3 py-2">L</td>
+                <td className="px-3 py-2">estamp</td>
+                <td className="px-3 py-2">4200</td>
+                <td className="px-3 py-2">4450</td>
+                <td className="px-3 py-2">5050</td>
                 <td className="px-3 py-2">No</td>
-                <td className="px-3 py-2">2500</td>
-                <td className="px-3 py-2">2700</td>
-                <td className="px-3 py-2">3000</td>
               </tr>
               <tr className="border-t">
-                <td className="px-3 py-2">Remera Básica</td>
-                <td className="px-3 py-2">Nike</td>
-                <td className="px-3 py-2">REM002</td>
-                <td className="px-3 py-2">L</td>
-                <td className="px-3 py-2">Azul</td>
+                <td className="px-3 py-2">boxer</td>
+                <td className="px-3 py-2">XY</td>
+                <td className="px-3 py-2">1318</td>
+                <td className="px-3 py-2">M</td>
+                <td className="px-3 py-2">Estamp casette</td>
+                <td className="px-3 py-2">5700</td>
+                <td className="px-3 py-2">6050</td>
+                <td className="px-3 py-2">6850</td>
                 <td className="px-3 py-2">No</td>
-                <td className="px-3 py-2">2500</td>
-                <td className="px-3 py-2">2700</td>
-                <td className="px-3 py-2">3000</td>
               </tr>
             </tbody>
           </table>
         </div>
         <p className="text-xs text-gray-500 mt-3">
-          * Las dos filas anteriores se agruparán como un solo producto "Remera Básica Nike" con 2 variantes (M y L)
+          * Las dos filas anteriores se agruparán como un solo producto "boxer XY" con 2 variantes (L y M)
+        </p>
+        <p className="text-xs text-gray-500 mt-2">
+          * Se importarán todas las hojas: Hombre, Mujer, Calzado, Paletas, Accesorios, Niños
         </p>
       </div>
     </div>
