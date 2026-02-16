@@ -2,14 +2,16 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  FaHome, 
-  FaBox, 
-  FaShoppingCart, 
-  FaTruck, 
-  FaChartBar, 
+import {
+  FaHome,
+  FaBox,
+  FaShoppingCart,
+  FaTruck,
+  FaChartBar,
   FaCog,
-  FaTimes
+  FaTimes,
+  FaFileInvoice,
+  FaPlug
 } from 'react-icons/fa';
 import { Building2 } from 'lucide-react';
 
@@ -47,6 +49,18 @@ const menuItems = [
     name: 'Proveedores',
     href: '/proveedores',
     icon: Building2,
+    disabled: false,
+  },
+  {
+    name: 'Facturas',
+    href: '/facturas',
+    icon: FaFileInvoice,
+    disabled: false,
+  },
+  {
+    name: 'Integraciones',
+    href: '/configuracion',
+    icon: FaPlug,
     disabled: false,
   },
   {

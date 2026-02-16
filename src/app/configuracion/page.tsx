@@ -116,17 +116,23 @@ export default function ConfiguracionPage() {
           </div>
           <div className="p-6">
             <ul className="space-y-3">
-              <li className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">AFIP - Facturación electrónica</span>
-                <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Próximamente</span>
+              <li className="flex items-center justify-between group">
+                <a href="/integraciones/afip" className="text-sm text-blue-600 hover:text-blue-800 underline flex-1">
+                  AFIP - Facturación electrónica
+                </a>
+                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">✓ Disponible</span>
               </li>
-              <li className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Tienda Nube</span>
-                <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Próximamente</span>
+              <li className="flex items-center justify-between group">
+                <a href="/integraciones/tiendanube" className="text-sm text-blue-600 hover:text-blue-800 underline flex-1">
+                  Tienda Nube
+                </a>
+                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">✓ Disponible</span>
               </li>
-              <li className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Importar desde Excel</span>
-                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Disponible</span>
+              <li className="flex items-center justify-between group">
+                <a href="/facturas" className="text-sm text-blue-600 hover:text-blue-800 underline flex-1">
+                  Ver Facturas Emitidas
+                </a>
+                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">✓ Disponible</span>
               </li>
             </ul>
           </div>
