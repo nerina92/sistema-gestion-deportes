@@ -158,18 +158,31 @@ export default function NuevaVentaPage() {
   const updateQuantity = (index: number, newQuantity: number) => {
     const newItems = [...items];
     const item = newItems[index];
-    
-    // Validate quantity
-    if (newQuantity < 1) return;
+
+    // Validate quantity - minimum 1
+    if (newQuantity < 1) {
+      newItems[index].quantity = 1;
+      newItems[index].subtotal = newItems[index].unitPrice * 1;
+      setItems(newItems);
+      return;
+    }
+
+    // Validate quantity - maximum stock
     if (newQuantity > item.stock) {
-      setError(`Stock insuficiente. Disponible: ${item.stock}`);
+      // Limit to maximum available stock
+      newItems[index].quantity = item.stock;
+      newItems[index].subtotal = newItems[index].unitPrice * item.stock;
+      setItems(newItems);
+      setError(`Stock insuficiente. Máximo disponible: ${item.stock}`);
       setTimeout(() => setError(''), 3000);
       return;
     }
 
+    // Valid quantity - update normally
     newItems[index].quantity = newQuantity;
     newItems[index].subtotal = newItems[index].unitPrice * newQuantity;
     setItems(newItems);
+    setError(''); // Clear any previous errors
   };
 
   const calculateTotal = () => {

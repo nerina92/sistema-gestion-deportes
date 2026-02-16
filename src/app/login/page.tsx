@@ -17,6 +17,27 @@ function LoginForm() {
   const from = searchParams?.get('from') || '/dashboard';
   const expired = searchParams?.get('expired') === 'true';
 
+  // Verificar si el usuario ya está autenticado y redirigir
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/me', {
+          credentials: 'include'
+        });
+
+        if (res.ok) {
+          // Usuario autenticado, redirigir a dashboard
+          router.push('/dashboard');
+        }
+      } catch (error) {
+        // Usuario no autenticado, continuar mostrando login
+        console.log('User not authenticated');
+      }
+    };
+
+    checkAuth();
+  }, [router]);
+
   useEffect(() => {
     if (expired) {
       setError('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
