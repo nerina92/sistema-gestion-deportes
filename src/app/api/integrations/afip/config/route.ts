@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
 
 const prisma = new PrismaClient();
 
@@ -44,25 +42,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'CUIT y Punto de Venta son obligatorios' }, { status: 400 });
     }
 
-    // Crear directorio para certificados
-    const certsDir = path.join(process.cwd(), 'certs');
-    await mkdir(certsDir, { recursive: true });
+    let certContent: string;
+    let keyContent: string;
 
-    let certPath: string;
-    let keyPath: string;
-
-    // Si se suben nuevos archivos, guardarlos
+    // Si se suben nuevos archivos, leer su contenido
     if (certFile && keyFile) {
-      certPath = path.join(certsDir, `${cuit}.crt`);
-      keyPath = path.join(certsDir, `${cuit}.key`);
-
       const certBuffer = Buffer.from(await certFile.arrayBuffer());
       const keyBuffer = Buffer.from(await keyFile.arrayBuffer());
 
-      await writeFile(certPath, certBuffer);
-      await writeFile(keyPath, keyBuffer);
+      certContent = certBuffer.toString('utf-8');
+      keyContent = keyBuffer.toString('utf-8');
     } else {
-      // Usar paths existentes de la configuración anterior
+      // Usar contenido existente de la configuración anterior
       const existingConfig = await prisma.afipConfig.findFirst({
         where: { isActive: true }
       });
@@ -73,8 +64,8 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
       }
 
-      certPath = existingConfig.certPath;
-      keyPath = existingConfig.keyPath;
+      certContent = existingConfig.certContent;
+      keyContent = existingConfig.keyContent;
     }
 
     // Desactivar config anterior
@@ -89,8 +80,8 @@ export async function POST(request: NextRequest) {
         cuit,
         puntoVenta,
         productionMode,
-        certPath,
-        keyPath,
+        certContent,
+        keyContent,
         isActive: true
       }
     });

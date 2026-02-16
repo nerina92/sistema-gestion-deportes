@@ -52,3 +52,5 @@ prisma/*.db-journal
 # Test files (opcional)
 test-import-api.js
 example-frontend-usage.tsx
+afip-cert/
+certs/

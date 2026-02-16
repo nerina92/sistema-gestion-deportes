@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import Afip from '@afipsdk/afip.js';
+import { writeFile } from 'fs/promises';
+import { join } from 'path';
+import { tmpdir } from 'os';
 
 const prisma = new PrismaClient();
 
@@ -18,11 +21,19 @@ export async function POST() {
       }, { status: 400 });
     }
 
+    // Escribir certificados temporalmente en /tmp (única carpeta escribible en Vercel)
+    const tmpDir = tmpdir();
+    const certPath = join(tmpDir, `afip-cert-${config.cuit}.crt`);
+    const keyPath = join(tmpDir, `afip-key-${config.cuit}.key`);
+
+    await writeFile(certPath, config.certContent);
+    await writeFile(keyPath, config.keyContent);
+
     // Inicializar AFIP SDK
     const afip = new Afip({
       CUIT: config.cuit,
-      cert: config.certPath,
-      key: config.keyPath,
+      cert: certPath,
+      key: keyPath,
       production: config.productionMode
     });
 
