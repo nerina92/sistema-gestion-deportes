@@ -33,24 +33,26 @@ model Product {
 }
 
 model ProductVariant {
-  id              String   @id @default(cuid())
-  productId       String   @map("product_id")
-  size            String
-  color           String
-  sku             String   @unique
-  costPrice       Decimal  @map("cost_price") @db.Decimal(10, 2)
-  priceCash       Decimal  @map("price_cash") @db.Decimal(10, 2)
-  priceDebit      Decimal  @map("price_debit") @db.Decimal(10, 2)
-  priceFinanced   Decimal  @map("price_financed") @db.Decimal(10, 2)
-  stockQuantity   Int      @map("stock_quantity") @default(0)
-  minStockAlert   Int      @map("min_stock_alert") @default(1)
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-  
+  id                  String   @id @default(cuid())
+  productId           String   @map("product_id")
+  size                String
+  color               String
+  sku                 String   @unique
+  costPrice           Decimal  @map("cost_price") @db.Decimal(10, 2)
+  priceCash           Decimal  @map("price_cash") @db.Decimal(10, 2)
+  priceDebit          Decimal  @map("price_debit") @db.Decimal(10, 2)
+  priceFinanced       Decimal  @map("price_financed") @db.Decimal(10, 2)
+  stockQuantity       Int      @map("stock_quantity") @default(0)
+  minStockAlert       Int      @map("min_stock_alert") @default(1)
+  tiendanubeProductId String?  @map("tiendanube_product_id")
+  tiendanubeVariantId String?  @map("tiendanube_variant_id")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
   product         Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
   purchaseItems   PurchaseItem[]
   saleItems       SaleItem[]
-  
+
   @@index([sku])
   @@index([productId])
   @@map("product_variants")
@@ -154,11 +156,39 @@ model SaleItem {
   quantity         Int
   unitPrice        Decimal        @map("unit_price") @db.Decimal(10, 2)
   subtotal         Decimal        @db.Decimal(10, 2)
-  
+
   sale             Sale           @relation(fields: [saleId], references: [id], onDelete: Cascade)
   productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
-  
+
   @@index([saleId])
   @@index([productVariantId])
   @@map("sale_items")
+}
+
+// ============================================
+// USER STORY US-020: Integración Tienda Nube
+// ============================================
+
+model TiendanubeConfig {
+  id          String    @id @default(cuid())
+  storeId     String    @map("store_id")
+  accessToken String    @map("access_token")
+  isActive    Boolean   @default(true) @map("is_active")
+  lastSyncAt  DateTime? @map("last_sync_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("tiendanube_config")
+}
+
+model SyncLog {
+  id           String   @id @default(cuid())
+  action       String   // 'import' | 'export' | 'webhook'
+  status       String   // 'success' | 'error'
+  details      String?  @db.Text
+  errorMessage String?  @map("error_message") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("sync_logs")
 }

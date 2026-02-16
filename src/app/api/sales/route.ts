@@ -244,6 +244,64 @@ export async function POST(request: NextRequest) {
       return sale;
     });
 
+    // 5. Sincronizar con Tienda Nube si está configurado (no bloquear la venta si falla)
+    try {
+      const tnConfig = await prisma.tiendanubeConfig.findFirst({
+        where: { isActive: true }
+      });
+
+      if (tnConfig) {
+        // Por cada item vendido, actualizar TN
+        for (const item of items) {
+          const variant = await prisma.productVariant.findUnique({
+            where: { id: item.productVariantId }
+          });
+
+          if (variant?.tiendanubeVariantId && variant?.tiendanubeProductId) {
+            // Actualizar stock en Tienda Nube
+            const tnResponse = await fetch(
+              `https://api.tiendanube.com/v1/${tnConfig.storeId}/products/${variant.tiendanubeProductId}/variants/${variant.tiendanubeVariantId}`,
+              {
+                method: 'PUT',
+                headers: {
+                  'Authentication': `bearer ${tnConfig.accessToken}`,
+                  'Content-Type': 'application/json',
+                  'User-Agent': 'Sistema Gestion Deportes'
+                },
+                body: JSON.stringify({
+                  stock: variant.stockQuantity - item.quantity
+                })
+              }
+            );
+
+            if (!tnResponse.ok) {
+              console.error(`Error updating TN stock for variant ${variant.sku}:`, await tnResponse.text());
+            }
+          }
+        }
+
+        // Log de sincronización exitosa
+        await prisma.syncLog.create({
+          data: {
+            action: 'auto-export',
+            status: 'success',
+            details: `Venta ${result.id} - Stock actualizado en Tienda Nube`
+          }
+        });
+      }
+    } catch (tnError) {
+      // Log error but don't fail the sale
+      console.error('Error syncing with Tienda Nube:', tnError);
+      await prisma.syncLog.create({
+        data: {
+          action: 'auto-export',
+          status: 'error',
+          details: `Venta ${result.id}`,
+          errorMessage: tnError instanceof Error ? tnError.message : 'Error desconocido'
+        }
+      }).catch(err => console.error('Error logging TN sync failure:', err));
+    }
+
     return NextResponse.json(
       {
         success: true,

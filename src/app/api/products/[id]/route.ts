@@ -212,6 +212,8 @@ export async function PUT(
               priceFinanced: variant.priceFinanced,
               stockQuantity: variant.stockQuantity,
               minStockAlert: variant.minStockAlert,
+              tiendanubeProductId: (variant as any).tiendanubeProductId || null,
+              tiendanubeVariantId: (variant as any).tiendanubeVariantId || null,
             }
           })
         )
@@ -232,6 +234,8 @@ export async function PUT(
               priceFinanced: variant.priceFinanced,
               stockQuantity: variant.stockQuantity,
               minStockAlert: variant.minStockAlert,
+              tiendanubeProductId: (variant as any).tiendanubeProductId || null,
+              tiendanubeVariantId: (variant as any).tiendanubeVariantId || null,
             }
           })
         )

@@ -27,6 +27,8 @@ interface ProductVariant {
   priceFinanced: number;
   stockQuantity: number;
   minStockAlert: number;
+  tiendanubeProductId?: string;
+  tiendanubeVariantId?: string;
 }
 
 interface ProductForm {
@@ -64,6 +66,8 @@ interface Product {
     priceFinanced: number;
     stockQuantity: number;
     minStockAlert: number;
+    tiendanubeProductId?: string;
+    tiendanubeVariantId?: string;
   }>;
 }
 
@@ -150,7 +154,9 @@ export default function EditarProductoPage() {
             priceDebit: variant.priceDebit || variant.price_debit || 0,
             priceFinanced: variant.priceFinanced || variant.price_financed || 0,
             stockQuantity: variant.stockQuantity || variant.stock_quantity || 0,
-            minStockAlert: variant.minStockAlert || variant.min_stock_alert || 0
+            minStockAlert: variant.minStockAlert || variant.min_stock_alert || 0,
+            tiendanubeProductId: variant.tiendanubeProductId || variant.tiendanube_product_id || '',
+            tiendanubeVariantId: variant.tiendanubeVariantId || variant.tiendanube_variant_id || ''
           }))
         });
         
@@ -252,7 +258,9 @@ export default function EditarProductoPage() {
       priceDebit: 0,
       priceFinanced: 0,
       stockQuantity: 0,
-      minStockAlert: 0
+      minStockAlert: 0,
+      tiendanubeProductId: '',
+      tiendanubeVariantId: ''
     };
 
     setFormData(prev => ({
@@ -400,7 +408,9 @@ export default function EditarProductoPage() {
           priceDebit: variant.priceDebit,
           priceFinanced: variant.priceFinanced,
           stockQuantity: variant.stockQuantity,
-          minStockAlert: variant.minStockAlert
+          minStockAlert: variant.minStockAlert,
+          tiendanubeProductId: variant.tiendanubeProductId || null,
+          tiendanubeVariantId: variant.tiendanubeVariantId || null
         }))
       };
 
@@ -813,6 +823,40 @@ export default function EditarProductoPage() {
                         }`}
                       />
                       {variantErrors.minStockAlert && <p className="mt-1 text-xs text-red-600">{variantErrors.minStockAlert}</p>}
+                    </div>
+                  </div>
+
+                  {/* Campos de Tienda Nube */}
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <h4 className="text-sm font-medium text-gray-700 mb-3">Integración Tienda Nube (Opcional)</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Product ID
+                        </label>
+                        <input
+                          type="text"
+                          value={variant.tiendanubeProductId || ''}
+                          onChange={(e) => updateVariant(index, 'tiendanubeProductId', e.target.value)}
+                          placeholder="123456"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                        <p className="mt-1 text-xs text-gray-500">ID del producto en Tienda Nube</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Variant ID
+                        </label>
+                        <input
+                          type="text"
+                          value={variant.tiendanubeVariantId || ''}
+                          onChange={(e) => updateVariant(index, 'tiendanubeVariantId', e.target.value)}
+                          placeholder="789012"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                        <p className="mt-1 text-xs text-gray-500">ID de la variante en Tienda Nube</p>
+                      </div>
                     </div>
                   </div>
                 </div>
