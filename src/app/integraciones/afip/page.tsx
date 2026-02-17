@@ -7,6 +7,8 @@ export default function AfipConfigPage() {
   const [cuit, setCuit] = useState('');
   const [puntoVenta, setPuntoVenta] = useState('');
   const [productionMode, setProductionMode] = useState(false);
+  const [accessToken, setAccessToken] = useState('');
+  const [hasAccessToken, setHasAccessToken] = useState(false);
   const [certFile, setCertFile] = useState<File | null>(null);
   const [keyFile, setKeyFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -30,6 +32,7 @@ export default function AfipConfigPage() {
         setCuit(data.cuit);
         setPuntoVenta(data.puntoVenta.toString());
         setProductionMode(data.productionMode);
+        setHasAccessToken(data.hasAccessToken || false);
       }
     } catch (err) {
       console.error('Error loading config:', err);
@@ -74,6 +77,7 @@ export default function AfipConfigPage() {
       formData.append('cuit', cuit);
       formData.append('puntoVenta', puntoVenta);
       formData.append('productionMode', productionMode.toString());
+      if (accessToken) formData.append('accessToken', accessToken);
 
       if (certFile) formData.append('cert', certFile);
       if (keyFile) formData.append('key', keyFile);
@@ -163,6 +167,31 @@ export default function AfipConfigPage() {
           />
           <p className="text-xs text-gray-500 mt-1">
             Número de punto de venta asignado por AFIP
+          </p>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-gray-700 text-sm font-bold mb-2">
+            Access Token (Afip SDK)
+            {!hasAccessToken && <span className="text-red-500 ml-1">*</span>}
+          </label>
+          <input
+            type="password"
+            value={accessToken}
+            onChange={(e) => setAccessToken(e.target.value)}
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder={hasAccessToken ? '••••••••• (ya configurado)' : 'Pega tu access token aquí'}
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Obtené tu token gratis en{' '}
+            <a
+              href="https://app.afipsdk.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline hover:text-blue-800"
+            >
+              app.afipsdk.com
+            </a>
           </p>
         </div>
 

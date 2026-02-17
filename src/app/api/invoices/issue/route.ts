@@ -63,12 +63,19 @@ export async function POST(request: NextRequest) {
     // Inicializar AFIP SDK
     // IMPORTANTE: El SDK v1.2.2 envía cert y key como CONTENIDO al servidor cloud
     // app.afipsdk.com, NO como rutas de archivos locales
+    if (!config.accessToken) {
+      return NextResponse.json({
+        error: 'Falta el Access Token de Afip SDK. Configuralo en Integraciones > AFIP.'
+      }, { status: 400 });
+    }
+
     const cuitNumber = parseInt(config.cuit);
     const afip = new Afip({
       CUIT: cuitNumber,
       cert: config.certContent,
       key: config.keyContent,
-      production: config.productionMode
+      production: config.productionMode,
+      access_token: config.accessToken,
     });
 
     // Obtener siguiente número de comprobante

@@ -18,7 +18,8 @@ export async function GET() {
       configured: true,
       cuit: config.cuit,
       puntoVenta: config.puntoVenta,
-      productionMode: config.productionMode
+      productionMode: config.productionMode,
+      hasAccessToken: !!config.accessToken
     });
   } catch (error) {
     console.error('Error getting AFIP config:', error);
@@ -34,6 +35,7 @@ export async function POST(request: NextRequest) {
     const cuit = formData.get('cuit') as string;
     const puntoVenta = parseInt(formData.get('puntoVenta') as string);
     const productionMode = formData.get('productionMode') === 'true';
+    const accessToken = formData.get('accessToken') as string | null;
     const certFile = formData.get('cert') as File | null;
     const keyFile = formData.get('key') as File | null;
 
@@ -68,6 +70,15 @@ export async function POST(request: NextRequest) {
       keyContent = existingConfig.keyContent;
     }
 
+    // Resolver access token: usar el nuevo si viene, o mantener el existente
+    let finalAccessToken: string | null = accessToken || null;
+    if (!finalAccessToken) {
+      const existingConfig = await prisma.afipConfig.findFirst({
+        where: { isActive: true }
+      });
+      finalAccessToken = existingConfig?.accessToken || null;
+    }
+
     // Desactivar config anterior
     await prisma.afipConfig.updateMany({
       where: { isActive: true },
@@ -82,6 +93,7 @@ export async function POST(request: NextRequest) {
         productionMode,
         certContent,
         keyContent,
+        accessToken: finalAccessToken,
         isActive: true
       }
     });

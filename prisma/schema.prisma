@@ -203,6 +203,7 @@ model AfipConfig {
   cuit           String
   certContent    String   @map("cert_content") @db.Text
   keyContent     String   @map("key_content") @db.Text
+  accessToken    String?  @map("access_token") @db.Text
   puntoVenta     Int      @map("punto_venta")
   productionMode Boolean  @default(false) @map("production_mode")
   isActive       Boolean  @default(true) @map("is_active")

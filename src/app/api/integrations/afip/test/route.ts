@@ -38,11 +38,19 @@ export async function POST() {
       keyLength: config.keyContent.length
     });
 
+    if (!config.accessToken) {
+      return NextResponse.json({
+        success: false,
+        error: 'Falta el Access Token de Afip SDK. Obtené uno en https://app.afipsdk.com/'
+      }, { status: 400 });
+    }
+
     const afip = new Afip({
       CUIT: cuitNumber,
       cert: config.certContent,
       key: config.keyContent,
       production: config.productionMode,
+      access_token: config.accessToken,
     });
 
     console.log('AFIP SDK initialized, testing connection...');
