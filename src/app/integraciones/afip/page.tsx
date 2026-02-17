@@ -105,7 +105,7 @@ export default function AfipConfigPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Configuración AFIP</h1>
         <p className="mt-2 text-gray-600">
-          Configura la conexión con AFIP para emitir facturas electrónicas tipo B
+          Configura la conexión con AFIP para emitir facturas electrónicas tipo C (Monotributo)
         </p>
       </div>
 

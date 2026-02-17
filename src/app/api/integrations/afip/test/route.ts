@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import Afip from '@afipsdk/afip.js';
-import { writeFile } from 'fs/promises';
-import { join } from 'path';
-import { tmpdir } from 'os';
 
 const prisma = new PrismaClient();
 
@@ -29,43 +26,26 @@ export async function POST() {
       }, { status: 400 });
     }
 
-    // Escribir certificados temporalmente en /tmp (única carpeta escribible en Vercel)
-    const tmpDir = tmpdir();
-    const certPath = join(tmpDir, `afip-cert-${config.cuit}.crt`);
-    const keyPath = join(tmpDir, `afip-key-${config.cuit}.key`);
-
-    console.log('Writing certificates to:', { certPath, keyPath });
-
-    await writeFile(certPath, config.certContent);
-    await writeFile(keyPath, config.keyContent);
-
-    console.log('Certificates written successfully');
-
-    // Limpiar cache de tokens WSAA previos
-    const { unlink } = await import('fs/promises');
-    const tokenPath = join(tmpDir, `token-wsfe-${config.cuit}`);
-    const signPath = join(tmpDir, `sign-wsfe-${config.cuit}`);
-    try { await unlink(tokenPath); } catch {}
-    try { await unlink(signPath); } catch {}
-
     // Inicializar AFIP SDK
+    // IMPORTANTE: El SDK v1.2.2 envía cert y key como CONTENIDO al servidor cloud
+    // app.afipsdk.com, NO como rutas de archivos locales
     const cuitNumber = parseInt(config.cuit);
     console.log('Initializing AFIP SDK with:', {
       cuit: cuitNumber,
       puntoVenta: config.puntoVenta,
-      production: config.productionMode
+      production: config.productionMode,
+      certLength: config.certContent.length,
+      keyLength: config.keyContent.length
     });
 
     const afip = new Afip({
       CUIT: cuitNumber,
-      cert: certPath,
-      key: keyPath,
+      cert: config.certContent,
+      key: config.keyContent,
       production: config.productionMode,
-      ta_folder: tmpDir,
-      res_folder: '',
     });
 
-    console.log('AFIP SDK initialized successfully');
+    console.log('AFIP SDK initialized, testing connection...');
 
     // Probar obtener último número de comprobante
     // Tipo 11 = Factura C (Monotributo), Tipo 6 = Factura B (Resp. Inscripto)
@@ -87,12 +67,15 @@ export async function POST() {
   } catch (error: any) {
     console.error('Error testing AFIP connection:', error);
 
-    // Capturar más detalles del error
+    // Capturar más detalles del error incluyendo data del servidor SDK
     const errorDetails = {
       message: error.message,
       stack: error.stack,
       code: error.code,
       name: error.name,
+      status: error.status,
+      statusText: error.statusText,
+      data: error.data,
       ...(error.response && { response: error.response })
     };
 
@@ -102,7 +85,8 @@ export async function POST() {
       success: false,
       error: 'Error al conectar con AFIP',
       details: error.message,
-      debugInfo: process.env.NODE_ENV === 'development' ? errorDetails : undefined
+      errorData: error.data || null,
+      debugInfo: errorDetails
     }, { status: 500 });
   }
 }

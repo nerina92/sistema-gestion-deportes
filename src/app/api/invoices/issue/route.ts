@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import Afip from '@afipsdk/afip.js';
 import { generateInvoicePDF } from '@/lib/pdf-generator';
-import { writeFile } from 'fs/promises';
-import { join } from 'path';
-import { tmpdir } from 'os';
 
 const prisma = new PrismaClient();
 
@@ -63,26 +60,22 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Escribir certificados temporalmente en /tmp (única carpeta escribible en Vercel)
-    const tmpDir = tmpdir();
-    const certPath = join(tmpDir, `afip-cert-${config.cuit}.crt`);
-    const keyPath = join(tmpDir, `afip-key-${config.cuit}.key`);
-
-    await writeFile(certPath, config.certContent);
-    await writeFile(keyPath, config.keyContent);
-
     // Inicializar AFIP SDK
+    // IMPORTANTE: El SDK v1.2.2 envía cert y key como CONTENIDO al servidor cloud
+    // app.afipsdk.com, NO como rutas de archivos locales
+    const cuitNumber = parseInt(config.cuit);
     const afip = new Afip({
-      CUIT: config.cuit,
-      cert: certPath,
-      key: keyPath,
+      CUIT: cuitNumber,
+      cert: config.certContent,
+      key: config.keyContent,
       production: config.productionMode
     });
 
     // Obtener siguiente número de comprobante
+    // Tipo 11 = Factura C (Monotributo)
     const lastVoucher = await afip.ElectronicBilling.getLastVoucher(
       config.puntoVenta,
-      6 // Factura B
+      11 // Factura C (Monotributo)
     );
     const nextNumber = lastVoucher + 1;
 
@@ -95,7 +88,7 @@ export async function POST(request: NextRequest) {
     const invoiceData = {
       'CantReg': 1,
       'PtoVta': config.puntoVenta,
-      'CbteTipo': 6, // Factura B
+      'CbteTipo': 11, // Factura C (Monotributo)
       'Concepto': 1, // Productos
       'DocTipo': customerDni ? 96 : 99, // 96: DNI, 99: Consumidor Final
       'DocNro': customerDni ? parseInt(customerDni.replace(/\D/g, '')) : 0,
@@ -132,7 +125,7 @@ export async function POST(request: NextRequest) {
       const invoice = await prisma.invoice.create({
         data: {
           saleId,
-          invoiceType: 'B',
+          invoiceType: 'C',
           invoiceNumber,
           puntoVenta: config.puntoVenta,
           cae,
@@ -177,7 +170,7 @@ export async function POST(request: NextRequest) {
       const invoice = await prisma.invoice.create({
         data: {
           saleId,
-          invoiceType: 'B',
+          invoiceType: 'C',
           invoiceNumber: 'ERROR',
           puntoVenta: config.puntoVenta,
           totalAmount: sale.totalAmount,
