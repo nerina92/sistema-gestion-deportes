@@ -41,26 +41,37 @@ export async function POST() {
 
     console.log('Certificates written successfully');
 
+    // Limpiar cache de tokens WSAA previos
+    const { unlink } = await import('fs/promises');
+    const tokenPath = join(tmpDir, `token-wsfe-${config.cuit}`);
+    const signPath = join(tmpDir, `sign-wsfe-${config.cuit}`);
+    try { await unlink(tokenPath); } catch {}
+    try { await unlink(signPath); } catch {}
+
     // Inicializar AFIP SDK
+    const cuitNumber = parseInt(config.cuit);
     console.log('Initializing AFIP SDK with:', {
-      cuit: config.cuit,
+      cuit: cuitNumber,
       puntoVenta: config.puntoVenta,
       production: config.productionMode
     });
 
     const afip = new Afip({
-      CUIT: config.cuit,
+      CUIT: cuitNumber,
       cert: certPath,
       key: keyPath,
-      production: config.productionMode
+      production: config.productionMode,
+      ta_folder: tmpDir,
+      res_folder: '',
     });
 
     console.log('AFIP SDK initialized successfully');
 
     // Probar obtener último número de comprobante
+    // Tipo 11 = Factura C (Monotributo), Tipo 6 = Factura B (Resp. Inscripto)
     const lastVoucher = await afip.ElectronicBilling.getLastVoucher(
       config.puntoVenta,
-      6 // Tipo: Factura B
+      11 // Tipo: Factura C (Monotributo)
     );
 
     return NextResponse.json({
