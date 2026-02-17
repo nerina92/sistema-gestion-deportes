@@ -117,8 +117,8 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    const uniqueCategories = [...new Set(allProducts.map(p => p.category).filter(Boolean))];
-    const uniqueBrands = [...new Set(allProducts.map(p => p.brand).filter(Boolean))];
+    const uniqueCategories = [...new Set(allProducts.map(p => p.category).filter((x): x is string => !!x))];
+    const uniqueBrands = [...new Set(allProducts.map(p => p.brand).filter((x): x is string => !!x))];
 
     const response: ProductsListResponse = {
       products: formattedProducts,
