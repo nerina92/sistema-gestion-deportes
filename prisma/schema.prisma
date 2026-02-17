@@ -227,6 +227,7 @@ model Invoice {
   customerName    String?   @map("customer_name")
   customerDni     String?   @map("customer_dni")
   pdfPath         String?   @map("pdf_path")
+  pdfData         String?   @map("pdf_data") @db.Text
   status          String    @default("pending") // pending, issued, error
   errorMessage    String?   @db.Text @map("error_message")
   createdAt       DateTime  @default(now()) @map("created_at")

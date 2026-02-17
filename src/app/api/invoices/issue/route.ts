@@ -144,8 +144,8 @@ export async function POST(request: NextRequest) {
         }
       });
 
-      // Generar PDF
-      const pdfPath = await generateInvoicePDF(invoice.id, sale, config, {
+      // Generar PDF en memoria (base64)
+      const pdfBase64 = await generateInvoicePDF(invoice.id, sale, config, {
         cae,
         caeExpiration: caeExpirationDate.toISOString(),
         invoiceNumber,
@@ -153,10 +153,13 @@ export async function POST(request: NextRequest) {
         customerDni
       });
 
-      // Actualizar con path del PDF
+      // Guardar PDF base64 en la DB
       await prisma.invoice.update({
         where: { id: invoice.id },
-        data: { pdfPath }
+        data: {
+          pdfData: pdfBase64,
+          pdfPath: `/api/invoices/${invoice.id}/pdf`
+        }
       });
 
       return NextResponse.json({
@@ -167,7 +170,7 @@ export async function POST(request: NextRequest) {
           number: invoiceNumber,
           cae,
           caeExpiration: caeExpirationDate,
-          pdfPath
+          pdfUrl: `/api/invoices/${invoice.id}/pdf`
         }
       });
     } else {

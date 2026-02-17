@@ -1,7 +1,4 @@
 import PDFDocument from 'pdfkit';
-import { createWriteStream } from 'fs';
-import { mkdir } from 'fs/promises';
-import path from 'path';
 import bwipjs from 'bwip-js';
 
 interface InvoiceData {
@@ -17,6 +14,10 @@ interface AfipConfig {
   puntoVenta: number;
 }
 
+/**
+ * Genera un PDF de factura en memoria y devuelve el buffer como base64.
+ * Compatible con Vercel (no escribe en filesystem).
+ */
 export async function generateInvoicePDF(
   invoiceId: string,
   sale: any,
@@ -25,19 +26,22 @@ export async function generateInvoicePDF(
 ): Promise<string> {
   return new Promise(async (resolve, reject) => {
     try {
-      // Crear directorio para PDFs
-      const pdfsDir = path.join(process.cwd(), 'public', 'invoices');
-      await mkdir(pdfsDir, { recursive: true });
-
-      const pdfPath = path.join(pdfsDir, `${invoiceId}.pdf`);
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
 
-      doc.pipe(createWriteStream(pdfPath));
+      // Recolectar chunks en memoria
+      const chunks: Buffer[] = [];
+      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+      doc.on('end', () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        const base64 = pdfBuffer.toString('base64');
+        resolve(base64);
+      });
+      doc.on('error', reject);
 
-      // Header - Factura B
+      // Header - Factura C (Monotributo)
       doc.fontSize(24)
          .font('Helvetica-Bold')
-         .text('FACTURA B', { align: 'center' });
+         .text('FACTURA C', { align: 'center' });
 
       doc.moveDown(0.5);
 
@@ -56,7 +60,7 @@ export async function generateInvoicePDF(
       doc.fontSize(10)
          .font('Helvetica')
          .text(`CUIT: ${config.cuit}`)
-         .text('IVA Responsable Inscripto')
+         .text('Monotributista')
          .text('Dirección: Av. Principal 1234, Laboulaye, Córdoba')
          .text('Tel: (03385) 123456');
 
@@ -230,8 +234,6 @@ export async function generateInvoicePDF(
          });
 
       doc.end();
-
-      resolve(`/invoices/${invoiceId}.pdf`);
     } catch (error) {
       console.error('Error generating PDF:', error);
       reject(error);

@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { readFile } from 'fs/promises';
-import path from 'path';
 
 const prisma = new PrismaClient();
 
@@ -21,19 +19,18 @@ export async function GET(
       return NextResponse.json({ error: 'Factura no encontrada' }, { status: 404 });
     }
 
-    if (!invoice.pdfPath) {
+    if (!invoice.pdfData) {
       return NextResponse.json({ error: 'PDF no disponible' }, { status: 404 });
     }
 
-    // Leer archivo PDF
-    const pdfFilePath = path.join(process.cwd(), 'public', invoice.pdfPath);
-    const pdfBuffer = await readFile(pdfFilePath);
+    // Convertir base64 a buffer
+    const pdfBuffer = Buffer.from(invoice.pdfData, 'base64');
 
     // Retornar PDF
     return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="Factura-${invoice.invoiceNumber}.pdf"`
+        'Content-Disposition': `inline; filename="Factura-${invoice.invoiceNumber}.pdf"`
       }
     });
   } catch (error: any) {
