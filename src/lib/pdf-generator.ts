@@ -1,5 +1,4 @@
-import PDFDocument from 'pdfkit';
-import bwipjs from 'bwip-js';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
 interface InvoiceData {
   cae: string;
@@ -15,8 +14,9 @@ interface AfipConfig {
 }
 
 /**
- * Genera un PDF de factura en memoria y devuelve el buffer como base64.
- * Compatible con Vercel (no escribe en filesystem).
+ * Genera un PDF de factura en memoria usando pdf-lib.
+ * 100% compatible con Vercel (sin dependencias de filesystem).
+ * Devuelve el PDF como string base64.
  */
 export async function generateInvoicePDF(
   invoiceId: string,
@@ -24,219 +24,186 @@ export async function generateInvoicePDF(
   config: AfipConfig,
   invoiceData: InvoiceData
 ): Promise<string> {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([595.28, 841.89]); // A4
 
-      // Recolectar chunks en memoria
-      const chunks: Buffer[] = [];
-      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
-      doc.on('end', () => {
-        const pdfBuffer = Buffer.concat(chunks);
-        const base64 = pdfBuffer.toString('base64');
-        resolve(base64);
-      });
-      doc.on('error', reject);
+  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-      // Header - Factura C (Monotributo)
-      doc.fontSize(24)
-         .font('Helvetica-Bold')
-         .text('FACTURA C', { align: 'center' });
+  const { width, height } = page.getSize();
+  const margin = 50;
+  let y = height - margin;
 
-      doc.moveDown(0.5);
+  const black = rgb(0, 0, 0);
+  const gray = rgb(0.3, 0.3, 0.3);
 
-      // Línea divisoria
-      doc.moveTo(50, doc.y)
-         .lineTo(545, doc.y)
-         .stroke();
+  // Helper: dibujar texto
+  const drawText = (text: string, x: number, yPos: number, options: {
+    font?: typeof helvetica;
+    size?: number;
+    color?: typeof black;
+  } = {}) => {
+    const font = options.font || helvetica;
+    const size = options.size || 10;
+    const color = options.color || black;
+    page.drawText(text, { x, y: yPos, size, font, color });
+  };
 
-      doc.moveDown();
+  // Helper: dibujar texto alineado a derecha
+  const drawTextRight = (text: string, rightX: number, yPos: number, options: {
+    font?: typeof helvetica;
+    size?: number;
+  } = {}) => {
+    const font = options.font || helvetica;
+    const size = options.size || 10;
+    const textWidth = font.widthOfTextAtSize(text, size);
+    page.drawText(text, { x: rightX - textWidth, y: yPos, size, font, color: black });
+  };
 
-      // Datos fiscales del emisor
-      doc.fontSize(14)
-         .font('Helvetica-Bold')
-         .text('DEPORTES LABOULAYE', { align: 'left' });
+  // Helper: dibujar texto centrado
+  const drawTextCenter = (text: string, yPos: number, options: {
+    font?: typeof helvetica;
+    size?: number;
+  } = {}) => {
+    const font = options.font || helvetica;
+    const size = options.size || 10;
+    const textWidth = font.widthOfTextAtSize(text, size);
+    page.drawText(text, { x: (width - textWidth) / 2, y: yPos, size, font, color: black });
+  };
 
-      doc.fontSize(10)
-         .font('Helvetica')
-         .text(`CUIT: ${config.cuit}`)
-         .text('Monotributista')
-         .text('Dirección: Av. Principal 1234, Laboulaye, Córdoba')
-         .text('Tel: (03385) 123456');
+  // Helper: dibujar línea horizontal
+  const drawLine = (yPos: number) => {
+    page.drawLine({
+      start: { x: margin, y: yPos },
+      end: { x: width - margin, y: yPos },
+      thickness: 1,
+      color: rgb(0.7, 0.7, 0.7),
+    });
+  };
 
-      doc.moveDown();
+  // ========== HEADER ==========
+  drawTextCenter('FACTURA C', y, { font: helveticaBold, size: 24 });
+  y -= 35;
 
-      // Línea divisoria
-      doc.moveTo(50, doc.y)
-         .lineTo(545, doc.y)
-         .stroke();
+  drawLine(y);
+  y -= 20;
 
-      doc.moveDown();
+  // ========== DATOS DEL EMISOR ==========
+  drawText('DEPORTES LABOULAYE', margin, y, { font: helveticaBold, size: 14 });
+  y -= 18;
+  drawText(`CUIT: ${config.cuit}`, margin, y, { size: 10 });
+  y -= 14;
+  drawText('Monotributista', margin, y, { size: 10 });
+  y -= 14;
+  drawText('Laboulaye, Córdoba', margin, y, { size: 10, color: gray });
+  y -= 20;
 
-      // Número de factura y fecha en dos columnas
-      const leftColumn = 50;
-      const rightColumn = 320;
-      const startY = doc.y;
+  drawLine(y);
+  y -= 20;
 
-      // Columna izquierda - Fecha
-      doc.fontSize(10)
-         .font('Helvetica-Bold')
-         .text('FECHA DE EMISIÓN:', leftColumn, startY)
-         .font('Helvetica')
-         .text(new Date().toLocaleDateString('es-AR', {
-           day: '2-digit',
-           month: '2-digit',
-           year: 'numeric'
-         }), leftColumn, doc.y);
+  // ========== FECHA Y COMPROBANTE ==========
+  drawText('FECHA DE EMISIÓN:', margin, y, { font: helveticaBold, size: 10 });
+  drawText('COMPROBANTE Nº:', 320, y, { font: helveticaBold, size: 10 });
+  y -= 14;
 
-      // Columna derecha - Número de factura
-      doc.fontSize(10)
-         .font('Helvetica-Bold')
-         .text('COMPROBANTE Nº:', rightColumn, startY)
-         .font('Helvetica')
-         .text(invoiceData.invoiceNumber, rightColumn, doc.y);
-
-      doc.moveDown(2);
-
-      // Datos del cliente
-      if (invoiceData.customerName || invoiceData.customerDni) {
-        doc.fontSize(12)
-           .font('Helvetica-Bold')
-           .text('DATOS DEL CLIENTE');
-
-        doc.fontSize(10)
-           .font('Helvetica');
-
-        if (invoiceData.customerName) {
-          doc.text(`Nombre: ${invoiceData.customerName}`);
-        }
-
-        if (invoiceData.customerDni) {
-          doc.text(`DNI: ${invoiceData.customerDni}`);
-        }
-      } else {
-        doc.fontSize(10)
-           .font('Helvetica')
-           .text('Cliente: CONSUMIDOR FINAL');
-      }
-
-      doc.moveDown(1.5);
-
-      // Tabla de items
-      doc.fontSize(12)
-         .font('Helvetica-Bold')
-         .text('DETALLE DE PRODUCTOS');
-
-      doc.moveDown(0.5);
-
-      // Headers de tabla
-      const tableTop = doc.y;
-      const itemX = 50;
-      const qtyX = 320;
-      const priceX = 380;
-      const totalX = 480;
-
-      doc.fontSize(9)
-         .font('Helvetica-Bold');
-
-      doc.text('Producto', itemX, tableTop, { width: 260 });
-      doc.text('Cant.', qtyX, tableTop, { width: 50, align: 'right' });
-      doc.text('P.Unit', priceX, tableTop, { width: 80, align: 'right' });
-      doc.text('Subtotal', totalX, tableTop, { width: 65, align: 'right' });
-
-      // Línea bajo header
-      doc.moveTo(50, doc.y + 5)
-         .lineTo(545, doc.y + 5)
-         .stroke();
-
-      doc.moveDown(0.5);
-
-      // Items
-      doc.fontSize(9).font('Helvetica');
-
-      for (const item of sale.items) {
-        const itemY = doc.y;
-        const productName = item.productVariant.product.name;
-        const variantInfo = `${item.productVariant.size} - ${item.productVariant.color}`;
-        const itemDescription = `${productName}\n${variantInfo}`;
-
-        doc.text(itemDescription, itemX, itemY, { width: 260 });
-        doc.text(item.quantity.toString(), qtyX, itemY, { width: 50, align: 'right' });
-        doc.text(`$${parseFloat(item.unitPrice).toFixed(2)}`, priceX, itemY, { width: 80, align: 'right' });
-        doc.text(`$${parseFloat(item.subtotal).toFixed(2)}`, totalX, itemY, { width: 65, align: 'right' });
-
-        doc.moveDown(1.5);
-      }
-
-      // Línea antes del total
-      doc.moveTo(50, doc.y)
-         .lineTo(545, doc.y)
-         .stroke();
-
-      doc.moveDown(0.5);
-
-      // Total
-      const totalY = doc.y;
-      doc.fontSize(14)
-         .font('Helvetica-Bold')
-         .text('TOTAL:', 400, totalY)
-         .text(`$${parseFloat(sale.totalAmount).toFixed(2)}`, 480, totalY, { width: 65, align: 'right' });
-
-      doc.moveDown(2);
-
-      // CAE Section
-      doc.fontSize(12)
-         .font('Helvetica-Bold')
-         .text('DATOS DE AUTORIZACIÓN AFIP', { align: 'center' });
-
-      doc.moveDown(0.5);
-
-      doc.fontSize(10)
-         .font('Helvetica')
-         .text(`CAE: ${invoiceData.cae}`, { align: 'center' })
-         .text(`Fecha de Vencimiento CAE: ${new Date(invoiceData.caeExpiration).toLocaleDateString('es-AR')}`, {
-           align: 'center'
-         });
-
-      doc.moveDown(1);
-
-      // Generar código de barras
-      try {
-        const barcodeBuffer = await bwipjs.toBuffer({
-          bcid: 'code128',
-          text: invoiceData.cae,
-          scale: 2,
-          height: 10,
-          includetext: false
-        });
-
-        // Centrar código de barras
-        const barcodeWidth = 200;
-        const barcodeX = (doc.page.width - barcodeWidth) / 2;
-
-        doc.image(barcodeBuffer, barcodeX, doc.y, {
-          width: barcodeWidth,
-          align: 'center'
-        });
-
-        doc.moveDown(3);
-      } catch (barcodeError) {
-        console.error('Error generating barcode:', barcodeError);
-        doc.moveDown(1);
-      }
-
-      // Footer
-      doc.fontSize(8)
-         .font('Helvetica')
-         .text('Comprobante Autorizado por AFIP', { align: 'center' })
-         .text('Esta administración no se hace responsable de los datos ingresados en el detalle de la operación', {
-           align: 'center'
-         });
-
-      doc.end();
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      reject(error);
-    }
+  const dateStr = new Date().toLocaleDateString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
   });
+  drawText(dateStr, margin, y, { size: 10 });
+  drawText(invoiceData.invoiceNumber, 320, y, { size: 10 });
+  y -= 25;
+
+  // ========== DATOS DEL CLIENTE ==========
+  if (invoiceData.customerName || invoiceData.customerDni) {
+    drawText('DATOS DEL CLIENTE', margin, y, { font: helveticaBold, size: 12 });
+    y -= 16;
+
+    if (invoiceData.customerName) {
+      drawText(`Nombre: ${invoiceData.customerName}`, margin, y, { size: 10 });
+      y -= 14;
+    }
+    if (invoiceData.customerDni) {
+      drawText(`DNI: ${invoiceData.customerDni}`, margin, y, { size: 10 });
+      y -= 14;
+    }
+  } else {
+    drawText('Cliente: CONSUMIDOR FINAL', margin, y, { size: 10 });
+    y -= 14;
+  }
+
+  y -= 15;
+
+  // ========== DETALLE DE PRODUCTOS ==========
+  drawText('DETALLE DE PRODUCTOS', margin, y, { font: helveticaBold, size: 12 });
+  y -= 20;
+
+  // Headers de tabla
+  const colProduct = margin;
+  const colQty = 320;
+  const colPrice = 400;
+  const colSubtotal = width - margin;
+
+  drawText('Producto', colProduct, y, { font: helveticaBold, size: 9 });
+  drawTextRight('Cant.', colQty + 40, y, { font: helveticaBold, size: 9 });
+  drawTextRight('P.Unit', colPrice + 60, y, { font: helveticaBold, size: 9 });
+  drawTextRight('Subtotal', colSubtotal, y, { font: helveticaBold, size: 9 });
+  y -= 8;
+
+  drawLine(y);
+  y -= 14;
+
+  // Items
+  for (const item of sale.items) {
+    const productName = item.productVariant?.product?.name || 'Producto';
+    const size = item.productVariant?.size || '';
+    const color = item.productVariant?.color || '';
+    const variantInfo = [size, color].filter(Boolean).join(' - ');
+
+    drawText(productName, colProduct, y, { size: 9 });
+    if (variantInfo) {
+      y -= 12;
+      drawText(variantInfo, colProduct, y, { size: 8, color: gray });
+    }
+
+    // Datos numéricos alineados a la derecha en la línea del producto
+    const dataY = variantInfo ? y + 12 : y;
+    drawTextRight(item.quantity.toString(), colQty + 40, dataY, { size: 9 });
+    drawTextRight(`$${parseFloat(item.unitPrice).toFixed(2)}`, colPrice + 60, dataY, { size: 9 });
+    drawTextRight(`$${parseFloat(item.subtotal).toFixed(2)}`, colSubtotal, dataY, { size: 9 });
+
+    y -= 18;
+  }
+
+  // Línea antes del total
+  drawLine(y + 5);
+  y -= 15;
+
+  // ========== TOTAL ==========
+  drawTextRight('TOTAL:', colPrice + 60, y, { font: helveticaBold, size: 14 });
+  drawTextRight(`$${parseFloat(sale.totalAmount).toFixed(2)}`, colSubtotal, y, { font: helveticaBold, size: 14 });
+  y -= 40;
+
+  // ========== CAE ==========
+  drawTextCenter('DATOS DE AUTORIZACIÓN AFIP', y, { font: helveticaBold, size: 12 });
+  y -= 20;
+
+  drawTextCenter(`CAE: ${invoiceData.cae}`, y, { size: 10 });
+  y -= 16;
+
+  const caeExpDate = new Date(invoiceData.caeExpiration).toLocaleDateString('es-AR');
+  drawTextCenter(`Fecha de Vencimiento CAE: ${caeExpDate}`, y, { size: 10 });
+  y -= 30;
+
+  // ========== FOOTER ==========
+  drawTextCenter('Comprobante Autorizado por AFIP', y, { size: 8 });
+  y -= 12;
+  drawTextCenter('Esta administración no se hace responsable de los datos ingresados en el detalle de la operación', y, { size: 7 });
+
+  // Generar PDF
+  const pdfBytes = await pdfDoc.save();
+  const base64 = Buffer.from(pdfBytes).toString('base64');
+
+  return base64;
 }
