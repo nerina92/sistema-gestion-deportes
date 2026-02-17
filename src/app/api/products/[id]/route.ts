@@ -259,7 +259,7 @@ export async function PUT(
       }))
     };
 
-    return NextResponse.json(formattedResult);
+    return NextResponse.json({ success: true, ...formattedResult });
 
   } catch (error) {
     console.error('Error updating product:', error);

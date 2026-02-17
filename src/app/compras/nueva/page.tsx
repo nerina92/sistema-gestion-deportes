@@ -113,7 +113,7 @@ export default function NuevaCompraPage() {
       const response = await fetch(url);
       if (response.ok) {
         const result = await response.json();
-        setProducts(result.data || []);
+        setProducts(result.products || result.data || []);
       }
     } catch (error) {
       console.error('Error cargando productos:', error);
