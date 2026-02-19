@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaFileExcel, FaUpload, FaCheckCircle, FaExclamationTriangle, FaInfoCircle, FaSpinner } from 'react-icons/fa';
+import { FaFileExcel, FaUpload, FaCheckCircle, FaExclamationTriangle, FaInfoCircle, FaSpinner, FaTrash } from 'react-icons/fa';
 
 interface SheetResult {
   sheetName: string;
@@ -18,9 +18,37 @@ export default function ImportarProductosPage() {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const [sheetResults, setSheetResults] = useState<SheetResult[]>([]);
   const [globalError, setGlobalError] = useState<string>('');
+  const [globalSuccess, setGlobalSuccess] = useState<string>('');
   const [done, setDone] = useState(false);
+
+  const handleClearProducts = async () => {
+    const confirmed = window.confirm(
+      '⚠️ ¿Estás segura?\n\nEsto va a borrar TODOS los productos y variantes de la base de datos.\n\nLas ventas, compras y facturas NO se borran.\n\nEscribí "borrar" para confirmar.'
+    );
+    if (!confirmed) return;
+
+    setClearing(true);
+    setGlobalError('');
+    setGlobalSuccess('');
+    try {
+      const res = await fetch('/api/import/clear-products', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setGlobalSuccess(data.message);
+        setSheetResults([]);
+        setDone(false);
+      } else {
+        setGlobalError(data.error || 'Error al limpiar la base de datos');
+      }
+    } catch (err: any) {
+      setGlobalError('Error de conexión: ' + err.message);
+    } finally {
+      setClearing(false);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -161,6 +189,29 @@ export default function ImportarProductosPage() {
         </p>
       </div>
 
+      {/* Zona de peligro - borrar DB */}
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-red-800">⚠️ Zona de peligro</p>
+            <p className="text-xs text-red-600 mt-1">
+              Borra todos los productos y variantes de la base de datos. Las ventas, compras y facturas no se tocan.
+            </p>
+          </div>
+          <button
+            onClick={handleClearProducts}
+            disabled={clearing || importing}
+            className="ml-4 flex-shrink-0 bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+          >
+            {clearing ? (
+              <><FaSpinner className="animate-spin mr-2" />Borrando...</>
+            ) : (
+              <><FaTrash className="mr-2" />Borrar todos los productos</>
+            )}
+          </button>
+        </div>
+      </div>
+
       {/* Instrucciones */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
         <h3 className="text-lg font-medium text-blue-900 flex items-center mb-3">
@@ -224,6 +275,16 @@ export default function ImportarProductosPage() {
           <div className="flex items-center">
             <FaExclamationTriangle className="text-red-600 mr-3 flex-shrink-0" />
             <p className="text-red-700 text-sm">{globalError}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Éxito global */}
+      {globalSuccess && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center">
+            <FaCheckCircle className="text-green-600 mr-3 flex-shrink-0" />
+            <p className="text-green-700 text-sm">{globalSuccess}</p>
           </div>
         </div>
       )}
