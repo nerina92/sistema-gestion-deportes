@@ -14,28 +14,59 @@ const SHEETS_TO_IMPORT = {
   'Niños': 'Niños'
 };
 
-// Tipos para manejo de datos Excel
+// Paletas tiene una estructura de columnas diferente (sin Talle ni Color)
+const PALETAS_COLUMN_MAP = {
+  description: 1,    // B
+  brand: 2,           // C
+  sku: 3,             // D (Art)
+  priceCash: 4,       // E (Cdo)
+  priceDebit: 6,      // G (Débito)
+  priceFinanced: 7,   // H (Financiado)
+  costPrice: 10,      // K (Costo actualizado)
+  sold: 13,           // N (Vendido?)
+};
+
+// Columnas estándar para las demás hojas
+const STANDARD_COLUMN_MAP = {
+  description: 1,    // B
+  brand: 2,           // C
+  sku: 3,             // D (ART)
+  size: 4,            // E (Talle)
+  color: 5,           // F (Color)
+  priceCash: 6,       // G (Cdo)
+  priceDebit: 8,      // I (Débito)
+  priceFinanced: 9,   // J (Financiado)
+  costPrice: 12,      // M (Costo actualizado)
+  sold: 16,           // Q (Vendido?)
+};
+
 interface ExcelRow {
   [key: number]: string | number | undefined;
 }
 
-// Normalizar texto
 function normalizeText(text: string): string {
   if (!text) return '';
   return text.toString().trim().toLowerCase();
 }
 
-// Convertir valor de celda a número decimal
 function parseDecimal(value: unknown): number {
   if (value === null || value === undefined || value === '') return 0;
   const num = typeof value === 'string' ? parseFloat(value.replace(',', '.')) : Number(value);
   return isNaN(num) ? 0 : num;
 }
 
-// Limpiar SKU
 function cleanSku(sku: unknown): string {
   if (!sku) return '';
-  return sku.toString().trim().replace(/[^a-zA-Z0-9-_]/g, '');
+  return sku.toString().trim().replace(/[^a-zA-Z0-9\-_. ]/g, '').replace(/\s+/g, '-');
+}
+
+// Generar SKU automático cuando no existe
+function generateSku(name: string, brand: string, size: string, color: string, index: number): string {
+  const namePart = name.substring(0, 4).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const brandPart = brand.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const sizePart = size.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '') || 'U';
+  const colorPart = color.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '') || 'X';
+  return `${namePart}-${brandPart}-${sizePart}-${colorPart}-${index}`;
 }
 
 interface ImportLog {
@@ -78,7 +109,6 @@ export async function POST(request: NextRequest) {
   };
 
   try {
-    // Obtener el archivo del FormData
     const formData = await request.formData();
     const file = formData.get('file') as File;
 
@@ -89,7 +119,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validar que sea un archivo Excel
     if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
       return NextResponse.json(
         { error: 'El archivo debe ser formato Excel (.xlsx o .xls)' },
@@ -97,11 +126,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Leer el archivo
     const arrayBuffer = await file.arrayBuffer();
     const workbook = XLSX.read(arrayBuffer, { type: 'array' });
 
-    // Verificar que existan las hojas requeridas
     const availableSheets = workbook.SheetNames.filter(name => name in SHEETS_TO_IMPORT);
 
     if (availableSheets.length === 0) {
@@ -114,7 +141,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Procesar cada hoja en su propia transacción
+    // Contador global para SKUs auto-generados
+    let autoSkuCounter = Date.now();
+
     for (const sheetName of availableSheets) {
       const category = SHEETS_TO_IMPORT[sheetName as keyof typeof SHEETS_TO_IMPORT];
       const worksheet = workbook.Sheets[sheetName];
@@ -129,69 +158,52 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      // Agrupar productos de esta hoja por descripción + marca
       const sheetProductsMap = new Map<string, ProductData>();
+      const isPaletas = sheetName === 'Paletas';
+      const cols = isPaletas ? PALETAS_COLUMN_MAP : STANDARD_COLUMN_MAP;
 
-      // Estructura de columnas según tu Excel:
-      // Columna A (0): Index
-      // Columna B (1): Descripcion
-      // Columna C (2): Marca
-      // Columna D (3): ART (SKU)
-      // Columna E (4): Talle
-      // Columna F (5): Color
-      // Columna G (6): Cdo (Precio Contado)
-      // Columna H (7): Precio Lista
-      // Columna I (8): Débito
-      // Columna J (9): Financiado
-      // Columna K (10): Fecha Ingreso
-      // Columna L (11): Costo de compra
-      // Columna M (12): Costo actualizado
-      // Columna Q (16): Vendido?
-
-      // Procesar cada fila de datos (saltear header que está en fila 1)
       for (let rowIndex = 1; rowIndex < data.length; rowIndex++) {
         const row = data[rowIndex] as ExcelRow;
 
         try {
-          // Obtener valores de la fila usando los índices correctos
-          const description = row[1]?.toString().trim() || '';  // Columna B
-          const brand = row[2]?.toString().trim() || '';        // Columna C
-          const sku = cleanSku(row[3]);                         // Columna D
-          const size = row[4]?.toString().trim() || 'Único';    // Columna E
-          const color = row[5]?.toString().trim() || '';        // Columna F
-          const priceCash = parseDecimal(row[6]);               // Columna G (Cdo)
-          const priceDebit = parseDecimal(row[8]);              // Columna I (Débito)
-          const priceFinanced = parseDecimal(row[9]);           // Columna J (Financiado)
-          const costPrice = parseDecimal(row[12]);              // Columna M (Costo actualizado)
-          const sold = normalizeText(row[16]?.toString() || ''); // Columna Q (Vendido?)
+          const description = row[cols.description]?.toString().trim() || '';
+          const brand = row[cols.brand]?.toString().trim() || '';
+          let sku = cleanSku(row[cols.sku]);
+          const size = isPaletas ? 'Único' : (row[(cols as any).size]?.toString().trim() || 'Único');
+          const color = isPaletas ? '' : (row[(cols as any).color]?.toString().trim() || '');
+          const priceCash = parseDecimal(row[cols.priceCash]);
+          const priceDebit = parseDecimal(row[cols.priceDebit]);
+          const priceFinanced = parseDecimal(row[cols.priceFinanced]);
+          const costPrice = parseDecimal(row[cols.costPrice]);
+          const sold = normalizeText(row[cols.sold]?.toString() || '');
 
-          // Validaciones básicas
-          if (!description || !brand) {
+          // Validar campos obligatorios
+          if (!description) {
             log.skippedRows++;
             continue;
           }
 
+          if (!brand) {
+            log.skippedRows++;
+            continue;
+          }
+
+          // Filtrar vendidos, devueltos, retirados
+          if (sold === 'si' || sold === 'sí' || sold === 'yes' || sold === 'devuelta' || sold === 'retirado') {
+            log.skippedRows++;
+            continue;
+          }
+
+          // Auto-generar SKU si no tiene
           if (!sku) {
-            log.warnings.push(`Hoja "${sheetName}", Fila ${rowIndex + 1}: SKU vacío para "${description}"`);
-            log.skippedRows++;
-            continue;
-          }
-
-          // Filtrar solo productos no vendidos
-          if (sold === 'si' || sold === 'sí' || sold === 'yes') {
-            log.skippedRows++;
-            continue;
-          }
-
-          // Validar precios
-          if (priceCash === 0 && priceDebit === 0 && priceFinanced === 0) {
-            log.warnings.push(`Hoja "${sheetName}", Fila ${rowIndex + 1}: Todos los precios son 0 para "${description}"`);
+            autoSkuCounter++;
+            sku = generateSku(description, brand, size, color, autoSkuCounter);
+            log.warnings.push(`Hoja "${sheetName}", Fila ${rowIndex + 1}: SKU auto-generado "${sku}" para "${description}"`);
           }
 
           // Crear clave única para agrupar productos
           const productKey = `${normalizeText(description)}_${normalizeText(brand)}`;
 
-          // Si el producto no existe, crearlo
           if (!sheetProductsMap.has(productKey)) {
             sheetProductsMap.set(productKey, {
               name: description,
@@ -201,8 +213,16 @@ export async function POST(request: NextRequest) {
             });
           }
 
-          // Agregar variante al producto
           const product = sheetProductsMap.get(productKey)!;
+
+          // Verificar que no haya SKU duplicado dentro del mismo producto
+          const existingVariant = product.variants.find(v => v.sku === sku);
+          if (existingVariant) {
+            // SKU duplicado en el mismo producto, generar uno nuevo
+            autoSkuCounter++;
+            sku = generateSku(description, brand, size, color, autoSkuCounter);
+          }
+
           product.variants.push({
             size,
             color,
@@ -211,7 +231,7 @@ export async function POST(request: NextRequest) {
             priceCash,
             priceDebit,
             priceFinanced,
-            stockQuantity: 1  // Por defecto 1, se puede ajustar
+            stockQuantity: 1
           });
 
         } catch (error: any) {
@@ -219,92 +239,87 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Insertar productos de esta hoja en una transacción separada
+      // Insertar productos en batches más pequeños para evitar timeout
       try {
-        await prisma.$transaction(async (tx) => {
-          for (const [, productData] of sheetProductsMap) {
-            // Verificar si el producto ya existe
-            let product = await tx.product.findFirst({
-              where: {
-                name: productData.name,
-                brand: productData.brand
-              }
-            });
+        const productEntries = Array.from(sheetProductsMap.entries());
+        const BATCH_SIZE = 50;
 
-            // Si no existe, crear el producto
-            if (!product) {
-              product = await tx.product.create({
-                data: {
+        for (let i = 0; i < productEntries.length; i += BATCH_SIZE) {
+          const batch = productEntries.slice(i, i + BATCH_SIZE);
+
+          await prisma.$transaction(async (tx) => {
+            for (const [, productData] of batch) {
+              let product = await tx.product.findFirst({
+                where: {
                   name: productData.name,
-                  brand: productData.brand,
-                  category: productData.category,
+                  brand: productData.brand
                 }
               });
-              log.productsCreated++;
-            } else {
-              log.warnings.push(`Producto existente actualizado: ${product.name}`);
-            }
 
-            // Insertar variantes
-            for (const variant of productData.variants) {
-              // Verificar si la variante ya existe por SKU
-              const existingVariant = await tx.productVariant.findUnique({
-                where: { sku: variant.sku }
-              });
-
-              if (existingVariant) {
-                // Actualizar variante existente
-                await tx.productVariant.update({
-                  where: { sku: variant.sku },
+              if (!product) {
+                product = await tx.product.create({
                   data: {
-                    size: variant.size,
-                    color: variant.color,
-                    costPrice: variant.costPrice,
-                    priceCash: variant.priceCash,
-                    priceDebit: variant.priceDebit,
-                    priceFinanced: variant.priceFinanced,
-                    stockQuantity: variant.stockQuantity,
-                    minStockAlert: 5 // Valor por defecto
+                    name: productData.name,
+                    brand: productData.brand,
+                    category: productData.category,
                   }
                 });
-                log.warnings.push(`Variante existente actualizada: SKU ${variant.sku}`);
-              } else {
-                // Crear nueva variante
-                await tx.productVariant.create({
-                  data: {
-                    productId: product.id,
-                    size: variant.size,
-                    color: variant.color,
-                    sku: variant.sku,
-                    costPrice: variant.costPrice,
-                    priceCash: variant.priceCash,
-                    priceDebit: variant.priceDebit,
-                    priceFinanced: variant.priceFinanced,
-                    stockQuantity: variant.stockQuantity,
-                    minStockAlert: 5 // Valor por defecto
-                  }
+                log.productsCreated++;
+              }
+
+              for (const variant of productData.variants) {
+                const existingVariant = await tx.productVariant.findUnique({
+                  where: { sku: variant.sku }
                 });
-                log.variantsCreated++;
+
+                if (existingVariant) {
+                  await tx.productVariant.update({
+                    where: { sku: variant.sku },
+                    data: {
+                      size: variant.size,
+                      color: variant.color,
+                      costPrice: variant.costPrice,
+                      priceCash: variant.priceCash,
+                      priceDebit: variant.priceDebit,
+                      priceFinanced: variant.priceFinanced,
+                      stockQuantity: variant.stockQuantity,
+                      minStockAlert: 5
+                    }
+                  });
+                } else {
+                  await tx.productVariant.create({
+                    data: {
+                      productId: product.id,
+                      size: variant.size,
+                      color: variant.color,
+                      sku: variant.sku,
+                      costPrice: variant.costPrice,
+                      priceCash: variant.priceCash,
+                      priceDebit: variant.priceDebit,
+                      priceFinanced: variant.priceFinanced,
+                      stockQuantity: variant.stockQuantity,
+                      minStockAlert: 5
+                    }
+                  });
+                  log.variantsCreated++;
+                }
               }
             }
-          }
-        }, {
-          maxWait: 20000, // Esperar hasta 20 segundos para que comience la transacción
-          timeout: 60000, // Permitir hasta 60 segundos para completar la transacción
-        });
+          }, {
+            maxWait: 20000,
+            timeout: 120000,
+          });
+        }
 
-        log.warnings.push(`✓ Hoja "${sheetName}" procesada exitosamente`);
+        log.warnings.push(`✓ Hoja "${sheetName}" procesada: ${sheetProductsMap.size} productos`);
       } catch (error: any) {
         log.errors.push(`Error al procesar hoja "${sheetName}": ${error.message}`);
-        // Continuar con la siguiente hoja
       }
     }
 
-    // Calcular totales
     log.totalErrors = log.errors.length;
     log.totalWarnings = log.warnings.length;
 
-    // Retornar resultado exitoso
     return NextResponse.json({
       success: true,
       message: `Importación completada: ${log.productsCreated} productos creados, ${log.variantsCreated} variantes creadas`,
