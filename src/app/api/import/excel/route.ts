@@ -97,6 +97,168 @@ interface VariantData {
   stockQuantity: number;
 }
 
+// Procesar una sola hoja del Excel y devolver los productos agrupados
+function parseSheet(
+  sheetName: string,
+  data: ExcelRow[],
+  category: string,
+  log: ImportLog
+): Map<string, ProductData> {
+  const sheetProductsMap = new Map<string, ProductData>();
+  const isPaletas = sheetName === 'Paletas';
+  const cols = isPaletas ? PALETAS_COLUMN_MAP : STANDARD_COLUMN_MAP;
+  let autoSkuCounter = Date.now();
+
+  for (let rowIndex = 1; rowIndex < data.length; rowIndex++) {
+    const row = data[rowIndex] as ExcelRow;
+
+    try {
+      const description = row[cols.description]?.toString().trim() || '';
+      const brand = row[cols.brand]?.toString().trim() || '';
+      let sku = cleanSku(row[cols.sku]);
+      const size = isPaletas ? 'Único' : (row[(cols as any).size]?.toString().trim() || 'Único');
+      const color = isPaletas ? '' : (row[(cols as any).color]?.toString().trim() || '');
+      const priceCash = parseDecimal(row[cols.priceCash]);
+      const priceDebit = parseDecimal(row[cols.priceDebit]);
+      const priceFinanced = parseDecimal(row[cols.priceFinanced]);
+      const costPrice = parseDecimal(row[cols.costPrice]);
+      const sold = normalizeText(row[cols.sold]?.toString() || '');
+
+      // Validar campos obligatorios
+      if (!description || !brand) {
+        log.skippedRows++;
+        continue;
+      }
+
+      // Filtrar vendidos, devueltos, retirados
+      if (sold === 'si' || sold === 'sí' || sold === 'yes' || sold === 'devuelta' || sold === 'retirado') {
+        log.skippedRows++;
+        continue;
+      }
+
+      // Auto-generar SKU si no tiene
+      if (!sku) {
+        autoSkuCounter++;
+        sku = generateSku(description, brand, size, color, autoSkuCounter);
+      }
+
+      // Crear clave única para agrupar productos
+      const productKey = `${normalizeText(description)}_${normalizeText(brand)}`;
+
+      if (!sheetProductsMap.has(productKey)) {
+        sheetProductsMap.set(productKey, {
+          name: description,
+          brand: brand,
+          category: category,
+          variants: []
+        });
+      }
+
+      const product = sheetProductsMap.get(productKey)!;
+
+      // Verificar que no haya SKU duplicado dentro del mismo producto
+      const existingVariant = product.variants.find(v => v.sku === sku);
+      if (existingVariant) {
+        autoSkuCounter++;
+        sku = generateSku(description, brand, size, color, autoSkuCounter);
+      }
+
+      product.variants.push({
+        size,
+        color,
+        sku,
+        costPrice,
+        priceCash,
+        priceDebit,
+        priceFinanced,
+        stockQuantity: 1
+      });
+
+    } catch (error: any) {
+      log.errors.push(`Hoja "${sheetName}", Fila ${rowIndex + 1}: ${error.message}`);
+    }
+  }
+
+  return sheetProductsMap;
+}
+
+// Insertar productos en DB en batches pequeños
+async function insertProducts(
+  sheetProductsMap: Map<string, ProductData>,
+  sheetName: string,
+  log: ImportLog
+): Promise<void> {
+  const productEntries = Array.from(sheetProductsMap.entries());
+  const BATCH_SIZE = 20; // Reducido a 20 para evitar timeouts
+
+  for (let i = 0; i < productEntries.length; i += BATCH_SIZE) {
+    const batch = productEntries.slice(i, i + BATCH_SIZE);
+
+    await prisma.$transaction(async (tx) => {
+      for (const [, productData] of batch) {
+        let product = await tx.product.findFirst({
+          where: {
+            name: productData.name,
+            brand: productData.brand
+          }
+        });
+
+        if (!product) {
+          product = await tx.product.create({
+            data: {
+              name: productData.name,
+              brand: productData.brand,
+              category: productData.category,
+            }
+          });
+          log.productsCreated++;
+        }
+
+        for (const variant of productData.variants) {
+          const existingVariant = await tx.productVariant.findUnique({
+            where: { sku: variant.sku }
+          });
+
+          if (existingVariant) {
+            await tx.productVariant.update({
+              where: { sku: variant.sku },
+              data: {
+                size: variant.size,
+                color: variant.color,
+                costPrice: variant.costPrice,
+                priceCash: variant.priceCash,
+                priceDebit: variant.priceDebit,
+                priceFinanced: variant.priceFinanced,
+                stockQuantity: variant.stockQuantity,
+                minStockAlert: 5
+              }
+            });
+          } else {
+            await tx.productVariant.create({
+              data: {
+                productId: product.id,
+                size: variant.size,
+                color: variant.color,
+                sku: variant.sku,
+                costPrice: variant.costPrice,
+                priceCash: variant.priceCash,
+                priceDebit: variant.priceDebit,
+                priceFinanced: variant.priceFinanced,
+                stockQuantity: variant.stockQuantity,
+                minStockAlert: 5
+              }
+            });
+            log.variantsCreated++;
+          }
+        }
+      }
+    }, {
+      maxWait: 15000,
+      timeout: 50000,
+    });
+  }
+}
+
 export async function POST(request: NextRequest) {
   const log: ImportLog = {
     productsCreated: 0,
@@ -111,6 +273,8 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    // sheetName opcional: si se pasa, solo procesa esa hoja
+    const sheetNameParam = formData.get('sheetName') as string | null;
 
     if (!file) {
       return NextResponse.json(
@@ -129,9 +293,26 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const workbook = XLSX.read(arrayBuffer, { type: 'array' });
 
-    const availableSheets = workbook.SheetNames.filter(name => name in SHEETS_TO_IMPORT);
+    // Si se pide listar hojas disponibles
+    if (sheetNameParam === '__list__') {
+      const availableSheets = workbook.SheetNames.filter(name => name in SHEETS_TO_IMPORT);
+      return NextResponse.json({
+        success: true,
+        sheets: availableSheets
+      });
+    }
 
-    if (availableSheets.length === 0) {
+    // Determinar qué hojas procesar
+    let sheetsToProcess: string[];
+    if (sheetNameParam && sheetNameParam in SHEETS_TO_IMPORT) {
+      // Solo la hoja pedida
+      sheetsToProcess = [sheetNameParam];
+    } else {
+      // Todas las hojas disponibles (comportamiento legacy)
+      sheetsToProcess = workbook.SheetNames.filter(name => name in SHEETS_TO_IMPORT);
+    }
+
+    if (sheetsToProcess.length === 0) {
       return NextResponse.json(
         {
           error: 'No se encontraron las hojas esperadas (Hombre, Mujer, Calzado, Paletas, Accesorios, Niños)',
@@ -141,10 +322,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Contador global para SKUs auto-generados
-    let autoSkuCounter = Date.now();
-
-    for (const sheetName of availableSheets) {
+    for (const sheetName of sheetsToProcess) {
       const category = SHEETS_TO_IMPORT[sheetName as keyof typeof SHEETS_TO_IMPORT];
       const worksheet = workbook.Sheets[sheetName];
       const data = XLSX.utils.sheet_to_json(worksheet, {
@@ -158,159 +336,10 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      const sheetProductsMap = new Map<string, ProductData>();
-      const isPaletas = sheetName === 'Paletas';
-      const cols = isPaletas ? PALETAS_COLUMN_MAP : STANDARD_COLUMN_MAP;
+      const sheetProductsMap = parseSheet(sheetName, data, category, log);
 
-      for (let rowIndex = 1; rowIndex < data.length; rowIndex++) {
-        const row = data[rowIndex] as ExcelRow;
-
-        try {
-          const description = row[cols.description]?.toString().trim() || '';
-          const brand = row[cols.brand]?.toString().trim() || '';
-          let sku = cleanSku(row[cols.sku]);
-          const size = isPaletas ? 'Único' : (row[(cols as any).size]?.toString().trim() || 'Único');
-          const color = isPaletas ? '' : (row[(cols as any).color]?.toString().trim() || '');
-          const priceCash = parseDecimal(row[cols.priceCash]);
-          const priceDebit = parseDecimal(row[cols.priceDebit]);
-          const priceFinanced = parseDecimal(row[cols.priceFinanced]);
-          const costPrice = parseDecimal(row[cols.costPrice]);
-          const sold = normalizeText(row[cols.sold]?.toString() || '');
-
-          // Validar campos obligatorios
-          if (!description) {
-            log.skippedRows++;
-            continue;
-          }
-
-          if (!brand) {
-            log.skippedRows++;
-            continue;
-          }
-
-          // Filtrar vendidos, devueltos, retirados
-          if (sold === 'si' || sold === 'sí' || sold === 'yes' || sold === 'devuelta' || sold === 'retirado') {
-            log.skippedRows++;
-            continue;
-          }
-
-          // Auto-generar SKU si no tiene
-          if (!sku) {
-            autoSkuCounter++;
-            sku = generateSku(description, brand, size, color, autoSkuCounter);
-            log.warnings.push(`Hoja "${sheetName}", Fila ${rowIndex + 1}: SKU auto-generado "${sku}" para "${description}"`);
-          }
-
-          // Crear clave única para agrupar productos
-          const productKey = `${normalizeText(description)}_${normalizeText(brand)}`;
-
-          if (!sheetProductsMap.has(productKey)) {
-            sheetProductsMap.set(productKey, {
-              name: description,
-              brand: brand,
-              category: category,
-              variants: []
-            });
-          }
-
-          const product = sheetProductsMap.get(productKey)!;
-
-          // Verificar que no haya SKU duplicado dentro del mismo producto
-          const existingVariant = product.variants.find(v => v.sku === sku);
-          if (existingVariant) {
-            // SKU duplicado en el mismo producto, generar uno nuevo
-            autoSkuCounter++;
-            sku = generateSku(description, brand, size, color, autoSkuCounter);
-          }
-
-          product.variants.push({
-            size,
-            color,
-            sku,
-            costPrice,
-            priceCash,
-            priceDebit,
-            priceFinanced,
-            stockQuantity: 1
-          });
-
-        } catch (error: any) {
-          log.errors.push(`Hoja "${sheetName}", Fila ${rowIndex + 1}: ${error.message}`);
-        }
-      }
-
-      // Insertar productos en batches más pequeños para evitar timeout
       try {
-        const productEntries = Array.from(sheetProductsMap.entries());
-        const BATCH_SIZE = 50;
-
-        for (let i = 0; i < productEntries.length; i += BATCH_SIZE) {
-          const batch = productEntries.slice(i, i + BATCH_SIZE);
-
-          await prisma.$transaction(async (tx) => {
-            for (const [, productData] of batch) {
-              let product = await tx.product.findFirst({
-                where: {
-                  name: productData.name,
-                  brand: productData.brand
-                }
-              });
-
-              if (!product) {
-                product = await tx.product.create({
-                  data: {
-                    name: productData.name,
-                    brand: productData.brand,
-                    category: productData.category,
-                  }
-                });
-                log.productsCreated++;
-              }
-
-              for (const variant of productData.variants) {
-                const existingVariant = await tx.productVariant.findUnique({
-                  where: { sku: variant.sku }
-                });
-
-                if (existingVariant) {
-                  await tx.productVariant.update({
-                    where: { sku: variant.sku },
-                    data: {
-                      size: variant.size,
-                      color: variant.color,
-                      costPrice: variant.costPrice,
-                      priceCash: variant.priceCash,
-                      priceDebit: variant.priceDebit,
-                      priceFinanced: variant.priceFinanced,
-                      stockQuantity: variant.stockQuantity,
-                      minStockAlert: 5
-                    }
-                  });
-                } else {
-                  await tx.productVariant.create({
-                    data: {
-                      productId: product.id,
-                      size: variant.size,
-                      color: variant.color,
-                      sku: variant.sku,
-                      costPrice: variant.costPrice,
-                      priceCash: variant.priceCash,
-                      priceDebit: variant.priceDebit,
-                      priceFinanced: variant.priceFinanced,
-                      stockQuantity: variant.stockQuantity,
-                      minStockAlert: 5
-                    }
-                  });
-                  log.variantsCreated++;
-                }
-              }
-            }
-          }, {
-            maxWait: 20000,
-            timeout: 120000,
-          });
-        }
-
+        await insertProducts(sheetProductsMap, sheetName, log);
         log.warnings.push(`✓ Hoja "${sheetName}" procesada: ${sheetProductsMap.size} productos`);
       } catch (error: any) {
         log.errors.push(`Error al procesar hoja "${sheetName}": ${error.message}`);

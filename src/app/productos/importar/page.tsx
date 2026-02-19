@@ -2,59 +2,151 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaFileExcel, FaUpload, FaCheckCircle, FaExclamationTriangle, FaInfoCircle } from 'react-icons/fa';
+import { FaFileExcel, FaUpload, FaCheckCircle, FaExclamationTriangle, FaInfoCircle, FaSpinner } from 'react-icons/fa';
+
+interface SheetResult {
+  sheetName: string;
+  status: 'pending' | 'processing' | 'done' | 'error';
+  productsCreated: number;
+  variantsCreated: number;
+  skippedRows: number;
+  errors: string[];
+  warnings: string[];
+}
 
 export default function ImportarProductosPage() {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
-  const [error, setError] = useState<string>('');
+  const [importing, setImporting] = useState(false);
+  const [sheetResults, setSheetResults] = useState<SheetResult[]>([]);
+  const [globalError, setGlobalError] = useState<string>('');
+  const [done, setDone] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       setFile(selectedFile);
-      setResult(null);
-      setError('');
+      setSheetResults([]);
+      setGlobalError('');
+      setDone(false);
     }
   };
 
   const handleImport = async () => {
     if (!file) {
-      setError('Por favor selecciona un archivo');
+      setGlobalError('Por favor selecciona un archivo');
       return;
     }
 
-    setLoading(true);
-    setError('');
-    setResult(null);
+    setImporting(true);
+    setGlobalError('');
+    setDone(false);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      // Paso 1: obtener lista de hojas del Excel
+      const listFormData = new FormData();
+      listFormData.append('file', file);
+      listFormData.append('sheetName', '__list__');
 
-      const response = await fetch('/api/import/excel', {
+      const listRes = await fetch('/api/import/excel', {
         method: 'POST',
-        body: formData,
+        body: listFormData,
       });
 
-      const data = await response.json();
+      if (!listRes.ok) {
+        const err = await listRes.json().catch(() => ({ error: 'Error leyendo el archivo' }));
+        setGlobalError(err.error || 'No se pudo leer el archivo Excel');
+        setImporting(false);
+        return;
+      }
 
-      if (response.ok) {
-        setResult(data);
-      } else {
-        setError(data.error || 'Error al importar el archivo');
-        if (data.log) {
-          setResult(data);
+      const listData = await listRes.json();
+      const sheets: string[] = listData.sheets || [];
+
+      if (sheets.length === 0) {
+        setGlobalError('No se encontraron hojas válidas (Hombre, Mujer, Calzado, Paletas, Accesorios, Niños)');
+        setImporting(false);
+        return;
+      }
+
+      // Inicializar resultados por hoja
+      const initialResults: SheetResult[] = sheets.map(s => ({
+        sheetName: s,
+        status: 'pending',
+        productsCreated: 0,
+        variantsCreated: 0,
+        skippedRows: 0,
+        errors: [],
+        warnings: []
+      }));
+      setSheetResults(initialResults);
+
+      // Paso 2: importar hoja por hoja
+      for (let i = 0; i < sheets.length; i++) {
+        const sheetName = sheets[i];
+
+        // Marcar como procesando
+        setSheetResults(prev => prev.map(r =>
+          r.sheetName === sheetName ? { ...r, status: 'processing' } : r
+        ));
+
+        try {
+          const sheetFormData = new FormData();
+          sheetFormData.append('file', file);
+          sheetFormData.append('sheetName', sheetName);
+
+          const res = await fetch('/api/import/excel', {
+            method: 'POST',
+            body: sheetFormData,
+          });
+
+          const data = await res.json().catch(() => ({ success: false, error: 'Respuesta inválida del servidor' }));
+
+          if (data.success) {
+            setSheetResults(prev => prev.map(r =>
+              r.sheetName === sheetName ? {
+                ...r,
+                status: 'done',
+                productsCreated: data.log?.productsCreated || 0,
+                variantsCreated: data.log?.variantsCreated || 0,
+                skippedRows: data.log?.skippedRows || 0,
+                errors: data.log?.errors || [],
+                warnings: data.log?.warnings || []
+              } : r
+            ));
+          } else {
+            setSheetResults(prev => prev.map(r =>
+              r.sheetName === sheetName ? {
+                ...r,
+                status: 'error',
+                errors: [data.error || 'Error desconocido']
+              } : r
+            ));
+          }
+        } catch (err: any) {
+          setSheetResults(prev => prev.map(r =>
+            r.sheetName === sheetName ? {
+              ...r,
+              status: 'error',
+              errors: [err.message || 'Error de conexión']
+            } : r
+          ));
         }
       }
+
+      setDone(true);
     } catch (err: any) {
-      setError('Error de conexión: ' + err.message);
+      setGlobalError('Error de conexión: ' + err.message);
     } finally {
-      setLoading(false);
+      setImporting(false);
     }
   };
+
+  const totalProducstCreated = sheetResults.reduce((s, r) => s + r.productsCreated, 0);
+  const totalVariantsCreated = sheetResults.reduce((s, r) => s + r.variantsCreated, 0);
+  const totalSkipped = sheetResults.reduce((s, r) => s + r.skippedRows, 0);
+  const totalErrors = sheetResults.reduce((s, r) => s + r.errors.length, 0);
+  const hasAnyError = sheetResults.some(r => r.status === 'error');
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -65,7 +157,7 @@ export default function ImportarProductosPage() {
           Importar Productos desde Excel
         </h1>
         <p className="mt-2 text-gray-600">
-          Importa tu inventario completo desde un archivo Excel
+          Importa tu inventario completo desde un archivo Excel. Se procesa hoja por hoja.
         </p>
       </div>
 
@@ -76,39 +168,12 @@ export default function ImportarProductosPage() {
           Formato del Archivo
         </h3>
         <div className="text-sm text-blue-800 space-y-2">
-          <p><strong>El archivo Excel debe tener estas hojas:</strong></p>
-          <ul className="list-disc list-inside space-y-1 ml-4">
-            <li><strong>Hombre</strong> → Se importa como categoría "Hombres"</li>
-            <li><strong>Mujer</strong> → Se importa como categoría "Mujeres"</li>
-            <li><strong>Calzado</strong> → Se importa como categoría "Calzado"</li>
-            <li><strong>Paletas</strong> → Se importa como categoría "Paletas"</li>
-            <li><strong>Accesorios</strong> → Se importa como categoría "Accesorios"</li>
-            <li><strong>Niños</strong> → Se importa como categoría "Niños"</li>
-          </ul>
-          <p className="mt-3"><strong>Estructura de columnas esperada:</strong></p>
-          <ul className="list-disc list-inside space-y-1 ml-4">
-            <li>Columna B: Descripción (nombre del producto)</li>
-            <li>Columna C: Marca</li>
-            <li>Columna D: ART (SKU/código único)</li>
-            <li>Columna E: Talle</li>
-            <li>Columna F: Color</li>
-            <li>Columna G: Precio Contado (Cdo)</li>
-            <li>Columna I: Precio Débito</li>
-            <li>Columna J: Precio Financiado</li>
-            <li>Columna M: Costo actualizado</li>
-            <li>Columna Q: Vendido? (se omiten los marcados como "Si")</li>
-          </ul>
-          <p className="mt-3"><strong>Lógica de importación:</strong></p>
-          <ul className="list-disc list-inside space-y-1 ml-4">
-            <li>Solo importa productos donde "Vendido?" = "No" o esté vacío</li>
-            <li>Agrupa productos por nombre + marca</li>
-            <li>Cada fila del Excel = 1 variante del producto</li>
-            <li>Categoría asignada según la hoja de origen</li>
-          </ul>
+          <p><strong>Hojas que se importan:</strong> Hombre → Hombres, Mujer → Mujeres, Calzado, Paletas, Accesorios, Niños</p>
+          <p><strong>Lógica:</strong> Cada fila = 1 variante. Se agrupan por Nombre + Marca. Vendidos/Devueltos se omiten. SKUs sin código se auto-generan.</p>
         </div>
       </div>
 
-      {/* Upload Section */}
+      {/* Upload */}
       <div className="bg-white shadow-md rounded-lg p-6 mb-6">
         <div className="mb-4">
           <label className="block text-gray-700 text-sm font-bold mb-2">
@@ -118,33 +183,31 @@ export default function ImportarProductosPage() {
             type="file"
             accept=".xlsx,.xls"
             onChange={handleFileChange}
+            disabled={importing}
             className="block w-full text-sm text-gray-500
               file:mr-4 file:py-2 file:px-4
               file:rounded-md file:border-0
               file:text-sm file:font-semibold
               file:bg-blue-50 file:text-blue-700
               hover:file:bg-blue-100
-              cursor-pointer"
+              cursor-pointer disabled:opacity-50"
           />
           {file && (
             <p className="mt-2 text-sm text-gray-600">
-              Archivo seleccionado: <strong>{file.name}</strong> ({(file.size / 1024).toFixed(2)} KB)
+              Archivo: <strong>{file.name}</strong> ({(file.size / 1024).toFixed(1)} KB)
             </p>
           )}
         </div>
 
         <button
           onClick={handleImport}
-          disabled={!file || loading}
+          disabled={!file || importing}
           className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
         >
-          {loading ? (
+          {importing ? (
             <>
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Importando...
+              <FaSpinner className="animate-spin mr-2" />
+              Importando... no cerres esta página
             </>
           ) : (
             <>
@@ -155,154 +218,121 @@ export default function ImportarProductosPage() {
         </button>
       </div>
 
-      {/* Error Message */}
-      {error && (
+      {/* Error global */}
+      {globalError && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
           <div className="flex items-center">
-            <FaExclamationTriangle className="text-red-600 mr-3" />
-            <div>
-              <h3 className="text-red-800 font-medium">Error</h3>
-              <p className="text-red-700 text-sm mt-1">{error}</p>
-            </div>
+            <FaExclamationTriangle className="text-red-600 mr-3 flex-shrink-0" />
+            <p className="text-red-700 text-sm">{globalError}</p>
           </div>
         </div>
       )}
 
-      {/* Success Result */}
-      {result && result.success && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+      {/* Progreso por hoja */}
+      {sheetResults.length > 0 && (
+        <div className="bg-white shadow-md rounded-lg p-6 mb-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Progreso de importación</h3>
+          <div className="space-y-3">
+            {sheetResults.map((result) => (
+              <div key={result.sheetName} className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center">
+                    {result.status === 'pending' && (
+                      <div className="w-5 h-5 rounded-full border-2 border-gray-300 mr-3" />
+                    )}
+                    {result.status === 'processing' && (
+                      <FaSpinner className="text-blue-500 animate-spin mr-3 w-5 h-5" />
+                    )}
+                    {result.status === 'done' && (
+                      <FaCheckCircle className="text-green-500 mr-3 w-5 h-5" />
+                    )}
+                    {result.status === 'error' && (
+                      <FaExclamationTriangle className="text-red-500 mr-3 w-5 h-5" />
+                    )}
+                    <span className="font-medium text-gray-900">Hoja: {result.sheetName}</span>
+                  </div>
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                    result.status === 'pending' ? 'bg-gray-100 text-gray-600' :
+                    result.status === 'processing' ? 'bg-blue-100 text-blue-700' :
+                    result.status === 'done' ? 'bg-green-100 text-green-700' :
+                    'bg-red-100 text-red-700'
+                  }`}>
+                    {result.status === 'pending' ? 'Esperando' :
+                     result.status === 'processing' ? 'Procesando...' :
+                     result.status === 'done' ? 'Completado' : 'Error'}
+                  </span>
+                </div>
+
+                {result.status === 'done' && (
+                  <div className="grid grid-cols-3 gap-2 mt-2 text-sm">
+                    <div className="text-center bg-green-50 rounded p-2">
+                      <p className="font-bold text-green-700">{result.productsCreated}</p>
+                      <p className="text-gray-600 text-xs">Productos</p>
+                    </div>
+                    <div className="text-center bg-blue-50 rounded p-2">
+                      <p className="font-bold text-blue-700">{result.variantsCreated}</p>
+                      <p className="text-gray-600 text-xs">Variantes</p>
+                    </div>
+                    <div className="text-center bg-yellow-50 rounded p-2">
+                      <p className="font-bold text-yellow-700">{result.skippedRows}</p>
+                      <p className="text-gray-600 text-xs">Omitidas</p>
+                    </div>
+                  </div>
+                )}
+
+                {result.status === 'error' && result.errors.length > 0 && (
+                  <div className="mt-2 text-sm text-red-600 bg-red-50 rounded p-2">
+                    {result.errors[0]}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Resumen final */}
+      {done && (
+        <div className={`border rounded-lg p-6 mb-6 ${hasAnyError ? 'bg-yellow-50 border-yellow-200' : 'bg-green-50 border-green-200'}`}>
           <div className="flex items-center mb-4">
-            <FaCheckCircle className="text-green-600 text-2xl mr-3" />
+            <FaCheckCircle className={`text-2xl mr-3 ${hasAnyError ? 'text-yellow-500' : 'text-green-600'}`} />
             <div>
-              <h3 className="text-green-800 font-bold text-lg">¡Importación Exitosa!</h3>
-              <p className="text-green-700">{result.message}</p>
+              <h3 className={`font-bold text-lg ${hasAnyError ? 'text-yellow-800' : 'text-green-800'}`}>
+                {hasAnyError ? 'Importación completada con algunos errores' : '¡Importación Exitosa!'}
+              </h3>
+              <p className={hasAnyError ? 'text-yellow-700' : 'text-green-700'}>
+                {totalProducstCreated} productos y {totalVariantsCreated} variantes importadas
+              </p>
             </div>
           </div>
 
-          {/* Estadísticas */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
             <div className="bg-white rounded p-3 text-center">
-              <p className="text-2xl font-bold text-green-600">{result.log?.productsCreated || 0}</p>
-              <p className="text-sm text-gray-600">Productos Creados</p>
+              <p className="text-2xl font-bold text-green-600">{totalProducstCreated}</p>
+              <p className="text-sm text-gray-600">Productos</p>
             </div>
             <div className="bg-white rounded p-3 text-center">
-              <p className="text-2xl font-bold text-green-600">{result.log?.variantsCreated || 0}</p>
-              <p className="text-sm text-gray-600">Variantes Creadas</p>
+              <p className="text-2xl font-bold text-blue-600">{totalVariantsCreated}</p>
+              <p className="text-sm text-gray-600">Variantes</p>
             </div>
             <div className="bg-white rounded p-3 text-center">
-              <p className="text-2xl font-bold text-yellow-600">{result.log?.skippedRows || 0}</p>
-              <p className="text-sm text-gray-600">Filas Omitidas</p>
+              <p className="text-2xl font-bold text-yellow-600">{totalSkipped}</p>
+              <p className="text-sm text-gray-600">Omitidas</p>
             </div>
             <div className="bg-white rounded p-3 text-center">
-              <p className="text-2xl font-bold text-red-600">{result.log?.totalErrors || 0}</p>
+              <p className="text-2xl font-bold text-red-600">{totalErrors}</p>
               <p className="text-sm text-gray-600">Errores</p>
             </div>
           </div>
 
-          {/* Warnings */}
-          {result.log?.warnings && result.log.warnings.length > 0 && (
-            <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded p-3">
-              <h4 className="font-medium text-yellow-800 mb-2">Advertencias:</h4>
-              <ul className="text-sm text-yellow-700 space-y-1">
-                {result.log.warnings.map((warning: string, index: number) => (
-                  <li key={index}>• {warning}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Botón para ver productos */}
-          <div className="mt-6">
-            <button
-              onClick={() => router.push('/productos')}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg"
-            >
-              Ver Productos Importados
-            </button>
-          </div>
+          <button
+            onClick={() => router.push('/productos')}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg"
+          >
+            Ver Productos Importados
+          </button>
         </div>
       )}
-
-      {/* Error Result with Log */}
-      {result && !result.success && result.log && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <h3 className="text-red-800 font-bold text-lg mb-4">Detalles del Error</h3>
-
-          {result.log.errors && result.log.errors.length > 0 && (
-            <div className="mb-4">
-              <h4 className="font-medium text-red-700 mb-2">Errores encontrados:</h4>
-              <ul className="text-sm text-red-600 space-y-1 bg-white rounded p-3 max-h-60 overflow-y-auto">
-                {result.log.errors.map((err: string, index: number) => (
-                  <li key={index}>• {err}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white rounded p-3 text-center">
-              <p className="text-2xl font-bold text-green-600">{result.log.productsCreated || 0}</p>
-              <p className="text-sm text-gray-600">Productos Creados</p>
-            </div>
-            <div className="bg-white rounded p-3 text-center">
-              <p className="text-2xl font-bold text-green-600">{result.log.variantsCreated || 0}</p>
-              <p className="text-sm text-gray-600">Variantes Creadas</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Documentación */}
-      <div className="mt-8 bg-gray-50 rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-3">Ejemplo de Estructura (Hoja "Hombre")</h3>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="px-3 py-2 text-left">B: Descripción</th>
-                <th className="px-3 py-2 text-left">C: Marca</th>
-                <th className="px-3 py-2 text-left">D: ART</th>
-                <th className="px-3 py-2 text-left">E: Talle</th>
-                <th className="px-3 py-2 text-left">F: Color</th>
-                <th className="px-3 py-2 text-left">G: Cdo</th>
-                <th className="px-3 py-2 text-left">I: Débito</th>
-                <th className="px-3 py-2 text-left">J: Fin</th>
-                <th className="px-3 py-2 text-left">Q: Vendido?</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-t">
-                <td className="px-3 py-2">boxer</td>
-                <td className="px-3 py-2">XY</td>
-                <td className="px-3 py-2">1358</td>
-                <td className="px-3 py-2">L</td>
-                <td className="px-3 py-2">estamp</td>
-                <td className="px-3 py-2">4200</td>
-                <td className="px-3 py-2">4450</td>
-                <td className="px-3 py-2">5050</td>
-                <td className="px-3 py-2">No</td>
-              </tr>
-              <tr className="border-t">
-                <td className="px-3 py-2">boxer</td>
-                <td className="px-3 py-2">XY</td>
-                <td className="px-3 py-2">1318</td>
-                <td className="px-3 py-2">M</td>
-                <td className="px-3 py-2">Estamp casette</td>
-                <td className="px-3 py-2">5700</td>
-                <td className="px-3 py-2">6050</td>
-                <td className="px-3 py-2">6850</td>
-                <td className="px-3 py-2">No</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p className="text-xs text-gray-500 mt-3">
-          * Las dos filas anteriores se agruparán como un solo producto "boxer XY" con 2 variantes (L y M)
-        </p>
-        <p className="text-xs text-gray-500 mt-2">
-          * Se importarán todas las hojas: Hombre, Mujer, Calzado, Paletas, Accesorios, Niños
-        </p>
-      </div>
     </div>
   );
 }
