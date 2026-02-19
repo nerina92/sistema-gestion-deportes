@@ -229,7 +229,11 @@ async function insertProducts(
                 priceCash: variant.priceCash,
                 priceDebit: variant.priceDebit,
                 priceFinanced: variant.priceFinanced,
-                stockQuantity: variant.stockQuantity,
+                // Si el stock actual es 0 lo ponemos en 1 (está en el Excel como no vendido)
+                // Si ya tiene stock > 0 no lo pisamos para no perder ajustes manuales
+                stockQuantity: existingVariant.stockQuantity > 0
+                  ? existingVariant.stockQuantity
+                  : variant.stockQuantity,
                 minStockAlert: 5
               }
             });
