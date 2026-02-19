@@ -100,25 +100,25 @@ export default function ComprasPage() {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      'PENDING': { 
-        label: 'Pendiente', 
-        color: 'bg-yellow-100 text-yellow-800', 
-        icon: Clock 
+    const statusConfig: Record<string, { label: string; color: string; icon: typeof Clock }> = {
+      'pending': {
+        label: 'Pendiente',
+        color: 'bg-yellow-100 text-yellow-800',
+        icon: Clock
       },
-      'APPROVED': { 
-        label: 'Aprobada', 
-        color: 'bg-green-100 text-green-800', 
-        icon: CheckCircle 
+      'completed': {
+        label: 'Completada',
+        color: 'bg-green-100 text-green-800',
+        icon: CheckCircle
       },
-      'CANCELLED': { 
-        label: 'Cancelada', 
-        color: 'bg-red-100 text-red-800', 
-        icon: XCircle 
+      'cancelled': {
+        label: 'Cancelada',
+        color: 'bg-red-100 text-red-800',
+        icon: XCircle
       }
     };
 
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['PENDING'];
+    const config = statusConfig[status.toLowerCase()] || statusConfig['pending'];
     const Icon = config.icon;
 
     return (

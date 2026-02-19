@@ -58,7 +58,8 @@ export async function GET(request: NextRequest) {
       itemCount: purchase.items.length,
       notes: purchase.notes,
       createdAt: purchase.createdAt,
-      updatedAt: purchase.updatedAt
+      updatedAt: purchase.updatedAt,
+      items: purchase.items
     }));
 
     return NextResponse.json({
