@@ -286,7 +286,7 @@ export default function PreciosPage() {
                 min="0"
                 value={margins.cash}
                 onChange={(e) => setMargins((m) => ({ ...m, cash: Number(e.target.value) }))}
-                className="w-full border border-blue-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="w-full border border-blue-300 rounded px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
               <p className="text-xs text-blue-600 mt-0.5">
                 Ej: costo $1000 → ${calcFromCost(1000, margins.cash).toLocaleString('es-AR')}
@@ -301,7 +301,7 @@ export default function PreciosPage() {
                 min="0"
                 value={margins.debit}
                 onChange={(e) => setMargins((m) => ({ ...m, debit: Number(e.target.value) }))}
-                className="w-full border border-blue-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="w-full border border-blue-300 rounded px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
               <p className="text-xs text-blue-600 mt-0.5">
                 Ej: costo $1000 → ${calcFromCost(1000, margins.debit).toLocaleString('es-AR')}
@@ -316,7 +316,7 @@ export default function PreciosPage() {
                 min="0"
                 value={margins.financed}
                 onChange={(e) => setMargins((m) => ({ ...m, financed: Number(e.target.value) }))}
-                className="w-full border border-blue-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="w-full border border-blue-300 rounded px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
               <p className="text-xs text-blue-600 mt-0.5">
                 Ej: costo $1000 → ${calcFromCost(1000, margins.financed).toLocaleString('es-AR')}
@@ -354,13 +354,13 @@ export default function PreciosPage() {
               placeholder="Buscar por nombre o SKU..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Todas las categorías</option>
             {categories.map((c) => (
@@ -372,7 +372,7 @@ export default function PreciosPage() {
           <select
             value={filterBrand}
             onChange={(e) => setFilterBrand(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Todas las marcas</option>
             {brands.map((b) => (
@@ -482,7 +482,7 @@ export default function PreciosPage() {
                           step="1"
                           value={v._costPrice}
                           onChange={(e) => handleCostChange(v.id, e.target.value)}
-                          className="w-24 text-right border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 text-sm"
+                          className="w-24 text-right border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 text-sm text-gray-900"
                         />
                       </div>
                     </td>
@@ -497,7 +497,7 @@ export default function PreciosPage() {
                           step="1"
                           value={v._priceCash}
                           onChange={(e) => updateField(v.id, '_priceCash', e.target.value)}
-                          className="w-24 text-right border border-green-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-green-400 text-sm"
+                          className="w-24 text-right border border-green-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-green-400 text-sm text-gray-900"
                         />
                       </div>
                     </td>
@@ -512,7 +512,7 @@ export default function PreciosPage() {
                           step="1"
                           value={v._priceDebit}
                           onChange={(e) => updateField(v.id, '_priceDebit', e.target.value)}
-                          className="w-24 text-right border border-blue-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                          className="w-24 text-right border border-blue-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm text-gray-900"
                         />
                       </div>
                     </td>
@@ -527,7 +527,7 @@ export default function PreciosPage() {
                           step="1"
                           value={v._priceFinanced}
                           onChange={(e) => updateField(v.id, '_priceFinanced', e.target.value)}
-                          className="w-24 text-right border border-purple-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm"
+                          className="w-24 text-right border border-purple-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm text-gray-900"
                         />
                       </div>
                     </td>
