@@ -3,10 +3,16 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
+      // Imgur (recomendado - links directos siempre funcionan)
       {
         protocol: 'https',
-        hostname: 'drive.google.com',
+        hostname: 'i.imgur.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'imgur.com',
+      },
+      // Google (algunos links pueden funcionar)
       {
         protocol: 'https',
         hostname: 'lh3.googleusercontent.com',
@@ -17,19 +23,16 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'photos.google.com',
+        hostname: 'drive.usercontent.google.com',
+      },
+      // Otros servicios comunes
+      {
+        protocol: 'https',
+        hostname: '**.cloudinary.com',
       },
       {
         protocol: 'https',
-        hostname: '**.google.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'imgur.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'i.imgur.com',
+        hostname: 'images.unsplash.com',
       },
     ],
   },

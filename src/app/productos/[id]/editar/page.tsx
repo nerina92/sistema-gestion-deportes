@@ -631,7 +631,7 @@ export default function EditarProductoPage() {
               </div>
             )}
             <p className="mt-1 text-xs text-gray-400">
-              Tip para Drive: abrí el archivo → Compartir → Cualquiera con el link → Copiar link. Luego cambiá <strong>/file/d/ID/view</strong> por <strong>/uc?id=ID</strong>
+              💡 <strong>Imgur (recomendado):</strong> entrá a imgur.com → subí la foto → clic derecho en la imagen → &quot;Copiar dirección de imagen&quot; → pegá el link acá. El link debe terminar en .jpg o .png
             </p>
           </div>
         </div>
