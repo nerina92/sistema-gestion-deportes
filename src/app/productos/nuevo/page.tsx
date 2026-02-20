@@ -412,12 +412,30 @@ export default function NuevoProductoPage() {
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">URL de Imagen</label>
               <input
-                type="url"
+                type="text"
                 value={formData.imageUrl}
                 onChange={(e) => updateProductData('imageUrl', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="https://ejemplo.com/imagen.jpg"
+                placeholder="Pegá el link de la imagen (Google Fotos, Drive, cualquier URL)"
               />
+              {formData.imageUrl && (
+                <div className="mt-3">
+                  <p className="text-xs text-gray-500 mb-1">Preview:</p>
+                  <img
+                    src={formData.imageUrl}
+                    alt="Preview"
+                    className="h-32 w-32 object-cover rounded-lg border border-gray-200"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                      (e.target as HTMLImageElement).nextElementSibling?.removeAttribute('hidden');
+                    }}
+                  />
+                  <p hidden className="text-xs text-red-500 mt-1">No se pudo cargar la imagen. Verificá el link.</p>
+                </div>
+              )}
+              <p className="mt-1 text-xs text-gray-400">
+                Tip: En Google Fotos, abrí la foto → botón compartir → Copiar link. En Drive: clic derecho → Compartir → Copiar link, luego cambiá &quot;/file/d/ID/view&quot; por &quot;/uc?id=ID&quot;
+              </p>
             </div>
 
             {/* Descripción */}
