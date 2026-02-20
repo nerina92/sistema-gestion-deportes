@@ -80,6 +80,7 @@ export default function NuevoProductoPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [imageError, setImageError] = useState(false);
 
   // Estado del formulario
   const [formData, setFormData] = useState<ProductForm>({
@@ -121,6 +122,7 @@ export default function NuevoProductoPage() {
 
   // Función para actualizar datos del producto principal
   const updateProductData = (field: keyof Omit<ProductForm, 'variants'>, value: string) => {
+    if (field === 'imageUrl') setImageError(false);
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -421,20 +423,23 @@ export default function NuevoProductoPage() {
               {formData.imageUrl && (
                 <div className="mt-3">
                   <p className="text-xs text-gray-500 mb-1">Preview:</p>
-                  <img
-                    src={formData.imageUrl}
-                    alt="Preview"
-                    className="h-32 w-32 object-cover rounded-lg border border-gray-200"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                      (e.target as HTMLImageElement).nextElementSibling?.removeAttribute('hidden');
-                    }}
-                  />
-                  <p hidden className="text-xs text-red-500 mt-1">No se pudo cargar la imagen. Verificá el link.</p>
+                  {imageError ? (
+                    <div className="h-32 w-32 flex items-center justify-center bg-gray-100 rounded-lg border border-gray-200">
+                      <p className="text-xs text-red-500 text-center px-2">No se pudo cargar. Verificá el link.</p>
+                    </div>
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={formData.imageUrl}
+                      alt="Preview"
+                      className="h-32 w-32 object-cover rounded-lg border border-gray-200"
+                      onError={() => setImageError(true)}
+                    />
+                  )}
                 </div>
               )}
               <p className="mt-1 text-xs text-gray-400">
-                Tip: En Google Fotos, abrí la foto → botón compartir → Copiar link. En Drive: clic derecho → Compartir → Copiar link, luego cambiá &quot;/file/d/ID/view&quot; por &quot;/uc?id=ID&quot;
+                Tip para Drive: abrí el archivo → clic derecho → Compartir → Cualquiera con el link → Copiar link. Luego cambiá la URL: reemplazá <strong>/file/d/ID/view</strong> por <strong>/uc?id=ID</strong>
               </p>
             </div>
 
