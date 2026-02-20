@@ -42,7 +42,8 @@ interface Product {
   brand: string;
   category: string;
   barcode?: string;
-  image_url?: string;
+  imageUrl?: string;
+  image_url?: string; // fallback por compatibilidad
   variants: ProductVariant[];
   totalStock: number;
   variantCount: number;
@@ -204,14 +205,26 @@ export default function ProductosPage() {
     }
   };
 
-  // Componente para placeholder de imagen
-  const ProductImage = ({ product }: { product: Product }) => {
-    if (product.image_url) {
+  // Componente para placeholder de imagen (miniatura en tabla)
+  const ProductImage = ({ product, size = 'sm' }: { product: Product; size?: 'sm' | 'lg' }) => {
+    const imgUrl = product.imageUrl || product.image_url;
+    const sizeClass = size === 'lg' ? 'w-full h-56 rounded-xl' : 'w-12 h-12 rounded-lg';
+    const placeholderClass = size === 'lg'
+      ? 'w-full h-56 rounded-xl flex items-center justify-center bg-gray-100'
+      : 'w-12 h-12 rounded-lg flex items-center justify-center bg-gray-200';
+
+    if (imgUrl) {
       return (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={product.image_url}
+          src={imgUrl}
           alt={product.name}
-          className="w-12 h-12 object-cover rounded-lg"
+          className={`${sizeClass} object-cover`}
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            target.nextElementSibling?.classList.remove('hidden');
+          }}
         />
       );
     }
@@ -224,8 +237,8 @@ export default function ProductosPage() {
       .toUpperCase();
 
     return (
-      <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-        <span className="text-gray-600 font-semibold text-sm">{initials}</span>
+      <div className={placeholderClass}>
+        <span className={`text-gray-500 font-semibold ${size === 'lg' ? 'text-4xl' : 'text-sm'}`}>{initials}</span>
       </div>
     );
   };
@@ -384,21 +397,35 @@ export default function ProductosPage() {
           </div>
           
           <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div>
-                <ProductImage product={selectedProduct} />
-                <h4 className="text-xl font-bold text-gray-900 mt-3">{selectedProduct.name}</h4>
-                <p className="text-gray-600">{selectedProduct.brand} • {selectedProduct.category}</p>
-                {selectedProduct.barcode && (
-                  <p className="text-sm text-gray-500 mt-1">Código: {selectedProduct.barcode}</p>
-                )}
+            {/* Imagen grande + info */}
+            <div className="flex flex-col md:flex-row gap-6 mb-6">
+              <div className="md:w-56 flex-shrink-0">
+                <ProductImage product={selectedProduct} size="lg" />
+                <div className="hidden text-center text-gray-400 text-sm mt-2 h-56 items-center justify-center bg-gray-100 rounded-xl">
+                  Sin imagen
+                </div>
               </div>
-              <div>
-                <div className="flex items-center space-x-4">
+              <div className="flex-1">
+                <h4 className="text-2xl font-bold text-gray-900">{selectedProduct.name}</h4>
+                <p className="text-gray-500 text-sm mt-1">{selectedProduct.brand} • {selectedProduct.category}</p>
+                {selectedProduct.barcode && (
+                  <p className="text-sm text-gray-400 mt-1">Código: {selectedProduct.barcode}</p>
+                )}
+                <div className="flex items-center gap-3 mt-4">
                   <StockBadge product={selectedProduct} />
                   <span className="text-sm text-gray-600">
-                    {selectedProduct.totalStock} unidades totales
+                    {selectedProduct.totalStock} unidades en stock
                   </span>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="bg-gray-50 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-gray-900">{selectedProduct.variantCount}</p>
+                    <p className="text-xs text-gray-500">Variantes</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-gray-900">{selectedProduct.totalStock}</p>
+                    <p className="text-xs text-gray-500">Stock total</p>
+                  </div>
                 </div>
               </div>
             </div>
