@@ -11,7 +11,8 @@ import {
   FaCog,
   FaTimes,
   FaFileInvoice,
-  FaPlug
+  FaPlug,
+  FaTag
 } from 'react-icons/fa';
 import { Building2 } from 'lucide-react';
 
@@ -31,6 +32,12 @@ const menuItems = [
     name: 'Productos',
     href: '/productos',
     icon: FaBox,
+    disabled: false,
+  },
+  {
+    name: 'Precios',
+    href: '/precios',
+    icon: FaTag,
     disabled: false,
   },
   {
