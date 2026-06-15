@@ -18,16 +18,20 @@ model Product {
   id          String            @id @default(cuid())
   name        String
   brand       String?
-  category    String
   description String?
   barcode     String?           @unique
   imageUrl    String?           @map("image_url")
+  categoryId  String            @map("category_id")
+  marginCash        Decimal     @default(90) @map("margin_cash")        @db.Decimal(6, 2)
+  surchargeDebit    Decimal     @default(5)  @map("surcharge_debit")    @db.Decimal(6, 2)
+  surchargeFinanced Decimal     @default(20) @map("surcharge_financed") @db.Decimal(6, 2)
   createdAt   DateTime          @default(now()) @map("created_at")
   updatedAt   DateTime          @updatedAt @map("updated_at")
-  
+
+  category    Category          @relation(fields: [categoryId], references: [id])
   variants    ProductVariant[]
-  
-  @@index([category])
+
+  @@index([categoryId])
   @@index([brand])
   @@map("products")
 }
@@ -56,6 +60,17 @@ model ProductVariant {
   @@index([sku])
   @@index([productId])
   @@map("product_variants")
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  products  Product[]
+
+  @@map("categories")
 }
 
 // ============================================
