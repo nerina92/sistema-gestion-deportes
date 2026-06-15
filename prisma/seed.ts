@@ -90,6 +90,22 @@ async function main() {
     const supplierCount = await prisma.supplier.count();
     console.log(`📊 Total de proveedores en la base de datos: ${supplierCount}`);
 
+    // Crear categorías por defecto
+    console.log('🏷️  Creando categorías por defecto...');
+    const categoryNames = [
+      'Remeras', 'Pantalones', 'Shorts', 'Buzos', 'Camperas',
+      'Zapatillas', 'Medias', 'Accesorios', 'Equipamiento', 'Paletas', 'Otros',
+    ];
+    for (const name of categoryNames) {
+      await prisma.category.upsert({
+        where: { name },
+        update: {},
+        create: { name },
+      });
+    }
+    const categoryCount = await prisma.category.count();
+    console.log(`📊 Total de categorías: ${categoryCount}`);
+
     console.log('🎉 Seeding completado exitosamente!');
     
     if (!existingAdmin) {
