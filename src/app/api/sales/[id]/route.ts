@@ -24,7 +24,7 @@ export async function GET(
                     id: true,
                     name: true,
                     brand: true,
-                    category: true
+                    category: { select: { name: true } }
                   }
                 }
               }
@@ -58,7 +58,7 @@ export async function GET(
         productId: item.productVariant.product.id,
         productName: item.productVariant.product.name,
         brand: item.productVariant.product.brand,
-        category: item.productVariant.product.category,
+        category: item.productVariant.product.category?.name ?? '',
         size: item.productVariant.size,
         color: item.productVariant.color,
         sku: item.productVariant.sku,
