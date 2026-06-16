@@ -5,9 +5,9 @@ export interface ProductVariantInput {
   color: string;
   sku: string;
   costPrice: number;
-  priceCash: number;
-  priceDebit: number;
-  priceFinanced: number;
+  priceCash?: number;
+  priceDebit?: number;
+  priceFinanced?: number;
   stockQuantity: number;
   minStockAlert: number;
 }
@@ -15,7 +15,10 @@ export interface ProductVariantInput {
 export interface ProductInput {
   name: string;
   brand?: string;
-  category: string;
+  categoryId: string;
+  marginCash?: number;
+  surchargeDebit?: number;
+  surchargeFinanced?: number;
   description?: string;
   barcode?: string;
   imageUrl?: string;
@@ -26,7 +29,11 @@ export interface ProductWithVariants {
   id: string;
   name: string;
   brand?: string | null;
-  category: string;
+  categoryId: string;
+  category?: { id: string; name: string } | null;
+  marginCash: number;
+  surchargeDebit: number;
+  surchargeFinanced: number;
   description?: string | null;
   barcode?: string | null;
   imageUrl?: string | null;
@@ -60,7 +67,7 @@ export interface ProductsListResponse {
     totalPages: number;
   };
   filters?: {
-    categories: string[];
+    categories: { id: string; name: string }[];
     brands: string[];
   };
 }

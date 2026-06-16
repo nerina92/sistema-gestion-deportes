@@ -21,9 +21,19 @@ export function validateProductInput(data: any): ValidationResult {
     errors.push({ field: 'name', message: 'El nombre del producto es requerido' });
   }
 
-  if (!data.category || typeof data.category !== 'string' || data.category.trim().length === 0) {
-    errors.push({ field: 'category', message: 'La categoría del producto es requerida' });
+  if (!data.categoryId || typeof data.categoryId !== 'string' || data.categoryId.trim().length === 0) {
+    errors.push({ field: 'categoryId', message: 'La categoría del producto es requerida' });
   }
+
+  const pctFields = ['marginCash', 'surchargeDebit', 'surchargeFinanced'];
+  pctFields.forEach((f) => {
+    if (data[f] !== undefined) {
+      const v = data[f];
+      if (typeof v !== 'number' || isNaN(v) || v < 0) {
+        errors.push({ field: f, message: `${f} debe ser un porcentaje válido (>= 0)` });
+      }
+    }
+  });
 
   // Validar campos opcionales
   if (data.brand && (typeof data.brand !== 'string' || data.brand.trim().length === 0)) {
@@ -78,17 +88,11 @@ export function validateProductVariantInput(variant: any, index: number = 0): Va
     errors.push({ field: `${fieldPrefix}.sku`, message: 'El SKU es requerido' });
   }
 
-  // Validar precios (deben ser números positivos)
-  const priceFields = ['costPrice', 'priceCash', 'priceDebit', 'priceFinanced'];
-  priceFields.forEach(field => {
-    const value = variant[field];
-    if (typeof value !== 'number' || isNaN(value) || value <= 0) {
-      errors.push({ 
-        field: `${fieldPrefix}.${field}`, 
-        message: `${field} debe ser un número positivo mayor a 0` 
-      });
-    }
-  });
+  // Validar precio de costo (debe ser número positivo). Los demás precios se computan en el servidor.
+  const costValue = variant.costPrice;
+  if (typeof costValue !== 'number' || isNaN(costValue) || costValue <= 0) {
+    errors.push({ field: `${fieldPrefix}.costPrice`, message: 'costPrice debe ser un número positivo mayor a 0' });
+  }
 
   // Validar stock (debe ser número no negativo)
   if (typeof variant.stockQuantity !== 'number' || isNaN(variant.stockQuantity) || variant.stockQuantity < 0) {
@@ -127,6 +131,10 @@ export function sanitizeProductInput(data: any): ProductInput {
     }));
   }
 
+  if (sanitized.marginCash !== undefined) sanitized.marginCash = Number(sanitized.marginCash);
+  if (sanitized.surchargeDebit !== undefined) sanitized.surchargeDebit = Number(sanitized.surchargeDebit);
+  if (sanitized.surchargeFinanced !== undefined) sanitized.surchargeFinanced = Number(sanitized.surchargeFinanced);
+
   return sanitized;
 }
 
@@ -139,6 +147,7 @@ export function validateProductsQueryParams(params: any) {
     limit: 20,
     search: undefined as string | undefined,
     category: undefined as string | undefined,
+    categoryId: undefined as string | undefined,
     brand: undefined as string | undefined,
     lowStock: false
   };
@@ -166,6 +175,10 @@ export function validateProductsQueryParams(params: any) {
 
   if (params.category && typeof params.category === 'string' && params.category.trim()) {
     sanitized.category = params.category.trim();
+  }
+
+  if (params.categoryId && typeof params.categoryId === 'string' && params.categoryId.trim()) {
+    sanitized.categoryId = params.categoryId.trim();
   }
 
   if (params.brand && typeof params.brand === 'string' && params.brand.trim()) {
