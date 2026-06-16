@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { validateProductInput, sanitizeProductInput } from '@/lib/validation';
 import { ProductInput } from '@/types/products';
+import { computeVariantPrices } from '@/lib/pricing';
 
 const prisma = new PrismaClient();
 
@@ -27,7 +28,8 @@ export async function GET(
       include: {
         variants: {
           orderBy: { createdAt: 'asc' }
-        }
+        },
+        category: true
       }
     });
 
@@ -163,12 +165,22 @@ export async function PUT(
         data: {
           name: productData.name,
           brand: productData.brand,
-          category: productData.category,
+          categoryId: productData.categoryId,
+          marginCash: productData.marginCash ?? 90,
+          surchargeDebit: productData.surchargeDebit ?? 5,
+          surchargeFinanced: productData.surchargeFinanced ?? 20,
           description: productData.description,
           barcode: productData.barcode,
           imageUrl: productData.imageUrl,
         }
       });
+
+      // Porcentajes efectivos para el cálculo de precios
+      const pct = {
+        marginCash: productData.marginCash ?? 90,
+        surchargeDebit: productData.surchargeDebit ?? 5,
+        surchargeFinanced: productData.surchargeFinanced ?? 20,
+      };
 
       // Obtener variantes existentes
       const existingVariants = existingProduct.variants;
@@ -199,46 +211,48 @@ export async function PUT(
 
       // Actualizar variantes existentes
       const updatedVariants = await Promise.all(
-        variantsToUpdate.map(variant =>
-          tx.productVariant.update({
+        variantsToUpdate.map(variant => {
+          const prices = computeVariantPrices(variant.costPrice, pct);
+          return tx.productVariant.update({
             where: { id: variant.id },
             data: {
               size: variant.size,
               color: variant.color,
               sku: variant.sku,
               costPrice: variant.costPrice,
-              priceCash: variant.priceCash,
-              priceDebit: variant.priceDebit,
-              priceFinanced: variant.priceFinanced,
+              priceCash: prices.priceCash,
+              priceDebit: prices.priceDebit,
+              priceFinanced: prices.priceFinanced,
               stockQuantity: variant.stockQuantity,
               minStockAlert: variant.minStockAlert,
               tiendanubeProductId: (variant as any).tiendanubeProductId || null,
               tiendanubeVariantId: (variant as any).tiendanubeVariantId || null,
             }
-          })
-        )
+          });
+        })
       );
 
       // Crear nuevas variantes
       const createdVariants = await Promise.all(
-        variantsToCreate.map(variant =>
-          tx.productVariant.create({
+        variantsToCreate.map(variant => {
+          const prices = computeVariantPrices(variant.costPrice, pct);
+          return tx.productVariant.create({
             data: {
               productId: id,
               size: variant.size,
               color: variant.color,
               sku: variant.sku,
               costPrice: variant.costPrice,
-              priceCash: variant.priceCash,
-              priceDebit: variant.priceDebit,
-              priceFinanced: variant.priceFinanced,
+              priceCash: prices.priceCash,
+              priceDebit: prices.priceDebit,
+              priceFinanced: prices.priceFinanced,
               stockQuantity: variant.stockQuantity,
               minStockAlert: variant.minStockAlert,
               tiendanubeProductId: (variant as any).tiendanubeProductId || null,
               tiendanubeVariantId: (variant as any).tiendanubeVariantId || null,
             }
-          })
-        )
+          });
+        })
       );
 
       return {
