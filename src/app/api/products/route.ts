@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient, Product, ProductVariant } from '@prisma/client';
+import { PrismaClient, Product, ProductVariant, Category } from '@prisma/client';
 import { validateProductInput, sanitizeProductInput, validateProductsQueryParams } from '@/lib/validation';
 import { ProductInput, ProductsListResponse } from '@/types/products';
+import { computeVariantPrices } from '@/lib/pricing';
 
-type ProductWithVariants = Product & { variants: ProductVariant[] };
+type ProductWithVariants = Product & { variants: ProductVariant[]; category: Category | null };
 
 const prisma = new PrismaClient();
 
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const params = Object.fromEntries(searchParams);
-    const { page, limit, search, category, brand, lowStock } = validateProductsQueryParams(params);
+    const { page, limit, search, categoryId, brand, lowStock } = validateProductsQueryParams(params);
 
     // Construir filtros de búsqueda
     const where: any = {};
@@ -29,8 +30,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Filtros específicos
-    if (category) {
-      where.category = { contains: category, mode: 'insensitive' };
+    if (categoryId) {
+      where.categoryId = categoryId;
     }
 
     if (brand) {
@@ -66,7 +67,8 @@ export async function GET(request: NextRequest) {
           prisma.product.findMany({
             where: whereWithLowStock,
             include: {
-              variants: true
+              variants: true,
+              category: true
             },
             skip,
             take: limit,
@@ -84,7 +86,8 @@ export async function GET(request: NextRequest) {
         prisma.product.findMany({
           where,
           include: {
-            variants: true
+            variants: true,
+            category: true
           },
           skip,
           take: limit,
@@ -100,6 +103,9 @@ export async function GET(request: NextRequest) {
     // Formatear respuesta
     const formattedProducts = products.map(product => ({
       ...product,
+      marginCash: Number(product.marginCash),
+      surchargeDebit: Number(product.surchargeDebit),
+      surchargeFinanced: Number(product.surchargeFinanced),
       variants: product.variants.map(variant => ({
         ...variant,
         costPrice: Number(variant.costPrice),
@@ -110,14 +116,11 @@ export async function GET(request: NextRequest) {
     }));
 
     // Obtener categorías y marcas únicas para filtros
-    const allProducts = await prisma.product.findMany({
-      select: {
-        category: true,
-        brand: true
-      }
+    const categoriesList = await prisma.category.findMany({
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true },
     });
-
-    const uniqueCategories = [...new Set(allProducts.map(p => p.category).filter((x): x is string => !!x))];
+    const allProducts = await prisma.product.findMany({ select: { brand: true } });
     const uniqueBrands = [...new Set(allProducts.map(p => p.brand).filter((x): x is string => !!x))];
 
     const response: ProductsListResponse = {
@@ -129,7 +132,7 @@ export async function GET(request: NextRequest) {
         totalPages: Math.ceil(total / limit)
       },
       filters: {
-        categories: uniqueCategories,
+        categories: categoriesList,
         brands: uniqueBrands
       }
     };
@@ -196,31 +199,42 @@ export async function POST(request: NextRequest) {
         data: {
           name: productData.name,
           brand: productData.brand,
-          category: productData.category,
+          categoryId: productData.categoryId,
+          marginCash: productData.marginCash ?? 90,
+          surchargeDebit: productData.surchargeDebit ?? 5,
+          surchargeFinanced: productData.surchargeFinanced ?? 20,
           description: productData.description,
           barcode: productData.barcode,
           imageUrl: productData.imageUrl,
         }
       });
 
+      // Porcentajes efectivos para el cálculo de precios
+      const pct = {
+        marginCash: productData.marginCash ?? 90,
+        surchargeDebit: productData.surchargeDebit ?? 5,
+        surchargeFinanced: productData.surchargeFinanced ?? 20,
+      };
+
       // Crear las variantes
       const variants = await Promise.all(
-        productData.variants.map(variant =>
-          tx.productVariant.create({
+        productData.variants.map(variant => {
+          const prices = computeVariantPrices(variant.costPrice, pct);
+          return tx.productVariant.create({
             data: {
               productId: product.id,
               size: variant.size,
               color: variant.color,
               sku: variant.sku,
               costPrice: variant.costPrice,
-              priceCash: variant.priceCash,
-              priceDebit: variant.priceDebit,
-              priceFinanced: variant.priceFinanced,
+              priceCash: prices.priceCash,
+              priceDebit: prices.priceDebit,
+              priceFinanced: prices.priceFinanced,
               stockQuantity: variant.stockQuantity,
               minStockAlert: variant.minStockAlert,
             }
-          })
-        )
+          });
+        })
       );
 
       return { ...product, variants };
