@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { computeVariantPrices } from '@/lib/pricing';
 
 const prisma = new PrismaClient();
 
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
     const where: any = {};
 
     if (category) {
-      where.product = { ...where.product, category };
+      where.product = { ...where.product, categoryId: category };
     }
     if (brand) {
       where.product = { ...where.product, brand };
@@ -34,25 +35,28 @@ export async function GET(request: NextRequest) {
             id: true,
             name: true,
             brand: true,
-            category: true,
+            category: { select: { name: true } },
+            categoryId: true,
+            marginCash: true,
+            surchargeDebit: true,
+            surchargeFinanced: true,
           },
         },
       },
       orderBy: [
-        { product: { category: 'asc' } },
+        { product: { categoryId: 'asc' } },
         { product: { name: 'asc' } },
         { size: 'asc' },
       ],
     });
 
     // Obtener categorías y marcas únicas para los filtros
-    const products = await prisma.product.findMany({
-      select: { category: true, brand: true },
-      distinct: ['category', 'brand'],
+    const categoriesList = await prisma.category.findMany({
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true },
     });
-
-    const categories = [...new Set(products.map((p) => p.category))].sort();
-    const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort();
+    const productsForBrands = await prisma.product.findMany({ select: { brand: true } });
+    const brands = [...new Set(productsForBrands.map((p) => p.brand).filter(Boolean))].sort();
 
     const formatted = variants.map((v) => ({
       id: v.id,
@@ -68,14 +72,18 @@ export async function GET(request: NextRequest) {
         id: v.product.id,
         name: v.product.name,
         brand: v.product.brand,
-        category: v.product.category,
+        category: v.product.category?.name ?? '',
+        categoryId: v.product.categoryId,
+        marginCash: Number(v.product.marginCash),
+        surchargeDebit: Number(v.product.surchargeDebit),
+        surchargeFinanced: Number(v.product.surchargeFinanced),
       },
     }));
 
     return NextResponse.json({
       success: true,
       variants: formatted,
-      filters: { categories, brands },
+      filters: { categories: categoriesList, brands },
     });
   } catch (error: any) {
     console.error('Error GET bulk-prices:', error);
@@ -91,13 +99,7 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
     const { updates } = body as {
-      updates: {
-        id: string;
-        costPrice: number;
-        priceCash: number;
-        priceDebit: number;
-        priceFinanced: number;
-      }[];
+      updates: { id: string; costPrice: number }[];
     };
 
     if (!updates || !Array.isArray(updates) || updates.length === 0) {
@@ -110,22 +112,31 @@ export async function PUT(request: NextRequest) {
     // Actualizar en transacción, de a lotes de 50 para no agotar el timeout
     const BATCH_SIZE = 50;
     let totalUpdated = 0;
-
     for (let i = 0; i < updates.length; i += BATCH_SIZE) {
       const batch = updates.slice(i, i + BATCH_SIZE);
-      await prisma.$transaction(
-        batch.map((u) =>
+      const planned = await Promise.all(batch.map(async (u) => {
+        const variant = await prisma.productVariant.findUnique({
+          where: { id: u.id },
+          include: { product: { select: { marginCash: true, surchargeDebit: true, surchargeFinanced: true } } },
+        });
+        if (!variant) return null;
+        const pct = {
+          marginCash: Number(variant.product.marginCash),
+          surchargeDebit: Number(variant.product.surchargeDebit),
+          surchargeFinanced: Number(variant.product.surchargeFinanced),
+        };
+        const prices = computeVariantPrices(u.costPrice, pct);
+        return { id: u.id, costPrice: u.costPrice, prices };
+      }));
+      const ops = planned
+        .filter((p): p is NonNullable<typeof p> => p !== null)
+        .map((p) =>
           prisma.productVariant.update({
-            where: { id: u.id },
-            data: {
-              costPrice: u.costPrice,
-              priceCash: u.priceCash,
-              priceDebit: u.priceDebit,
-              priceFinanced: u.priceFinanced,
-            },
+            where: { id: p.id },
+            data: { costPrice: p.costPrice, priceCash: p.prices.priceCash, priceDebit: p.prices.priceDebit, priceFinanced: p.prices.priceFinanced },
           })
-        )
-      );
+        );
+      await prisma.$transaction(ops);
       totalUpdated += batch.length;
     }
 
