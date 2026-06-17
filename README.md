@@ -82,6 +82,7 @@ Privado - Deportes Laboulaye
 ### 2026-06-17
 
 **Commits incluidos:**
+- 54b6823 docs: auto-update README [skip ci]
 - 2477dfc fix(migration): make category FK migration production-safe (seed + backfill before NOT NULL)
 - a70833d refactor: display category.name and filter by categoryId in product/sales UI
 - b41d471 feat: /precios edits cost and shows computed prices (read-only)
@@ -103,4 +104,4 @@ Privado - Deportes Laboulaye
 - 611cb6c docs: Add design for DB category management + percentage-based pricing
 
 **Archivos modificados:**
-  - `.sql`: migration.sql
+  - `.md`: README.md
