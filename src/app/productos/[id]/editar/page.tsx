@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { computeVariantPrices } from '@/lib/pricing';
 import { 
   Package, 
   Plus, 
@@ -34,7 +35,10 @@ interface ProductVariant {
 interface ProductForm {
   name: string;
   brand: string;
-  category: string;
+  categoryId: string;
+  marginCash: number;
+  surchargeDebit: number;
+  surchargeFinanced: number;
   description: string;
   barcode: string;
   imageUrl: string;
@@ -51,7 +55,10 @@ interface Product {
   id: string;
   name: string;
   brand: string;
-  category: string;
+  categoryId?: string;
+  marginCash?: number;
+  surchargeDebit?: number;
+  surchargeFinanced?: number;
   description?: string;
   barcode?: string;
   imageUrl?: string;
@@ -72,20 +79,7 @@ interface Product {
 }
 
 // Opciones para los dropdowns (reutilizando del US-004)
-const CATEGORIES = [
-  'Remeras',
-  'Pantalones', 
-  'Shorts',
-  'Buzos',
-  'Camperas',
-  'Zapatillas',
-  'Medias',
-  'Accesorios',
-  'Equipamiento',
-  'Otros'
-];
-
-const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', 'Único'];
+const SIZES =['XS', 'S', 'M', 'L', 'XL', 'XXL', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', 'Único'];
 
 const COLORS = [
   'Negro', 'Blanco', 'Gris', 'Azul', 'Rojo', 'Verde', 'Amarillo', 
@@ -103,16 +97,35 @@ export default function EditarProductoPage() {
   const [imageError, setImageError] = useState(false);
   const [product, setProduct] = useState<Product | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
 
   const [formData, setFormData] = useState<ProductForm>({
     name: '',
     brand: '',
-    category: '',
+    categoryId: '',
+    marginCash: 90,
+    surchargeDebit: 5,
+    surchargeFinanced: 20,
     description: '',
     barcode: '',
     imageUrl: '',
     variants: []
   });
+
+  // Cargar categorías desde la API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('/api/categories');
+        const data = await response.json();
+        setCategories(data.categories || []);
+      } catch (error) {
+        console.error('Error cargando categorías:', error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   // Cargar datos del producto existente
   useEffect(() => {
@@ -141,7 +154,10 @@ export default function EditarProductoPage() {
         setFormData({
           name: productData.name || '',
           brand: productData.brand || '',
-          category: productData.category || '',
+          categoryId: productData.categoryId || productData.category_id || '',
+          marginCash: productData.marginCash ?? productData.margin_cash ?? 90,
+          surchargeDebit: productData.surchargeDebit ?? productData.surcharge_debit ?? 5,
+          surchargeFinanced: productData.surchargeFinanced ?? productData.surcharge_financed ?? 20,
           description: productData.description || '',
           barcode: productData.barcode || '',
           imageUrl: productData.imageUrl || productData.image_url || '',
@@ -339,18 +355,9 @@ export default function EditarProductoPage() {
         variantErrors[indexStr].sku = 'SKU requerido';
       }
 
-      // Validar precios > 0
+      // Validar costo > 0
       if (variant.costPrice <= 0) {
         variantErrors[indexStr].costPrice = 'Precio de costo debe ser mayor a 0';
-      }
-      if (variant.priceCash <= 0) {
-        variantErrors[indexStr].priceCash = 'Precio contado debe ser mayor a 0';
-      }
-      if (variant.priceDebit <= 0) {
-        variantErrors[indexStr].priceDebit = 'Precio débito debe ser mayor a 0';
-      }
-      if (variant.priceFinanced <= 0) {
-        variantErrors[indexStr].priceFinanced = 'Precio financiado debe ser mayor a 0';
       }
 
       // Validar stock >= 0
@@ -396,7 +403,10 @@ export default function EditarProductoPage() {
       const productData = {
         name: formData.name.trim(),
         brand: formData.brand.trim(),
-        category: formData.category,
+        categoryId: formData.categoryId || null,
+        marginCash: formData.marginCash,
+        surchargeDebit: formData.surchargeDebit,
+        surchargeFinanced: formData.surchargeFinanced,
         description: formData.description.trim(),
         barcode: formData.barcode.trim(),
         imageUrl: formData.imageUrl.trim(),
@@ -406,9 +416,6 @@ export default function EditarProductoPage() {
           color: variant.color,
           sku: variant.sku,
           costPrice: variant.costPrice,
-          priceCash: variant.priceCash,
-          priceDebit: variant.priceDebit,
-          priceFinanced: variant.priceFinanced,
           stockQuantity: variant.stockQuantity,
           minStockAlert: variant.minStockAlert,
           tiendanubeProductId: variant.tiendanubeProductId || null,
@@ -557,15 +564,54 @@ export default function EditarProductoPage() {
               </label>
               <select
                 id="category"
-                value={formData.category}
-                onChange={(e) => updateProductData('category', e.target.value)}
+                value={formData.categoryId}
+                onChange={(e) => updateProductData('categoryId', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Seleccionar categoría</option>
-                {CATEGORIES.map(category => (
-                  <option key={category} value={category}>{category}</option>
+                {categories.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
+            </div>
+
+            {/* Margen contado */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Margen contado (%)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.marginCash}
+                onChange={(e) => setFormData(prev => ({ ...prev, marginCash: parseFloat(e.target.value) || prev.marginCash }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Recargo débito */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Recargo débito (%)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.surchargeDebit}
+                onChange={(e) => setFormData(prev => ({ ...prev, surchargeDebit: parseFloat(e.target.value) || prev.surchargeDebit }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Recargo financiado */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Recargo financiado (%)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.surchargeFinanced}
+                onChange={(e) => setFormData(prev => ({ ...prev, surchargeFinanced: parseFloat(e.target.value) || prev.surchargeFinanced }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
             </div>
 
             {/* Código de Barras */}
@@ -660,6 +706,11 @@ export default function EditarProductoPage() {
             {formData.variants.map((variant, index) => {
               const isExisting = !!variant.id;
               const variantErrors = errors.variant?.[index.toString()] || {};
+              const prices = computeVariantPrices(Number(variant.costPrice) || 0, {
+                marginCash: Number(formData.marginCash) || 0,
+                surchargeDebit: Number(formData.surchargeDebit) || 0,
+                surchargeFinanced: Number(formData.surchargeFinanced) || 0,
+              });
 
               return (
                 <div
@@ -783,53 +834,38 @@ export default function EditarProductoPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Precio Contado *
+                        Precio Contado
                       </label>
                       <input
                         type="number"
-                        min="0"
-                        step="0.01"
-                        value={variant.priceCash || 0}
-                        onChange={(e) => updateVariant(index, 'priceCash', parseFloat(e.target.value) || 0)}
-                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          variantErrors.priceCash ? 'border-red-300' : 'border-gray-300'
-                        }`}
+                        value={prices.priceCash}
+                        readOnly
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100 text-gray-700 cursor-not-allowed"
                       />
-                      {variantErrors.priceCash && <p className="mt-1 text-xs text-red-600">{variantErrors.priceCash}</p>}
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Precio Débito *
+                        Precio Débito
                       </label>
                       <input
                         type="number"
-                        min="0"
-                        step="0.01"
-                        value={variant.priceDebit || 0}
-                        onChange={(e) => updateVariant(index, 'priceDebit', parseFloat(e.target.value) || 0)}
-                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          variantErrors.priceDebit ? 'border-red-300' : 'border-gray-300'
-                        }`}
+                        value={prices.priceDebit}
+                        readOnly
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100 text-gray-700 cursor-not-allowed"
                       />
-                      {variantErrors.priceDebit && <p className="mt-1 text-xs text-red-600">{variantErrors.priceDebit}</p>}
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Precio Financiado *
+                        Precio Financiado
                       </label>
                       <input
                         type="number"
-                        min="0"
-                        step="0.01"
-                        value={variant.priceFinanced || 0}
-                        onChange={(e) => updateVariant(index, 'priceFinanced', parseFloat(e.target.value) || 0)}
-                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          variantErrors.priceFinanced ? 'border-red-300' : 'border-gray-300'
-                        }`}
+                        value={prices.priceFinanced}
+                        readOnly
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100 text-gray-700 cursor-not-allowed"
                       />
-                      {variantErrors.priceFinanced && <p className="mt-1 text-xs text-red-600">{variantErrors.priceFinanced}</p>}
                     </div>
 
                     <div>
