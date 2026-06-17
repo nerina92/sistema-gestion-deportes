@@ -534,7 +534,7 @@ export default function EditarProductoPage() {
                 type="text"
                 value={formData.name}
                 onChange={(e) => updateProductData('name', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${
                   errors.name ? 'border-red-300' : 'border-gray-300'
                 }`}
                 placeholder="Ej: Remera Deportiva Nike"
@@ -552,7 +552,7 @@ export default function EditarProductoPage() {
                 type="text"
                 value={formData.brand}
                 onChange={(e) => updateProductData('brand', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                 placeholder="Ej: Nike, Adidas, Puma"
               />
             </div>
@@ -566,7 +566,7 @@ export default function EditarProductoPage() {
                 id="category"
                 value={formData.categoryId}
                 onChange={(e) => updateProductData('categoryId', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
               >
                 <option value="">Seleccionar categoría</option>
                 {categories.map(c => (
@@ -584,7 +584,7 @@ export default function EditarProductoPage() {
                 step="0.01"
                 value={formData.marginCash}
                 onChange={(e) => setFormData(prev => ({ ...prev, marginCash: parseFloat(e.target.value) || prev.marginCash }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
               />
             </div>
 
@@ -597,7 +597,7 @@ export default function EditarProductoPage() {
                 step="0.01"
                 value={formData.surchargeDebit}
                 onChange={(e) => setFormData(prev => ({ ...prev, surchargeDebit: parseFloat(e.target.value) || prev.surchargeDebit }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
               />
             </div>
 
@@ -610,7 +610,7 @@ export default function EditarProductoPage() {
                 step="0.01"
                 value={formData.surchargeFinanced}
                 onChange={(e) => setFormData(prev => ({ ...prev, surchargeFinanced: parseFloat(e.target.value) || prev.surchargeFinanced }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
               />
             </div>
 
@@ -624,7 +624,7 @@ export default function EditarProductoPage() {
                 type="text"
                 value={formData.barcode}
                 onChange={(e) => updateProductData('barcode', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                 placeholder="Ej: 1234567890123"
               />
             </div>
@@ -640,7 +640,7 @@ export default function EditarProductoPage() {
               value={formData.description}
               onChange={(e) => updateProductData('description', e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
               placeholder="Describe las características del producto..."
             />
           </div>
@@ -655,7 +655,7 @@ export default function EditarProductoPage() {
               type="text"
               value={formData.imageUrl}
               onChange={(e) => updateProductData('imageUrl', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
               placeholder="Pegá el link de la imagen (Google Fotos, Drive, cualquier URL)"
             />
             {formData.imageUrl && (
@@ -746,7 +746,7 @@ export default function EditarProductoPage() {
                       <select
                         value={variant.size}
                         onChange={(e) => updateVariant(index, 'size', e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${
                           variantErrors.size ? 'border-red-300' : 'border-gray-300'
                         }`}
                       >
@@ -766,7 +766,7 @@ export default function EditarProductoPage() {
                       <select
                         value={variant.color}
                         onChange={(e) => updateVariant(index, 'color', e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${
                           variantErrors.color ? 'border-red-300' : 'border-gray-300'
                         }`}
                       >
@@ -787,7 +787,7 @@ export default function EditarProductoPage() {
                         type="text"
                         value={variant.sku}
                         onChange={(e) => updateVariant(index, 'sku', e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${
                           variantErrors.sku ? 'border-red-300' : 'border-gray-300'
                         }`}
                         placeholder="AUTO-M-NEG"
@@ -805,7 +805,7 @@ export default function EditarProductoPage() {
                         min="0"
                         value={variant.stockQuantity || 0}
                         onChange={(e) => updateVariant(index, 'stockQuantity', parseInt(e.target.value) || 0)}
-                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${
                           variantErrors.stockQuantity ? 'border-red-300' : 'border-gray-300'
                         }`}
                       />
@@ -825,7 +825,7 @@ export default function EditarProductoPage() {
                         step="0.01"
                         value={variant.costPrice || 0}
                         onChange={(e) => updateVariant(index, 'costPrice', parseFloat(e.target.value) || 0)}
-                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${
                           variantErrors.costPrice ? 'border-red-300' : 'border-gray-300'
                         }`}
                       />
@@ -877,7 +877,7 @@ export default function EditarProductoPage() {
                         min="0"
                         value={variant.minStockAlert || 0}
                         onChange={(e) => updateVariant(index, 'minStockAlert', parseInt(e.target.value) || 0)}
-                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${
                           variantErrors.minStockAlert ? 'border-red-300' : 'border-gray-300'
                         }`}
                       />
@@ -898,7 +898,7 @@ export default function EditarProductoPage() {
                           value={variant.tiendanubeProductId || ''}
                           onChange={(e) => updateVariant(index, 'tiendanubeProductId', e.target.value)}
                           placeholder="123456"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                         />
                         <p className="mt-1 text-xs text-gray-500">ID del producto en Tienda Nube</p>
                       </div>
@@ -912,7 +912,7 @@ export default function EditarProductoPage() {
                           value={variant.tiendanubeVariantId || ''}
                           onChange={(e) => updateVariant(index, 'tiendanubeVariantId', e.target.value)}
                           placeholder="789012"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                         />
                         <p className="mt-1 text-xs text-gray-500">ID de la variante en Tienda Nube</p>
                       </div>
