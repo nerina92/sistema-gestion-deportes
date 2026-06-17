@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   FaTags,
   FaPlus,
@@ -26,6 +26,7 @@ export default function CategoriasPage() {
   // Crear
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
+  const newNameInputRef = useRef<HTMLInputElement>(null);
 
   // Editar inline
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -58,7 +59,11 @@ export default function CategoriasPage() {
   // Crear categoría
   const handleCreate = async () => {
     const name = newName.trim();
-    if (!name) return;
+    if (!name) {
+      // En vez de quedarse mudo, guiamos al usuario al campo de texto.
+      newNameInputRef.current?.focus();
+      return;
+    }
     setCreating(true);
     setError('');
     try {
@@ -178,6 +183,7 @@ export default function CategoriasPage() {
         <div className="p-6 border-b border-gray-200">
           <div className="flex flex-col sm:flex-row gap-3">
             <input
+              ref={newNameInputRef}
               type="text"
               placeholder="Nombre de la categoría..."
               value={newName}
@@ -189,7 +195,7 @@ export default function CategoriasPage() {
             />
             <button
               onClick={handleCreate}
-              disabled={creating || !newName.trim()}
+              disabled={creating}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center disabled:opacity-50"
             >
               <FaPlus className="mr-2 h-4 w-4" />
