@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { FaSave, FaSearch, FaSync, FaTag, FaCalculator } from 'react-icons/fa';
+import { FaSave, FaSearch, FaSync, FaTag } from 'react-icons/fa';
+import { computeVariantPrices } from '@/lib/pricing';
 
 interface VariantRow {
   id: string;
@@ -18,24 +19,19 @@ interface VariantRow {
     name: string;
     brand: string | null;
     category: string;
+    categoryId: string | null;
+    marginCash: number;
+    surchargeDebit: number;
+    surchargeFinanced: number;
   };
-  // campos editados localmente
+  // campo editado localmente (solo el costo)
   _costPrice: string;
-  _priceCash: string;
-  _priceDebit: string;
-  _priceFinanced: string;
   _modified: boolean;
 }
 
-// Márgenes por defecto (porcentaje sobre costo)
-const DEFAULT_MARGINS = {
-  cash: 80,
-  debit: 90,
-  financed: 120,
-};
-
-function calcFromCost(cost: number, pct: number): number {
-  return Math.round(cost * (1 + pct / 100));
+interface CategoryOption {
+  id: string;
+  name: string;
 }
 
 export default function PreciosPage() {
@@ -49,12 +45,8 @@ export default function PreciosPage() {
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [brands, setBrands] = useState<string[]>([]);
-
-  // Márgenes configurables
-  const [margins, setMargins] = useState(DEFAULT_MARGINS);
-  const [showMargins, setShowMargins] = useState(false);
 
   // Solo mostrar modificados
   const [showOnlyModified, setShowOnlyModified] = useState(false);
@@ -64,7 +56,7 @@ export default function PreciosPage() {
     setError('');
     try {
       const params = new URLSearchParams();
-      if (filterCategory) params.set('category', filterCategory);
+      if (filterCategory) params.set('categoryId', filterCategory);
       if (filterBrand) params.set('brand', filterBrand);
       if (search) params.set('search', search);
 
@@ -76,9 +68,6 @@ export default function PreciosPage() {
       const rows: VariantRow[] = data.variants.map((v: any) => ({
         ...v,
         _costPrice: String(v.costPrice),
-        _priceCash: String(v.priceCash),
-        _priceDebit: String(v.priceDebit),
-        _priceFinanced: String(v.priceFinanced),
         _modified: false,
       }));
 
@@ -96,53 +85,23 @@ export default function PreciosPage() {
     fetchVariants();
   }, [fetchVariants]);
 
-  // Actualizar un campo de una variante
-  function updateField(id: string, field: keyof VariantRow, value: string) {
-    setVariants((prev) =>
-      prev.map((v) => {
-        if (v.id !== id) return v;
-        const updated = { ...v, [field]: value, _modified: true };
-        return updated;
-      })
-    );
+  // Calcula los precios a mostrar (solo lectura) a partir del costo y los
+  // porcentajes del producto. Se usa para la previsualización en vivo.
+  function previewPrices(row: VariantRow) {
+    return computeVariantPrices(Number(row._costPrice) || 0, {
+      marginCash: row.product.marginCash,
+      surchargeDebit: row.product.surchargeDebit,
+      surchargeFinanced: row.product.surchargeFinanced,
+    });
   }
 
-  // Al cambiar el costo, recalcular precios automáticamente
+  // Al cambiar el costo, marcamos la fila como modificada. Los precios se
+  // recalculan en el render (read-only) a partir del costo.
   function handleCostChange(id: string, rawValue: string) {
-    const cost = parseFloat(rawValue);
     setVariants((prev) =>
       prev.map((v) => {
         if (v.id !== id) return v;
-        if (!isNaN(cost) && cost > 0) {
-          return {
-            ...v,
-            _costPrice: rawValue,
-            _priceCash: String(calcFromCost(cost, margins.cash)),
-            _priceDebit: String(calcFromCost(cost, margins.debit)),
-            _priceFinanced: String(calcFromCost(cost, margins.financed)),
-            _modified: true,
-          };
-        }
-        return { ...v, _costPrice: rawValue, _modified: true };
-      })
-    );
-  }
-
-  // Recalcular precios de TODAS las filas visibles usando márgenes actuales
-  function recalcAll() {
-    setVariants((prev) =>
-      prev.map((v) => {
-        const cost = parseFloat(v._costPrice);
-        if (!isNaN(cost) && cost > 0) {
-          return {
-            ...v,
-            _priceCash: String(calcFromCost(cost, margins.cash)),
-            _priceDebit: String(calcFromCost(cost, margins.debit)),
-            _priceFinanced: String(calcFromCost(cost, margins.financed)),
-            _modified: true,
-          };
-        }
-        return v;
+        return { ...v, _costPrice: rawValue, _modified: rawValue !== String(v.costPrice) };
       })
     );
   }
@@ -155,13 +114,10 @@ export default function PreciosPage() {
       return;
     }
 
-    // Validar que todos los precios tengan valores numéricos válidos
+    // Validar que todos los costos tengan valores numéricos válidos
     const invalid = modified.filter((v) => {
       const c = parseFloat(v._costPrice);
-      const cash = parseFloat(v._priceCash);
-      const debit = parseFloat(v._priceDebit);
-      const fin = parseFloat(v._priceFinanced);
-      return isNaN(c) || isNaN(cash) || isNaN(debit) || isNaN(fin) || c < 0 || cash < 0 || debit < 0 || fin < 0;
+      return isNaN(c) || c < 0;
     });
     if (invalid.length > 0) {
       setError(`Hay ${invalid.length} fila(s) con valores inválidos. Revisalas antes de guardar.`);
@@ -176,9 +132,6 @@ export default function PreciosPage() {
       const updates = modified.map((v) => ({
         id: v.id,
         costPrice: parseFloat(v._costPrice),
-        priceCash: parseFloat(v._priceCash),
-        priceDebit: parseFloat(v._priceDebit),
-        priceFinanced: parseFloat(v._priceFinanced),
       }));
 
       const res = await fetch('/api/products/bulk-prices', {
@@ -191,16 +144,24 @@ export default function PreciosPage() {
       if (!data.success) throw new Error(data.error);
 
       setSuccess(data.message);
-      // Marcar como no modificados
+      // Marcar como no modificados, sincronizando costo y precios recalculados
       setVariants((prev) =>
-        prev.map((v) => ({
-          ...v,
-          costPrice: parseFloat(v._costPrice),
-          priceCash: parseFloat(v._priceCash),
-          priceDebit: parseFloat(v._priceDebit),
-          priceFinanced: parseFloat(v._priceFinanced),
-          _modified: false,
-        }))
+        prev.map((v) => {
+          const cost = parseFloat(v._costPrice);
+          const prices = computeVariantPrices(Number(cost) || 0, {
+            marginCash: v.product.marginCash,
+            surchargeDebit: v.product.surchargeDebit,
+            surchargeFinanced: v.product.surchargeFinanced,
+          });
+          return {
+            ...v,
+            costPrice: cost,
+            priceCash: prices.priceCash,
+            priceDebit: prices.priceDebit,
+            priceFinanced: prices.priceFinanced,
+            _modified: false,
+          };
+        })
       );
     } catch (err: any) {
       setError(err.message || 'Error al guardar');
@@ -217,9 +178,6 @@ export default function PreciosPage() {
         return {
           ...v,
           _costPrice: String(v.costPrice),
-          _priceCash: String(v.priceCash),
-          _priceDebit: String(v.priceDebit),
-          _priceFinanced: String(v.priceFinanced),
           _modified: false,
         };
       })
@@ -239,17 +197,10 @@ export default function PreciosPage() {
             Actualización masiva de precios
           </h1>
           <p className="text-gray-500 text-sm mt-1">
-            Editá el precio de costo y los demás precios se calculan automáticamente. Guardá todos los cambios de una vez.
+            Editá el precio de costo. Los precios de venta se calculan automáticamente según los porcentajes de cada producto. Guardá todos los cambios de una vez.
           </p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() => setShowMargins((s) => !s)}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium"
-          >
-            <FaCalculator className="h-4 w-4" />
-            Márgenes
-          </button>
           <button
             onClick={fetchVariants}
             disabled={loading}
@@ -268,69 +219,6 @@ export default function PreciosPage() {
           </button>
         </div>
       </div>
-
-      {/* Panel de márgenes */}
-      {showMargins && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-          <h2 className="text-sm font-semibold text-blue-800 mb-3 flex items-center gap-2">
-            <FaCalculator className="h-4 w-4" />
-            Configurar márgenes de ganancia (% sobre el costo)
-          </h2>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-blue-700 mb-1">
-                Contado (efectivo) %
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={margins.cash}
-                onChange={(e) => setMargins((m) => ({ ...m, cash: Number(e.target.value) }))}
-                className="w-full border border-blue-300 rounded px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-              <p className="text-xs text-blue-600 mt-0.5">
-                Ej: costo $1000 → ${calcFromCost(1000, margins.cash).toLocaleString('es-AR')}
-              </p>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-blue-700 mb-1">
-                Débito %
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={margins.debit}
-                onChange={(e) => setMargins((m) => ({ ...m, debit: Number(e.target.value) }))}
-                className="w-full border border-blue-300 rounded px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-              <p className="text-xs text-blue-600 mt-0.5">
-                Ej: costo $1000 → ${calcFromCost(1000, margins.debit).toLocaleString('es-AR')}
-              </p>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-blue-700 mb-1">
-                Financiado %
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={margins.financed}
-                onChange={(e) => setMargins((m) => ({ ...m, financed: Number(e.target.value) }))}
-                className="w-full border border-blue-300 rounded px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-              <p className="text-xs text-blue-600 mt-0.5">
-                Ej: costo $1000 → ${calcFromCost(1000, margins.financed).toLocaleString('es-AR')}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={recalcAll}
-            className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
-          >
-            Aplicar márgenes a todos los productos visibles
-          </button>
-        </div>
-      )}
 
       {/* Mensajes */}
       {error && (
@@ -364,8 +252,8 @@ export default function PreciosPage() {
           >
             <option value="">Todas las categorías</option>
             {categories.map((c) => (
-              <option key={c} value={c}>
-                {c}
+              <option key={c.id} value={c.id}>
+                {c.name}
               </option>
             ))}
           </select>
@@ -441,7 +329,9 @@ export default function PreciosPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {displayed.map((v) => (
+                {displayed.map((v) => {
+                  const prices = previewPrices(v);
+                  return (
                   <tr
                     key={v.id}
                     className={`hover:bg-gray-50 transition-colors ${
@@ -487,48 +377,33 @@ export default function PreciosPage() {
                       </div>
                     </td>
 
-                    {/* Contado */}
+                    {/* Contado (solo lectura, calculado) */}
                     <td className="px-3 py-2">
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex items-center justify-end gap-1 text-right text-gray-500">
                         <span className="text-gray-400 text-xs">$</span>
-                        <input
-                          type="number"
-                          min="0"
-                          step="1"
-                          value={v._priceCash}
-                          onChange={(e) => updateField(v.id, '_priceCash', e.target.value)}
-                          className="w-24 text-right border border-green-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-green-400 text-sm text-gray-900"
-                        />
+                        <span className="w-24 inline-block text-right bg-gray-50 border border-gray-200 rounded px-2 py-1 text-sm tabular-nums">
+                          {prices.priceCash.toLocaleString('es-AR')}
+                        </span>
                       </div>
                     </td>
 
-                    {/* Débito */}
+                    {/* Débito (solo lectura, calculado) */}
                     <td className="px-3 py-2">
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex items-center justify-end gap-1 text-right text-gray-500">
                         <span className="text-gray-400 text-xs">$</span>
-                        <input
-                          type="number"
-                          min="0"
-                          step="1"
-                          value={v._priceDebit}
-                          onChange={(e) => updateField(v.id, '_priceDebit', e.target.value)}
-                          className="w-24 text-right border border-blue-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm text-gray-900"
-                        />
+                        <span className="w-24 inline-block text-right bg-gray-50 border border-gray-200 rounded px-2 py-1 text-sm tabular-nums">
+                          {prices.priceDebit.toLocaleString('es-AR')}
+                        </span>
                       </div>
                     </td>
 
-                    {/* Financiado */}
+                    {/* Financiado (solo lectura, calculado) */}
                     <td className="px-3 py-2">
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex items-center justify-end gap-1 text-right text-gray-500">
                         <span className="text-gray-400 text-xs">$</span>
-                        <input
-                          type="number"
-                          min="0"
-                          step="1"
-                          value={v._priceFinanced}
-                          onChange={(e) => updateField(v.id, '_priceFinanced', e.target.value)}
-                          className="w-24 text-right border border-purple-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm text-gray-900"
-                        />
+                        <span className="w-24 inline-block text-right bg-gray-50 border border-gray-200 rounded px-2 py-1 text-sm tabular-nums">
+                          {prices.priceFinanced.toLocaleString('es-AR')}
+                        </span>
                       </div>
                     </td>
 
@@ -560,7 +435,8 @@ export default function PreciosPage() {
                       )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
