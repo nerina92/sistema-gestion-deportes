@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { computeVariantPrices } from '@/lib/pricing';
 import { 
   Package, 
   Plus, 
@@ -30,7 +31,10 @@ interface ProductVariant {
 interface ProductForm {
   name: string;
   brand: string;
-  category: string;
+  categoryId: string;
+  marginCash: number;
+  surchargeDebit: number;
+  surchargeFinanced: number;
   description: string;
   barcode: string;
   imageUrl: string;
@@ -44,15 +48,6 @@ interface FormErrors {
 }
 
 // Opciones para los dropdowns
-const CATEGORIES = [
-  'Remeras',
-  'Pantalones', 
-  'Shorts',
-  'Buzos',
-  'Camperas',
-  'Accesorios'
-];
-
 const SIZES = [
   'XS',
   'S',
@@ -81,12 +76,31 @@ export default function NuevoProductoPage() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [imageError, setImageError] = useState(false);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+
+  // Cargar categorías desde la API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('/api/categories');
+        const data = await response.json();
+        setCategories(data.categories || []);
+      } catch (error) {
+        console.error('Error cargando categorías:', error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   // Estado del formulario
   const [formData, setFormData] = useState<ProductForm>({
     name: '',
     brand: '',
-    category: '',
+    categoryId: '',
+    marginCash: 90,
+    surchargeDebit: 5,
+    surchargeFinanced: 20,
     description: '',
     barcode: '',
     imageUrl: '',
@@ -243,9 +257,6 @@ export default function NuevoProductoPage() {
       if (!variant.size) vErrors.size = 'Talla requerida';
       if (!variant.color) vErrors.color = 'Color requerido';
       if (variant.costPrice <= 0) vErrors.costPrice = 'Debe ser mayor a 0';
-      if (variant.priceCash <= 0) vErrors.priceCash = 'Debe ser mayor a 0';
-      if (variant.priceDebit <= 0) vErrors.priceDebit = 'Debe ser mayor a 0';
-      if (variant.priceFinanced <= 0) vErrors.priceFinanced = 'Debe ser mayor a 0';
       if (variant.stockQuantity < 0) vErrors.stockQuantity = 'Debe ser >= 0';
       if (variant.minStockAlert < 0) vErrors.minStockAlert = 'Debe ser >= 0';
 
@@ -277,7 +288,10 @@ export default function NuevoProductoPage() {
       const apiData = {
         name: formData.name,
         brand: formData.brand || null,
-        category: formData.category,
+        categoryId: formData.categoryId || null,
+        marginCash: formData.marginCash,
+        surchargeDebit: formData.surchargeDebit,
+        surchargeFinanced: formData.surchargeFinanced,
         description: formData.description || null,
         barcode: formData.barcode || null,
         imageUrl: formData.imageUrl || null,
@@ -286,9 +300,6 @@ export default function NuevoProductoPage() {
           color: variant.color,
           sku: variant.sku || generateSKU(formData.name, variant.size, variant.color),
           costPrice: variant.costPrice,
-          priceCash: variant.priceCash,
-          priceDebit: variant.priceDebit,
-          priceFinanced: variant.priceFinanced,
           stockQuantity: variant.stockQuantity,
           minStockAlert: variant.minStockAlert
         }))
@@ -387,15 +398,54 @@ export default function NuevoProductoPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
               <select
-                value={formData.category}
-                onChange={(e) => updateProductData('category', e.target.value)}
+                value={formData.categoryId}
+                onChange={(e) => updateProductData('categoryId', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Seleccionar categoría</option>
-                {CATEGORIES.map(category => (
-                  <option key={category} value={category}>{category}</option>
+                {categories.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
+            </div>
+
+            {/* Margen contado */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Margen contado (%)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.marginCash}
+                onChange={(e) => setFormData(prev => ({ ...prev, marginCash: parseFloat(e.target.value) || prev.marginCash }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Recargo débito */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Recargo débito (%)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.surchargeDebit}
+                onChange={(e) => setFormData(prev => ({ ...prev, surchargeDebit: parseFloat(e.target.value) || prev.surchargeDebit }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Recargo financiado */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Recargo financiado (%)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.surchargeFinanced}
+                onChange={(e) => setFormData(prev => ({ ...prev, surchargeFinanced: parseFloat(e.target.value) || prev.surchargeFinanced }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
             </div>
 
             {/* Código de barras */}
@@ -483,7 +533,13 @@ export default function NuevoProductoPage() {
           )}
 
           <div className="space-y-6">
-            {formData.variants.map((variant, index) => (
+            {formData.variants.map((variant, index) => {
+              const prices = computeVariantPrices(Number(variant.costPrice) || 0, {
+                marginCash: Number(formData.marginCash) || 0,
+                surchargeDebit: Number(formData.surchargeDebit) || 0,
+                surchargeFinanced: Number(formData.surchargeFinanced) || 0,
+              });
+              return (
               <div key={variant.id} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-medium text-gray-900">
@@ -596,64 +652,43 @@ export default function NuevoProductoPage() {
                     )}
                   </div>
 
-                  {/* Precio contado */}
+                  {/* Precio contado (calculado) */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Precio Contado <span className="text-red-500">*</span>
+                      Precio Contado
                     </label>
                     <input
                       type="number"
-                      min="0"
-                      step="0.01"
-                      value={variant.priceCash}
-                      onChange={(e) => updateVariant(variant.id, 'priceCash', parseFloat(e.target.value) || 0)}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${
-                        errors.variant?.[variant.id]?.priceCash ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      value={prices.priceCash}
+                      readOnly
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 text-sm cursor-not-allowed"
                     />
-                    {errors.variant?.[variant.id]?.priceCash && (
-                      <p className="mt-1 text-xs text-red-600">{errors.variant[variant.id].priceCash}</p>
-                    )}
                   </div>
 
-                  {/* Precio débito */}
+                  {/* Precio débito (calculado) */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Precio Débito <span className="text-red-500">*</span>
+                      Precio Débito
                     </label>
                     <input
                       type="number"
-                      min="0"
-                      step="0.01"
-                      value={variant.priceDebit}
-                      onChange={(e) => updateVariant(variant.id, 'priceDebit', parseFloat(e.target.value) || 0)}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${
-                        errors.variant?.[variant.id]?.priceDebit ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      value={prices.priceDebit}
+                      readOnly
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 text-sm cursor-not-allowed"
                     />
-                    {errors.variant?.[variant.id]?.priceDebit && (
-                      <p className="mt-1 text-xs text-red-600">{errors.variant[variant.id].priceDebit}</p>
-                    )}
                   </div>
 
-                  {/* Precio financiado */}
+                  {/* Precio financiado (calculado) */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Precio Financiado <span className="text-red-500">*</span>
+                      Precio Financiado
                     </label>
                     <input
                       type="number"
-                      min="0"
-                      step="0.01"
-                      value={variant.priceFinanced}
-                      onChange={(e) => updateVariant(variant.id, 'priceFinanced', parseFloat(e.target.value) || 0)}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${
-                        errors.variant?.[variant.id]?.priceFinanced ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      value={prices.priceFinanced}
+                      readOnly
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 text-sm cursor-not-allowed"
                     />
-                    {errors.variant?.[variant.id]?.priceFinanced && (
-                      <p className="mt-1 text-xs text-red-600">{errors.variant[variant.id].priceFinanced}</p>
-                    )}
                   </div>
 
                   {/* Stock mínimo */}
@@ -676,7 +711,8 @@ export default function NuevoProductoPage() {
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
