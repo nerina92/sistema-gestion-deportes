@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import * as XLSX from 'xlsx';
+import { computeVariantPrices } from '@/lib/pricing';
 
 const prisma = new PrismaClient();
 
@@ -204,11 +205,16 @@ async function insertProducts(
         });
 
         if (!product) {
+          const categoryRow = await tx.category.upsert({
+            where: { name: productData.category },
+            update: {},
+            create: { name: productData.category },
+          });
           product = await tx.product.create({
             data: {
               name: productData.name,
               brand: productData.brand,
-              category: productData.category,
+              categoryId: categoryRow.id,
             }
           });
           log.productsCreated++;
@@ -220,15 +226,16 @@ async function insertProducts(
           });
 
           if (existingVariant) {
+            const prices = computeVariantPrices(variant.costPrice);
             await tx.productVariant.update({
               where: { sku: variant.sku },
               data: {
                 size: variant.size,
                 color: variant.color,
                 costPrice: variant.costPrice,
-                priceCash: variant.priceCash,
-                priceDebit: variant.priceDebit,
-                priceFinanced: variant.priceFinanced,
+                priceCash: prices.priceCash,
+                priceDebit: prices.priceDebit,
+                priceFinanced: prices.priceFinanced,
                 // Si el stock actual es 0 lo ponemos en 1 (está en el Excel como no vendido)
                 // Si ya tiene stock > 0 no lo pisamos para no perder ajustes manuales
                 stockQuantity: existingVariant.stockQuantity > 0
@@ -238,6 +245,7 @@ async function insertProducts(
               }
             });
           } else {
+            const prices = computeVariantPrices(variant.costPrice);
             await tx.productVariant.create({
               data: {
                 productId: product.id,
@@ -245,9 +253,9 @@ async function insertProducts(
                 color: variant.color,
                 sku: variant.sku,
                 costPrice: variant.costPrice,
-                priceCash: variant.priceCash,
-                priceDebit: variant.priceDebit,
-                priceFinanced: variant.priceFinanced,
+                priceCash: prices.priceCash,
+                priceDebit: prices.priceDebit,
+                priceFinanced: prices.priceFinanced,
                 stockQuantity: variant.stockQuantity,
                 minStockAlert: 5
               }
