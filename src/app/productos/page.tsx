@@ -40,7 +40,8 @@ interface Product {
   id: string;
   name: string;
   brand: string;
-  category: string;
+  category: { id: string; name: string } | null;
+  categoryId?: string | null;
   barcode?: string;
   imageUrl?: string;
   image_url?: string; // fallback por compatibilidad
@@ -97,7 +98,7 @@ export default function ProductosPage() {
   });
 
   // Estados para filtros únicos
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [brands, setBrands] = useState<string[]>([]);
 
   // Modal para detalles del producto
@@ -117,7 +118,7 @@ export default function ProductosPage() {
         page: currentPage.toString(),
         limit: '20',
         ...(debouncedSearchTerm && { search: debouncedSearchTerm }),
-        ...(selectedCategory && { category: selectedCategory }),
+        ...(selectedCategory && { categoryId: selectedCategory }),
         ...(selectedBrand && { brand: selectedBrand }),
         ...(showLowStock && { lowStock: 'true' })
       });
@@ -407,7 +408,7 @@ export default function ProductosPage() {
               </div>
               <div className="flex-1">
                 <h4 className="text-2xl font-bold text-gray-900">{selectedProduct.name}</h4>
-                <p className="text-gray-500 text-sm mt-1">{selectedProduct.brand} • {selectedProduct.category}</p>
+                <p className="text-gray-500 text-sm mt-1">{selectedProduct.brand} • {selectedProduct.category?.name ?? ''}</p>
                 {selectedProduct.barcode && (
                   <p className="text-sm text-gray-400 mt-1">Código: {selectedProduct.barcode}</p>
                 )}
@@ -573,7 +574,7 @@ export default function ProductosPage() {
               >
                 <option value="">Todas las categorías</option>
                 {categories.map((category) => (
-                  <option key={category} value={category}>{category}</option>
+                  <option key={category.id} value={category.id}>{category.name}</option>
                 ))}
               </select>
               
@@ -690,7 +691,7 @@ export default function ProductosPage() {
                         {product.brand}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {product.category}
+                        {product.category?.name ?? ''}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {product.variantCount} variante{product.variantCount !== 1 ? 's' : ''}

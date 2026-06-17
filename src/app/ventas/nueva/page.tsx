@@ -19,7 +19,7 @@ interface Product {
   id: string;
   name: string;
   brand: string;
-  category: string;
+  category: { name: string } | null;
   variants: ProductVariant[];
 }
 
@@ -378,7 +378,7 @@ export default function NuevaVentaPage() {
                       <div key={product.id} className="border-b border-gray-100 last:border-0">
                         <div className="px-4 py-2 bg-gray-50">
                           <div className="font-medium text-gray-900">{product.name}</div>
-                          <div className="text-xs text-gray-500">{product.brand} - {product.category}</div>
+                          <div className="text-xs text-gray-500">{product.brand} - {product.category?.name ?? ''}</div>
                         </div>
                         {product.variants.map(variant => (
                           <button
