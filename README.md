@@ -82,26 +82,7 @@ Privado - Deportes Laboulaye
 ### 2026-06-17
 
 **Commits incluidos:**
-- 54b6823 docs: auto-update README [skip ci]
-- 2477dfc fix(migration): make category FK migration production-safe (seed + backfill before NOT NULL)
-- a70833d refactor: display category.name and filter by categoryId in product/sales UI
-- b41d471 feat: /precios edits cost and shows computed prices (read-only)
-- 56a0c0c feat: editar producto uses category API + percentage-based prices
-- bdc19c3 feat: nuevo producto uses category list from API + percentage-based prices
-- 7e87583 feat: add /categorias ABM page and sidebar link
-- 1e0e688 feat: bulk-prices edits cost and recomputes prices from product percentages
-- a264520 feat: import resolves category by name (upsert) and computes prices
-- 0d41074 refactor: read category name via relation in sale detail
-- df6bec3 feat: product PUT updates categoryId/percentages and recomputes prices
-- 6a846e2 feat: products GET filters by categoryId; POST computes prices server-side
-- 04d4167 feat: add PUT/DELETE /api/categories/[id] with in-use delete guard
-- 00d3149 feat: add GET/POST /api/categories
-- 1c2238c refactor: update product types and validation for categoryId + percentage pricing
-- a19c2d1 feat: seed default categories including Paletas
-- 7cb1272 feat: add Category model (FK) and pricing percentage fields to Product
-- 187f8cc feat: add pure pricing calculation utility with rounding to nearest 100
-- d38b063 docs: Add implementation plan for categories + percentage pricing
-- 611cb6c docs: Add design for DB category management + percentage-based pricing
+- (sin commits pendientes)
 
 **Archivos modificados:**
   - `.md`: README.md
