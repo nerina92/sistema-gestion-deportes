@@ -85,4 +85,4 @@ Privado - Deportes Laboulaye
 - (sin commits pendientes)
 
 **Archivos modificados:**
-  - `.md`: README.md
+  - `.tsx`: page.tsx
