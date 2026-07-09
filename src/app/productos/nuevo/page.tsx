@@ -49,12 +49,8 @@ interface FormErrors {
 
 // Opciones para los dropdowns
 const SIZES = [
-  'XS',
-  'S',
-  'M', 
-  'L',
-  'XL',
-  'XXL',
+  '4', '6', '8', '10', '12', '14', '16',
+  'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL',
   'Único'
 ];
 

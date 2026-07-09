@@ -79,7 +79,7 @@ interface Product {
 }
 
 // Opciones para los dropdowns (reutilizando del US-004)
-const SIZES =['XS', 'S', 'M', 'L', 'XL', 'XXL', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', 'Único'];
+const SIZES = ['4', '6', '8', '10', '12', '14', '16', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'Único'];
 
 const COLORS = [
   'Negro', 'Blanco', 'Gris', 'Azul', 'Rojo', 'Verde', 'Amarillo', 
