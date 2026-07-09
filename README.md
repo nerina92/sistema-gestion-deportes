@@ -79,10 +79,10 @@ Privado - Deportes Laboulaye
 
 ## 📝 Últimos cambios
 
-### 2026-06-17
+### 2026-07-09
 
 **Commits incluidos:**
 - (sin commits pendientes)
 
 **Archivos modificados:**
-  - `.tsx`: page.tsx
+  - `.tsx`: page.tsx, page.tsx
