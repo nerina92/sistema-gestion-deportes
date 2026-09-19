@@ -51,7 +51,6 @@ export default function NuevaVentaPage() {
   
   // Product search
   const [searchTerm, setSearchTerm] = useState('');
-  const [products, setProducts] = useState<Product[]>([]);
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
@@ -60,26 +59,46 @@ export default function NuevaVentaPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // Fetch products on mount
+  // Búsqueda de productos en el servidor (nombre, marca, código de barras o SKU),
+  // con debounce. Antes se cargaba una sola página de 20 productos al montar y se
+  // filtraba en el cliente, por lo que el resto del catálogo nunca aparecía.
   useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  // Search products when term changes
-  useEffect(() => {
-    if (searchTerm.length > 0) {
-      const filtered = products.filter(p => 
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.variants.some(v => v.sku.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-      setSearchResults(filtered);
-      setShowResults(true);
-    } else {
+    const term = searchTerm.trim();
+    if (term.length === 0) {
       setSearchResults([]);
       setShowResults(false);
+      setIsSearching(false);
+      return;
     }
-  }, [searchTerm, products]);
+
+    let cancelled = false;
+    setIsSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `/api/products?search=${encodeURIComponent(term)}&limit=50`
+        );
+        const data = await response.json();
+        if (!cancelled) {
+          setSearchResults(data.products ?? []);
+          setShowResults(true);
+        }
+      } catch (err) {
+        console.error('Error searching products:', err);
+        if (!cancelled) {
+          setSearchResults([]);
+          setShowResults(true);
+        }
+      } finally {
+        if (!cancelled) setIsSearching(false);
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [searchTerm]);
 
   // Update prices when priceType changes
   useEffect(() => {
@@ -95,21 +114,6 @@ export default function NuevaVentaPage() {
       };
     }));
   }, [priceType]);
-
-  const fetchProducts = async () => {
-    setIsSearching(true);
-    try {
-      const response = await fetch('/api/products?page=1&pageSize=1000');
-      const data = await response.json();
-      if (data.products) {
-        setProducts(data.products);
-      }
-    } catch (err) {
-      console.error('Error fetching products:', err);
-    } finally {
-      setIsSearching(false);
-    }
-  };
 
   const addItem = (product: Product, variant: ProductVariant) => {
     // Check if already added
@@ -409,7 +413,13 @@ export default function NuevaVentaPage() {
                   </div>
                 )}
 
-                {showResults && searchResults.length === 0 && searchTerm && (
+                {isSearching && searchTerm.trim() && (
+                  <div className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg p-4 text-center text-gray-500">
+                    Buscando...
+                  </div>
+                )}
+
+                {!isSearching && showResults && searchResults.length === 0 && searchTerm.trim() && (
                   <div className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg p-4 text-center text-gray-500">
                     No se encontraron productos
                   </div>

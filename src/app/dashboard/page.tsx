@@ -58,12 +58,21 @@ export default function DashboardPage() {
       const salesRes = await fetch('/api/sales');
       const salesData = await salesRes.json();
       
-      // Fetch products
-      const productsRes = await fetch('/api/products?page=1&pageSize=1000');
-      const productsData = await productsRes.json();
+      // Fetch products (todas las páginas: la API pagina con `limit`, máximo 100)
+      const allProducts: any[] = [];
+      let page = 1;
+      let totalPages = 1;
+      do {
+        const productsRes = await fetch(`/api/products?page=${page}&limit=100`);
+        const productsData = await productsRes.json();
+        if (!productsData.products) break;
+        allProducts.push(...productsData.products);
+        totalPages = productsData.pagination?.totalPages ?? 1;
+        page++;
+      } while (page <= totalPages);
 
-      if (salesData.success && productsData.products) {
-        calculateStats(salesData.data, productsData.products);
+      if (salesData.success) {
+        calculateStats(salesData.data, allProducts);
         setRecentSales(salesData.data.slice(0, 5));
       }
     } catch (error) {

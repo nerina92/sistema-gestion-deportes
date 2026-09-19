@@ -20,12 +20,13 @@ export async function GET(request: NextRequest) {
     // Construir filtros de búsqueda
     const where: any = {};
 
-    // Filtro de búsqueda en nombre, marca y código de barras
+    // Filtro de búsqueda en nombre, marca, código de barras y SKU de variantes
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { brand: { contains: search, mode: 'insensitive' } },
-        { barcode: { contains: search, mode: 'insensitive' } }
+        { barcode: { contains: search, mode: 'insensitive' } },
+        { variants: { some: { sku: { contains: search, mode: 'insensitive' } } } }
       ];
     }
 

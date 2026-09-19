@@ -131,6 +131,20 @@ export function sanitizeProductInput(data: any): ProductInput {
     }));
   }
 
+  // Campos opcionales de texto: recortar espacios y convertir vacío en null.
+  // Importante para `barcode`, que es UNIQUE en la base: un string vacío guardado
+  // en un producto bloquea la edición de cualquier otro producto sin código de barras.
+  const optionalTextFields = ['brand', 'description', 'barcode', 'imageUrl'] as const;
+  optionalTextFields.forEach((field) => {
+    if (sanitized[field] === undefined) return;
+    const value = sanitized[field];
+    if (value === null) return;
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      sanitized[field] = trimmed.length > 0 ? trimmed : null;
+    }
+  });
+
   if (sanitized.marginCash !== undefined) sanitized.marginCash = Number(sanitized.marginCash);
   if (sanitized.surchargeDebit !== undefined) sanitized.surchargeDebit = Number(sanitized.surchargeDebit);
   if (sanitized.surchargeFinanced !== undefined) sanitized.surchargeFinanced = Number(sanitized.surchargeFinanced);

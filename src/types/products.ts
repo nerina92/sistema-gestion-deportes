@@ -14,14 +14,14 @@ export interface ProductVariantInput {
 
 export interface ProductInput {
   name: string;
-  brand?: string;
+  brand?: string | null;
   categoryId: string;
   marginCash?: number;
   surchargeDebit?: number;
   surchargeFinanced?: number;
-  description?: string;
-  barcode?: string;
-  imageUrl?: string;
+  description?: string | null;
+  barcode?: string | null;
+  imageUrl?: string | null;
   variants: ProductVariantInput[];
 }
 

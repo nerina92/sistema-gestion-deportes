@@ -112,12 +112,13 @@ export async function PUT(
 
     const productData: ProductInput = sanitizedData;
 
-    // Verificar SKUs únicos (excluyendo las variantes del producto actual)
-    const variantsToCheck = productData.variants.filter(v => !v.id); // Solo nuevas variantes
+    // Verificar SKUs únicos contra otros productos. Se chequean TODAS las variantes
+    // entrantes (nuevas y existentes), porque el SKU de una variante existente
+    // también puede cambiar y colisionar con otro producto.
     const existingSKUsFromOtherProducts = await prisma.productVariant.findMany({
       where: {
         sku: {
-          in: variantsToCheck.map(v => v.sku)
+          in: productData.variants.map(v => v.sku)
         },
         productId: {
           not: id
