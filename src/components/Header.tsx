@@ -1,62 +1,28 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { FaBars, FaSignOutAlt, FaUser } from 'react-icons/fa';
+import { useState } from 'react';
+import Link from 'next/link';
+import { signOut, useSession } from 'next-auth/react';
+import { FaBars, FaSignOutAlt, FaUser, FaExchangeAlt, FaShieldAlt } from 'react-icons/fa';
+import { ROLE_LABELS, isTenantRole } from '@/lib/role-permissions';
 
 interface HeaderProps {
   onMenuClick: () => void;
 }
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-}
-
 export default function Header({ onMenuClick }: HeaderProps) {
-  const [user, setUser] = useState<User | null>(null);
+  const { data: session } = useSession();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  const router = useRouter();
 
-  // Obtener información del usuario al cargar el componente
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const response = await fetch('/api/auth/me');
-        if (response.ok) {
-          const userData = await response.json();
-          setUser(userData.user);
-        }
-      } catch (error) {
-        console.error('Error fetching user:', error);
-      }
-    };
-
-    fetchUser();
-  }, []);
+  const activeTenant = session?.tenants.find((t) => t.tenantId === session.tenantId);
+  const roleText = (activeTenant?.roles ?? [])
+    .map((r) => (isTenantRole(r) ? ROLE_LABELS[r] : r))
+    .join(' · ');
 
   const handleLogout = async () => {
     setLoggingOut(true);
-    try {
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-      });
-
-      if (response.ok) {
-        router.push('/login');
-        router.refresh();
-      } else {
-        console.error('Error during logout');
-      }
-    } catch (error) {
-      console.error('Error during logout:', error);
-    } finally {
-      setLoggingOut(false);
-      setShowLogoutConfirm(false);
-    }
+    await signOut({ redirectTo: '/login' });
   };
 
   return (
@@ -73,23 +39,48 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
           {/* Título de la página (en móvil se centra) */}
           <div className="lg:hidden flex-1 text-center">
-            <h1 className="text-lg font-semibold text-gray-900">Deportes Laboulaye</h1>
+            <h1 className="text-lg font-semibold text-gray-900 truncate">{activeTenant?.name ?? ''}</h1>
+          </div>
+
+          {/* Negocio activo (desktop) */}
+          <div className="hidden lg:flex items-center gap-3">
+            <h1 className="text-lg font-semibold text-gray-900">{activeTenant?.name ?? ''}</h1>
+            {(session?.tenants.length ?? 0) > 1 && (
+              <Link
+                href="/seleccionar-negocio"
+                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+              >
+                <FaExchangeAlt className="h-3 w-3" /> Cambiar negocio
+              </Link>
+            )}
           </div>
 
           {/* Información del usuario y logout */}
           <div className="flex items-center space-x-4">
+            {session?.isPlatformAdmin && (
+              <Link
+                href="/platform-admin"
+                className="hidden sm:flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900"
+                title="Administración de la plataforma"
+              >
+                <FaShieldAlt className="h-3 w-3" /> Plataforma
+              </Link>
+            )}
             {/* Información del usuario */}
             <div className="hidden sm:flex items-center space-x-3">
-              <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <FaUser className="h-4 w-4 text-blue-600" />
-              </div>
+              {session?.user?.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={session.user.image} alt="" className="h-8 w-8 rounded-full" referrerPolicy="no-referrer" />
+              ) : (
+                <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <FaUser className="h-4 w-4 text-blue-600" />
+                </div>
+              )}
               <div className="hidden md:block">
                 <p className="text-sm font-medium text-gray-900">
-                  {user?.name || 'Cargando...'}
+                  {session?.user?.name || session?.user?.email || ''}
                 </p>
-                <p className="text-xs text-gray-500 capitalize">
-                  {user?.role || ''}
-                </p>
+                <p className="text-xs text-gray-500">{roleText}</p>
               </div>
             </div>
 
@@ -123,7 +114,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
               </div>
               
               <p className="text-sm text-gray-600 mb-6">
-                ¿Estás seguro de que quieres cerrar sesión? Serás redirigido a la página de login.
+                ¿Querés cerrar sesión? Vas a volver a la pantalla de ingreso.
               </p>
 
               <div className="flex space-x-3 justify-end">

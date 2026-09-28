@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AppLayout from "@/components/AppLayout";
+import Providers from "@/components/Providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sistema de Gestión - Deportes Laboulaye",
-  description: "Sistema integral de gestión para venta de ropa deportiva",
+  title: "Gestión Comercial",
+  description: "Sistema de gestión para comercios: stock, precios, compras, ventas y facturación",
 };
 
 export default function RootLayout({
@@ -28,9 +29,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AppLayout>
-          {children}
-        </AppLayout>
+        <Providers>
+          <AppLayout>
+            {children}
+          </AppLayout>
+        </Providers>
       </body>
     </html>
   );

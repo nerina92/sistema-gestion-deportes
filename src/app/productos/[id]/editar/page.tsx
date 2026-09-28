@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { computeVariantPrices } from '@/lib/pricing';
+import { useBusinessSettings } from '@/lib/use-business-settings';
 import { 
   Package, 
   Plus, 
@@ -79,15 +80,13 @@ interface Product {
 }
 
 // Opciones para los dropdowns (reutilizando del US-004)
-const SIZES = ['4', '6', '8', '10', '12', '14', '16', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'Único'];
-
-const COLORS = [
-  'Negro', 'Blanco', 'Gris', 'Azul', 'Rojo', 'Verde', 'Amarillo', 
-  'Rosa', 'Violeta', 'Naranja', 'Marrón', 'Beige', 'Celeste', 'Marino', 'Otros'
-];
+// Sugerencias para los atributos cuando el negocio usa las etiquetas Talle/Color.
+const SIZE_SUGGESTIONS = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'Único'];
+const COLOR_SUGGESTIONS = ['Negro', 'Blanco', 'Gris', 'Azul', 'Rojo', 'Verde', 'Amarillo', 'Rosa', 'Beige'];
 
 export default function EditarProductoPage() {
   const router = useRouter();
+  const settings = useBusinessSettings();
   const params = useParams();
   const productId = params.id as string;
   
@@ -238,7 +237,7 @@ export default function EditarProductoPage() {
         if (index === variantIndex) {
           const updatedVariant = { ...variant, [field]: value };
           
-          // Auto-generar SKU si se actualiza talla o color
+          // Auto-generar SKU si se actualiza algún atributo de la variante
           if (field === 'size' || field === 'color') {
             updatedVariant.sku = generateSKU(formData.name, updatedVariant.size, updatedVariant.color);
           }
@@ -345,12 +344,6 @@ export default function EditarProductoPage() {
       variantErrors[indexStr] = {};
 
       // Validar campos requeridos
-      if (!variant.size) {
-        variantErrors[indexStr].size = 'Talla requerida';
-      }
-      if (!variant.color) {
-        variantErrors[indexStr].color = 'Color requerido';
-      }
       if (!variant.sku) {
         variantErrors[indexStr].sku = 'SKU requerido';
       }
@@ -518,6 +511,16 @@ export default function EditarProductoPage() {
 
       {/* Formulario */}
       <form onSubmit={handleSubmit} className="space-y-8">
+        <datalist id="attr-size-options">
+          {(settings.variantAttr1Label.toLowerCase() === 'talle' ? SIZE_SUGGESTIONS : []).map((v) => (
+            <option key={v} value={v} />
+          ))}
+        </datalist>
+        <datalist id="attr-color-options">
+          {(settings.variantAttr2Label.toLowerCase() === 'color' ? COLOR_SUGGESTIONS : []).map((v) => (
+            <option key={v} value={v} />
+          ))}
+        </datalist>
         
         {/* Información del Producto */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -537,7 +540,7 @@ export default function EditarProductoPage() {
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${
                   errors.name ? 'border-red-300' : 'border-gray-300'
                 }`}
-                placeholder="Ej: Remera Deportiva Nike"
+                placeholder="Nombre del producto"
               />
               {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
             </div>
@@ -553,7 +556,7 @@ export default function EditarProductoPage() {
                 value={formData.brand}
                 onChange={(e) => updateProductData('brand', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                placeholder="Ej: Nike, Adidas, Puma"
+                placeholder="Marca (opcional)"
               />
             </div>
 
@@ -710,7 +713,7 @@ export default function EditarProductoPage() {
                 marginCash: Number(formData.marginCash) || 0,
                 surchargeDebit: Number(formData.surchargeDebit) || 0,
                 surchargeFinanced: Number(formData.surchargeFinanced) || 0,
-              });
+              }, settings.priceRounding);
 
               return (
                 <div
@@ -738,43 +741,39 @@ export default function EditarProductoPage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-                    {/* Talla */}
+                    {/* Atributo 1 (configurable: talle, medida, tamaño...) */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Talla *
-                      </label>
-                      <select
-                        value={variant.size}
-                        onChange={(e) => updateVariant(index, 'size', e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${
-                          variantErrors.size ? 'border-red-300' : 'border-gray-300'
-                        }`}
-                      >
-                        <option value="">Seleccionar</option>
-                        {SIZES.map(size => (
-                          <option key={size} value={size}>{size}</option>
-                        ))}
-                      </select>
+                      {settings.variantAttr1Label}
+                    </label>
+                    <input
+                      type="text"
+                      list="attr-size-options"
+                      value={variant.size}
+                      onChange={(e) => updateVariant(index, 'size', e.target.value)}
+                      placeholder="Opcional"
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 text-sm ${
+                        variantErrors.size ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                    />
                       {variantErrors.size && <p className="mt-1 text-xs text-red-600">{variantErrors.size}</p>}
                     </div>
 
-                    {/* Color */}
+                    {/* Atributo 2 (configurable: color, material, sabor...) */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Color *
-                      </label>
-                      <select
-                        value={variant.color}
-                        onChange={(e) => updateVariant(index, 'color', e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${
-                          variantErrors.color ? 'border-red-300' : 'border-gray-300'
-                        }`}
-                      >
-                        <option value="">Seleccionar</option>
-                        {COLORS.map(color => (
-                          <option key={color} value={color}>{color}</option>
-                        ))}
-                      </select>
+                      {settings.variantAttr2Label}
+                    </label>
+                    <input
+                      type="text"
+                      list="attr-color-options"
+                      value={variant.color}
+                      onChange={(e) => updateVariant(index, 'color', e.target.value)}
+                      placeholder="Opcional"
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 text-sm ${
+                        variantErrors.color ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                    />
                       {variantErrors.color && <p className="mt-1 text-xs text-red-600">{variantErrors.color}</p>}
                     </div>
 

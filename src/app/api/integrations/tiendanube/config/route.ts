@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { requireTenant } from '@/lib/api-auth';
 
 // GET - Obtener configuración actual
 export async function GET() {
+  const ctx = await requireTenant('integraciones');
+  if (ctx instanceof NextResponse) return ctx;
+  const prisma = ctx.db;
+
   try {
     const config = await prisma.tiendanubeConfig.findFirst({
       where: { isActive: true }
@@ -26,6 +30,10 @@ export async function GET() {
 
 // POST - Guardar o actualizar configuración
 export async function POST(request: NextRequest) {
+  const ctx = await requireTenant('integraciones');
+  if (ctx instanceof NextResponse) return ctx;
+  const prisma = ctx.db;
+
   try {
     const body = await request.json();
     const { storeId, accessToken } = body;

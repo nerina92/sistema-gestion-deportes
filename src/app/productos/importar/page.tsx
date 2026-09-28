@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useBusinessSettings } from '@/lib/use-business-settings';
 import { FaFileExcel, FaUpload, FaCheckCircle, FaExclamationTriangle, FaInfoCircle, FaSpinner, FaTrash } from 'react-icons/fa';
 
 interface SheetResult {
@@ -16,6 +17,7 @@ interface SheetResult {
 
 export default function ImportarProductosPage() {
   const router = useRouter();
+  const settings = useBusinessSettings();
   const [file, setFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
   const [clearing, setClearing] = useState(false);
@@ -92,7 +94,7 @@ export default function ImportarProductosPage() {
       const sheets: string[] = listData.sheets || [];
 
       if (sheets.length === 0) {
-        setGlobalError('No se encontraron hojas válidas (Hombre, Mujer, Calzado, Paletas, Accesorios, Niños)');
+        setGlobalError('No se encontró ninguna hoja con encabezados reconocibles (la primera fila debe tener al menos la columna "Nombre")');
         setImporting(false);
         return;
       }
@@ -219,8 +221,8 @@ export default function ImportarProductosPage() {
           Formato del Archivo
         </h3>
         <div className="text-sm text-blue-800 space-y-2">
-          <p><strong>Hojas que se importan:</strong> Hombre → Hombres, Mujer → Mujeres, Calzado, Paletas, Accesorios, Niños</p>
-          <p><strong>Lógica:</strong> Cada fila = 1 variante. Se agrupan por Nombre + Marca. Vendidos/Devueltos se omiten. SKUs sin código se auto-generan.</p>
+          <p><strong>Encabezados (fila 1):</strong> Nombre (obligatorio), Marca, Categoría, SKU, Código de barras, {settings.variantAttr1Label}, {settings.variantAttr2Label}, Costo, Stock.</p>
+          <p><strong>Lógica:</strong> Cada fila = 1 variante. Se agrupan por Nombre + Marca. Si no hay columna Categoría se usa el nombre de la hoja. Los SKU vacíos se generan solos y los precios se calculan desde el costo con los márgenes por defecto del negocio.</p>
         </div>
       </div>
 

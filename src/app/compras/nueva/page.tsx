@@ -15,6 +15,7 @@ import {
   DollarSign,
   Hash
 } from 'lucide-react';
+import { variantLabel } from '@/lib/variant-label';
 
 interface Supplier {
   id: string;
@@ -467,7 +468,7 @@ export default function NuevaCompraPage() {
                         <option value="">Seleccione variante</option>
                         {product?.variants.map((variant) => (
                           <option key={variant.id} value={variant.id}>
-                            {variant.size} - {variant.color} ({variant.sku})
+                            {variantLabel(variant.size, variant.color)} ({variant.sku})
                           </option>
                         ))}
                       </select>

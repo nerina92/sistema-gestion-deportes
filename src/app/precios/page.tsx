@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FaSave, FaSearch, FaSync, FaTag } from 'react-icons/fa';
 import { computeVariantPrices } from '@/lib/pricing';
+import { useBusinessSettings } from '@/lib/use-business-settings';
 
 interface VariantRow {
   id: string;
@@ -35,6 +36,7 @@ interface CategoryOption {
 }
 
 export default function PreciosPage() {
+  const settings = useBusinessSettings();
   const [variants, setVariants] = useState<VariantRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -92,7 +94,7 @@ export default function PreciosPage() {
       marginCash: row.product.marginCash,
       surchargeDebit: row.product.surchargeDebit,
       surchargeFinanced: row.product.surchargeFinanced,
-    });
+    }, settings.priceRounding);
   }
 
   // Al cambiar el costo, marcamos la fila como modificada. Los precios se
@@ -152,7 +154,7 @@ export default function PreciosPage() {
             marginCash: v.product.marginCash,
             surchargeDebit: v.product.surchargeDebit,
             surchargeFinanced: v.product.surchargeFinanced,
-          });
+          }, settings.priceRounding);
           return {
             ...v,
             costPrice: cost,
@@ -311,7 +313,7 @@ export default function PreciosPage() {
                 <tr>
                   <th className="text-left px-3 py-3 font-semibold text-gray-600 whitespace-nowrap">Producto</th>
                   <th className="text-left px-3 py-3 font-semibold text-gray-600 whitespace-nowrap">SKU</th>
-                  <th className="text-left px-3 py-3 font-semibold text-gray-600 whitespace-nowrap">Talle/Color</th>
+                  <th className="text-left px-3 py-3 font-semibold text-gray-600 whitespace-nowrap">{settings.variantAttr1Label}/{settings.variantAttr2Label}</th>
                   <th className="text-right px-3 py-3 font-semibold text-gray-600 whitespace-nowrap">
                     Costo
                   </th>
@@ -354,7 +356,7 @@ export default function PreciosPage() {
                       {v.sku}
                     </td>
 
-                    {/* Talle / Color */}
+                    {/* Atributos de la variante */}
                     <td className="px-3 py-2 whitespace-nowrap">
                       <span className="text-gray-700">{v.size}</span>
                       {v.color && v.color !== v.size && (

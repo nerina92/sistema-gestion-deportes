@@ -1,51 +1,53 @@
 {
-  "name": "sistema-gestion-deportes",
+  "name": "sistema-gestion-comercial",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma migrate resolve --rolled-back 20260216180042_change_afip_certs_to_content || true && prisma migrate deploy && prisma generate && next build",
+    "build": "npm run db:generate && next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "test": "tsx --test 'src/**/*.test.ts'",
-    "db:seed": "tsx prisma/seed.ts",
-    "db:migrate": "prisma migrate dev",
-    "db:generate": "prisma generate",
-    "db:studio": "prisma studio",
-    "postinstall": "prisma generate"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "db:generate": "prisma generate --schema prisma/platform/schema.prisma && prisma generate --schema prisma/tenant/schema.prisma",
+    "db:migrate:platform": "prisma migrate deploy --schema prisma/platform/schema.prisma",
+    "db:migrate:tenants": "tsx scripts/migrate-tenants.ts",
+    "db:migrate": "npm run db:migrate:platform && npm run db:migrate:tenants",
+    "db:platform:dev": "prisma migrate dev --schema prisma/platform/schema.prisma",
+    "db:tenant:new": "tsx scripts/new-tenant-migration.ts",
+    "tenant:create": "tsx scripts/create-tenant.ts",
+    "postinstall": "npm run db:generate"
   },
   "dependencies": {
     "@afipsdk/afip.js": "^1.2.2",
     "@prisma/client": "5.22.0",
-    "bcrypt": "^6.0.0",
     "form-data": "^4.0.5",
-    "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.562.0",
     "next": "16.1.1",
-    "next-auth": "^4.24.13",
+    "next-auth": "5.0.0-beta.30",
     "node-fetch": "^2.7.0",
     "pdf-lib": "^1.17.1",
+    "pg": "^8.23.0",
+    "prisma": "5.22.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-icons": "^5.5.0",
+    "tsx": "^4.23.15",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/bcrypt": "^6.0.0",
     "@types/bwip-js": "^3.2.3",
-    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
-    "prisma": "5.22.0",
     "tailwindcss": "^4",
-    "tsx": "^4.21.0",
     "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=20.9.0"
   }
 }

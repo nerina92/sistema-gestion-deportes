@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { requireTenant } from '@/lib/api-auth';
 
 // Tipo para el body del POST
 interface CreatePurchaseItem {
@@ -16,6 +16,10 @@ interface CreatePurchaseBody {
 }
 
 export async function GET(request: NextRequest) {
+  const ctx = await requireTenant('compras');
+  if (ctx instanceof NextResponse) return ctx;
+  const prisma = ctx.db;
+
   try {
     const purchases = await prisma.purchase.findMany({
       include: {
@@ -79,6 +83,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const ctx = await requireTenant('compras');
+  if (ctx instanceof NextResponse) return ctx;
+  const prisma = ctx.db;
+
   try {
     const body: CreatePurchaseBody = await request.json();
     const { supplierId, purchaseDate, notes, items } = body;

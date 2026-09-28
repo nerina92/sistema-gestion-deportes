@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { Decimal } from '@prisma/client/runtime/library';
+import { Prisma } from '@/generated/tenant';
+
+import { requireTenant } from '@/lib/api-auth';
 
 // Tipo para el body del POST
 interface CreateSaleItem {
@@ -17,6 +18,10 @@ interface CreateSaleBody {
 }
 
 export async function GET(request: NextRequest) {
+  const ctx = await requireTenant('ventas');
+  if (ctx instanceof NextResponse) return ctx;
+  const prisma = ctx.db;
+
   try {
     const sales = await prisma.sale.findMany({
       include: {
@@ -79,6 +84,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const ctx = await requireTenant('ventas');
+  if (ctx instanceof NextResponse) return ctx;
+  const prisma = ctx.db;
+
   try {
     const body: CreateSaleBody = await request.json();
     const { saleDate, paymentMethod, priceType, notes, items } = body;
@@ -149,8 +158,8 @@ export async function POST(request: NextRequest) {
       const itemsWithPrices: Array<{
         productVariantId: string;
         quantity: number;
-        unitPrice: Decimal;
-        subtotal: Decimal;
+        unitPrice: Prisma.Decimal;
+        subtotal: Prisma.Decimal;
         productName: string;
         variantDetails: string;
       }> = [];
@@ -181,7 +190,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Determinar el precio según priceType
-        let unitPrice: Decimal;
+        let unitPrice: Prisma.Decimal;
         if (priceType === 'cash') {
           unitPrice = variant.priceCash;
         } else if (priceType === 'debit') {
@@ -205,7 +214,7 @@ export async function POST(request: NextRequest) {
       // 2. Calcular el total
       const totalAmount = itemsWithPrices.reduce(
         (sum, item) => sum.add(item.subtotal),
-        new Decimal(0)
+        new Prisma.Decimal(0)
       );
 
       // 3. Crear la venta
@@ -275,7 +284,7 @@ export async function POST(request: NextRequest) {
                 headers: {
                   'Authentication': `bearer ${tnConfig.accessToken}`,
                   'Content-Type': 'application/json',
-                  'User-Agent': 'Sistema Gestion Deportes'
+                  'User-Agent': 'Gestion Comercial (contacto.plexolabs@gmail.com)'
                 },
                 body: JSON.stringify({
                   stock: variant.stockQuantity - item.quantity

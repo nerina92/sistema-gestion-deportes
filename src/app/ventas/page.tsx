@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FaShoppingCart, FaPlus, FaEye } from 'react-icons/fa';
+import { variantLabel } from '@/lib/variant-label';
 
 interface Invoice {
   id: string;
@@ -379,7 +380,7 @@ export default function VentasPage() {
                       <div>
                         <p className="font-medium text-gray-900">{item.productName}</p>
                         <p className="text-sm text-gray-600">
-                          {item.size} - {item.color} • SKU: {item.sku}
+                          {variantLabel(item.size, item.color)} • SKU: {item.sku}
                         </p>
                         <p className="text-xs text-gray-500">
                           ${item.unitPrice} x {item.quantity}

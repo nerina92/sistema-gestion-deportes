@@ -15,85 +15,58 @@ import {
   FaTag,
   FaTags
 } from 'react-icons/fa';
-import { Building2 } from 'lucide-react';
+import { Building2, Users } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { getModulesForRoles, type ModuleKey } from '@/lib/role-permissions';
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const menuItems = [
-  {
-    name: 'Dashboard',
-    href: '/dashboard',
-    icon: FaHome,
-    disabled: false,
-  },
-  {
-    name: 'Productos',
-    href: '/productos',
-    icon: FaBox,
-    disabled: false,
-  },
-  {
-    name: 'Categorías',
-    href: '/categorias',
-    icon: FaTags,
-    disabled: false,
-  },
-  {
-    name: 'Precios',
-    href: '/precios',
-    icon: FaTag,
-    disabled: false,
-  },
-  {
-    name: 'Ventas',
-    href: '/ventas',
-    icon: FaShoppingCart,
-    disabled: false,
-  },
-  {
-    name: 'Compras',
-    href: '/compras',
-    icon: FaTruck,
-    disabled: false,
-  },
-  {
-    name: 'Proveedores',
-    href: '/proveedores',
-    icon: Building2,
-    disabled: false,
-  },
-  {
-    name: 'Facturas',
-    href: '/facturas',
-    icon: FaFileInvoice,
-    disabled: false,
-  },
-  {
-    name: 'Integraciones',
-    href: '/configuracion',
-    icon: FaPlug,
-    disabled: false,
-  },
+interface MenuItem {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  module: ModuleKey;
+  disabled?: boolean;
+  tooltip?: string;
+}
+
+const menuItems: MenuItem[] = [
+  { name: 'Dashboard', href: '/dashboard', icon: FaHome, module: 'dashboard' },
+  { name: 'Ventas', href: '/ventas', icon: FaShoppingCart, module: 'ventas' },
+  { name: 'Productos', href: '/productos', icon: FaBox, module: 'productos' },
+  { name: 'Categorías', href: '/categorias', icon: FaTags, module: 'categorias' },
+  { name: 'Precios', href: '/precios', icon: FaTag, module: 'precios' },
+  { name: 'Compras', href: '/compras', icon: FaTruck, module: 'compras' },
+  { name: 'Proveedores', href: '/proveedores', icon: Building2, module: 'proveedores' },
+  { name: 'Facturas', href: '/facturas', icon: FaFileInvoice, module: 'facturas' },
   {
     name: 'Reportes',
     href: '/reportes',
     icon: FaChartBar,
+    module: 'reportes',
     disabled: true,
     tooltip: 'Próximamente disponible',
   },
-  {
-    name: 'Configuración',
-    href: '/configuracion',
-    icon: FaCog,
-    disabled: false,
-  },
+  { name: 'Integraciones', href: '/configuracion#integraciones', icon: FaPlug, module: 'integraciones' },
+  { name: 'Usuarios', href: '/configuracion/usuarios', icon: Users, module: 'usuarios' },
+  { name: 'Configuración', href: '/configuracion', icon: FaCog, module: 'configuracion' },
 ];
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const activeTenant = session?.tenants.find((t) => t.tenantId === session.tenantId);
+  const modules = getModulesForRoles(activeTenant?.roles ?? []);
+  const visibleItems = menuItems.filter((item) => modules.has(item.module));
+  const initials = (activeTenant?.name ?? '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join('');
 
   return (
     <>
@@ -118,11 +91,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           {/* Logo */}
           <div className="flex items-center space-x-3">
             <div className="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center">
-              <span className="text-lg font-bold text-white">DL</span>
+              <span className="text-lg font-bold text-white">{initials}</span>
             </div>
-            <div>
-              <h2 className="text-lg font-semibold">Deportes</h2>
-              <p className="text-sm text-gray-300">Laboulaye</p>
+            <div className="min-w-0">
+              <h2 className="text-lg font-semibold truncate">{activeTenant?.name ?? ''}</h2>
+              <p className="text-sm text-gray-300">Gestión Comercial</p>
             </div>
           </div>
 
@@ -137,7 +110,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         {/* Navegación */}
         <nav className="flex-1 px-4 py-6 space-y-2">
-          {menuItems.map((item) => {
+          {visibleItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
 

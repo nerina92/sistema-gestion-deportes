@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { validateProductInput, sanitizeProductInput } from '@/lib/validation';
 import { ProductInput } from '@/types/products';
 import { computeVariantPrices } from '@/lib/pricing';
+import { getBusinessSettings } from '@/lib/settings';
+import { requireTenant } from '@/lib/api-auth';
 
-const prisma = new PrismaClient();
 
 /**
  * GET /api/products/:id - Obtener un producto con todas sus variantes
@@ -13,6 +13,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const ctx = await requireTenant('productos');
+  if (ctx instanceof NextResponse) return ctx;
+  const prisma = ctx.db;
+
   try {
     const { id } = await params;
 
@@ -70,6 +74,10 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const ctx = await requireTenant('productos-editar');
+  if (ctx instanceof NextResponse) return ctx;
+  const prisma = ctx.db;
+
   try {
     const { id } = await params;
 
@@ -159,6 +167,7 @@ export async function PUT(
     }
 
     // Actualizar en transacción
+    const settings = await getBusinessSettings(prisma);
     const result = await prisma.$transaction(async (tx) => {
       // Actualizar datos del producto
       const updatedProduct = await tx.product.update({
@@ -167,9 +176,9 @@ export async function PUT(
           name: productData.name,
           brand: productData.brand,
           categoryId: productData.categoryId,
-          marginCash: productData.marginCash ?? 90,
-          surchargeDebit: productData.surchargeDebit ?? 5,
-          surchargeFinanced: productData.surchargeFinanced ?? 20,
+          marginCash: productData.marginCash ?? settings.defaultMarginCash,
+          surchargeDebit: productData.surchargeDebit ?? settings.defaultSurchargeDebit,
+          surchargeFinanced: productData.surchargeFinanced ?? settings.defaultSurchargeFinanced,
           description: productData.description,
           barcode: productData.barcode,
           imageUrl: productData.imageUrl,
@@ -178,9 +187,9 @@ export async function PUT(
 
       // Porcentajes efectivos para el cálculo de precios
       const pct = {
-        marginCash: productData.marginCash ?? 90,
-        surchargeDebit: productData.surchargeDebit ?? 5,
-        surchargeFinanced: productData.surchargeFinanced ?? 20,
+        marginCash: productData.marginCash ?? settings.defaultMarginCash,
+        surchargeDebit: productData.surchargeDebit ?? settings.defaultSurchargeDebit,
+        surchargeFinanced: productData.surchargeFinanced ?? settings.defaultSurchargeFinanced,
       };
 
       // Obtener variantes existentes
@@ -213,7 +222,7 @@ export async function PUT(
       // Actualizar variantes existentes
       const updatedVariants = await Promise.all(
         variantsToUpdate.map(variant => {
-          const prices = computeVariantPrices(variant.costPrice, pct);
+          const prices = computeVariantPrices(variant.costPrice, pct, settings.priceRounding);
           return tx.productVariant.update({
             where: { id: variant.id },
             data: {
@@ -236,7 +245,7 @@ export async function PUT(
       // Crear nuevas variantes
       const createdVariants = await Promise.all(
         variantsToCreate.map(variant => {
-          const prices = computeVariantPrices(variant.costPrice, pct);
+          const prices = computeVariantPrices(variant.costPrice, pct, settings.priceRounding);
           return tx.productVariant.create({
             data: {
               productId: id,
@@ -309,6 +318,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const ctx = await requireTenant('productos-editar');
+  if (ctx instanceof NextResponse) return ctx;
+  const prisma = ctx.db;
+
   try {
     const { id } = await params;
 

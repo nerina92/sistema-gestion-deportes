@@ -75,14 +75,16 @@ export function validateProductVariantInput(variant: any, index: number = 0): Va
   const errors: ValidationError[] = [];
   const fieldPrefix = `variants[${index}]`;
 
-  // Campos requeridos
-  if (!variant.size || typeof variant.size !== 'string' || variant.size.trim().length === 0) {
-    errors.push({ field: `${fieldPrefix}.size`, message: 'La talla es requerida' });
+  // Atributos de la variante (etiquetas configurables por negocio): opcionales
+  if (variant.size != null && typeof variant.size !== 'string') {
+    errors.push({ field: `${fieldPrefix}.size`, message: 'El atributo 1 debe ser texto' });
   }
 
-  if (!variant.color || typeof variant.color !== 'string' || variant.color.trim().length === 0) {
-    errors.push({ field: `${fieldPrefix}.color`, message: 'El color es requerido' });
+  if (variant.color != null && typeof variant.color !== 'string') {
+    errors.push({ field: `${fieldPrefix}.color`, message: 'El atributo 2 debe ser texto' });
   }
+
+  // Campos requeridos
 
   if (!variant.sku || typeof variant.sku !== 'string' || variant.sku.trim().length === 0) {
     errors.push({ field: `${fieldPrefix}.sku`, message: 'El SKU es requerido' });
@@ -122,6 +124,8 @@ export function sanitizeProductInput(data: any): ProductInput {
   if (sanitized.variants && Array.isArray(sanitized.variants)) {
     sanitized.variants = sanitized.variants.map((variant: any) => ({
       ...variant,
+      size: typeof variant.size === 'string' ? variant.size.trim() : '',
+      color: typeof variant.color === 'string' ? variant.color.trim() : '',
       costPrice: typeof variant.costPrice === 'string' ? parseFloat(variant.costPrice) : variant.costPrice,
       priceCash: typeof variant.priceCash === 'string' ? parseFloat(variant.priceCash) : variant.priceCash,
       priceDebit: typeof variant.priceDebit === 'string' ? parseFloat(variant.priceDebit) : variant.priceDebit,

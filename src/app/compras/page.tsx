@@ -18,6 +18,7 @@ import {
   Clock,
   XCircle
 } from 'lucide-react';
+import { variantLabel } from '@/lib/variant-label';
 
 interface PurchaseItem {
   id: string;
@@ -395,7 +396,7 @@ export default function ComprasPage() {
                           </td>
                           <td className="px-4 py-2 text-sm text-gray-900">
                             <div>
-                              <div>{item.productVariant.size} - {item.productVariant.color}</div>
+                              <div>{variantLabel(item.productVariant.size, item.productVariant.color)}</div>
                               <div className="text-gray-500 text-xs">{item.productVariant.sku}</div>
                             </div>
                           </td>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useBusinessSettings } from '@/lib/use-business-settings';
 import {
   Package,
   Plus,
@@ -81,6 +82,7 @@ export default function ProductosPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const settings = useBusinessSettings();
   
   // Filtros y búsqueda
   const [searchTerm, setSearchTerm] = useState('');
@@ -439,10 +441,10 @@ export default function ProductosPage() {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Talla
+                      {settings.variantAttr1Label}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Color
+                      {settings.variantAttr2Label}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Stock

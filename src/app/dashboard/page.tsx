@@ -12,6 +12,7 @@ import {
   FaArrowRight,
   FaCalendar
 } from 'react-icons/fa';
+import { variantLabel } from '@/lib/variant-label';
 
 interface DashboardStats {
   salesToday: number;
@@ -334,7 +335,7 @@ export default function DashboardPage() {
                           {item.productName}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {item.size} - {item.color} • Stock: {item.stockQuantity} (Mín: {item.minStockAlert})
+                          {variantLabel(item.size, item.color)} • Stock: {item.stockQuantity} (Mín: {item.minStockAlert})
                         </p>
                       </div>
                     </div>

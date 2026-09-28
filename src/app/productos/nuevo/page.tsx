@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { computeVariantPrices } from '@/lib/pricing';
+import { useBusinessSettings } from '@/lib/use-business-settings';
 import { 
   Package, 
   Plus, 
@@ -48,27 +49,13 @@ interface FormErrors {
 }
 
 // Opciones para los dropdowns
-const SIZES = [
-  '4', '6', '8', '10', '12', '14', '16',
-  'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL',
-  'Único'
-];
-
-const COLORS = [
-  'Negro',
-  'Blanco',
-  'Azul',
-  'Rojo',
-  'Gris',
-  'Verde',
-  'Amarillo',
-  'Rosa',
-  'Marrón',
-  'Naranja'
-];
+// Sugerencias para los atributos cuando el negocio usa las etiquetas Talle/Color.
+const SIZE_SUGGESTIONS = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'Único'];
+const COLOR_SUGGESTIONS = ['Negro', 'Blanco', 'Gris', 'Azul', 'Rojo', 'Verde', 'Amarillo', 'Rosa', 'Beige'];
 
 export default function NuevoProductoPage() {
   const router = useRouter();
+  const settings = useBusinessSettings();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [imageError, setImageError] = useState(false);
@@ -147,6 +134,16 @@ export default function NuevoProductoPage() {
     }
   };
 
+  // Porcentajes por defecto del negocio para productos nuevos.
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      marginCash: settings.defaultMarginCash,
+      surchargeDebit: settings.defaultSurchargeDebit,
+      surchargeFinanced: settings.defaultSurchargeFinanced,
+    }));
+  }, [settings.defaultMarginCash, settings.defaultSurchargeDebit, settings.defaultSurchargeFinanced]);
+
   // Función para actualizar una variante
   const updateVariant = (variantId: string, field: keyof ProductVariant, value: string | number) => {
     setFormData(prev => ({
@@ -155,7 +152,7 @@ export default function NuevoProductoPage() {
         if (variant.id === variantId) {
           const updatedVariant = { ...variant, [field]: value };
           
-          // Auto-generar SKU si se actualiza nombre, talla o color
+          // Auto-generar SKU si se actualiza algún atributo de la variante
           if (field === 'size' || field === 'color') {
             updatedVariant.sku = generateSKU(formData.name, updatedVariant.size, updatedVariant.color);
           }
@@ -250,8 +247,6 @@ export default function NuevoProductoPage() {
     formData.variants.forEach(variant => {
       const vErrors: { [field: string]: string } = {};
 
-      if (!variant.size) vErrors.size = 'Talla requerida';
-      if (!variant.color) vErrors.color = 'Color requerido';
       if (variant.costPrice <= 0) vErrors.costPrice = 'Debe ser mayor a 0';
       if (variant.stockQuantity < 0) vErrors.stockQuantity = 'Debe ser >= 0';
       if (variant.minStockAlert < 0) vErrors.minStockAlert = 'Debe ser >= 0';
@@ -351,6 +346,16 @@ export default function NuevoProductoPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
+        <datalist id="attr-size-options">
+          {(settings.variantAttr1Label.toLowerCase() === 'talle' ? SIZE_SUGGESTIONS : []).map((v) => (
+            <option key={v} value={v} />
+          ))}
+        </datalist>
+        <datalist id="attr-color-options">
+          {(settings.variantAttr2Label.toLowerCase() === 'color' ? COLOR_SUGGESTIONS : []).map((v) => (
+            <option key={v} value={v} />
+          ))}
+        </datalist>
         {/* Información del producto */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Información del Producto</h2>
@@ -368,7 +373,7 @@ export default function NuevoProductoPage() {
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${
                   errors.name ? 'border-red-500' : 'border-gray-300'
                 }`}
-                placeholder="Ej: Camiseta deportiva Nike"
+                placeholder="Nombre del producto"
               />
               {errors.name && (
                 <p className="mt-1 text-sm text-red-600 flex items-center">
@@ -386,7 +391,7 @@ export default function NuevoProductoPage() {
                 value={formData.brand}
                 onChange={(e) => updateProductData('brand', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                placeholder="Ej: Nike, Adidas, Puma"
+                placeholder="Marca (opcional)"
               />
             </div>
 
@@ -534,7 +539,7 @@ export default function NuevoProductoPage() {
                 marginCash: Number(formData.marginCash) || 0,
                 surchargeDebit: Number(formData.surchargeDebit) || 0,
                 surchargeFinanced: Number(formData.surchargeFinanced) || 0,
-              });
+              }, settings.priceRounding);
               return (
               <div key={variant.id} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
@@ -553,45 +558,41 @@ export default function NuevoProductoPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Talla */}
+                  {/* Atributo 1 (configurable: talle, medida, tamaño...) */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Talla <span className="text-red-500">*</span>
+                      {settings.variantAttr1Label}
                     </label>
-                    <select
+                    <input
+                      type="text"
+                      list="attr-size-options"
                       value={variant.size}
                       onChange={(e) => updateVariant(variant.id, 'size', e.target.value)}
+                      placeholder="Opcional"
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 text-sm ${
                         errors.variant?.[variant.id]?.size ? 'border-red-500' : 'border-gray-300'
                       }`}
-                    >
-                      <option value="">Seleccionar</option>
-                      {SIZES.map(size => (
-                        <option key={size} value={size}>{size}</option>
-                      ))}
-                    </select>
+                    />
                     {errors.variant?.[variant.id]?.size && (
                       <p className="mt-1 text-xs text-red-600">{errors.variant[variant.id].size}</p>
                     )}
                   </div>
 
-                  {/* Color */}
+                  {/* Atributo 2 (configurable: color, material, sabor...) */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Color <span className="text-red-500">*</span>
+                      {settings.variantAttr2Label}
                     </label>
-                    <select
+                    <input
+                      type="text"
+                      list="attr-color-options"
                       value={variant.color}
                       onChange={(e) => updateVariant(variant.id, 'color', e.target.value)}
+                      placeholder="Opcional"
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 text-sm ${
                         errors.variant?.[variant.id]?.color ? 'border-red-500' : 'border-gray-300'
                       }`}
-                    >
-                      <option value="">Seleccionar</option>
-                      {COLORS.map(color => (
-                        <option key={color} value={color}>{color}</option>
-                      ))}
-                    </select>
+                    />
                     {errors.variant?.[variant.id]?.color && (
                       <p className="mt-1 text-xs text-red-600">{errors.variant[variant.id].color}</p>
                     )}

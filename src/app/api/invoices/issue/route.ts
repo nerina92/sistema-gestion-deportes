@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import Afip from '@afipsdk/afip.js';
 import { generateInvoicePDF } from '@/lib/pdf-generator';
+import { requireTenant } from '@/lib/api-auth';
+import { getBusinessSettings } from '@/lib/settings';
 
-const prisma = new PrismaClient();
 
 // POST - Emitir factura para una venta
 export async function POST(request: NextRequest) {
+  const ctx = await requireTenant('facturas');
+  if (ctx instanceof NextResponse) return ctx;
+  const prisma = ctx.db;
+
   try {
     const body = await request.json();
     const { saleId, customerName, customerDni } = body;
@@ -151,7 +155,7 @@ export async function POST(request: NextRequest) {
         invoiceNumber,
         customerName,
         customerDni
-      });
+      }, await getBusinessSettings(prisma));
 
       // Guardar PDF base64 en la DB
       await prisma.invoice.update({

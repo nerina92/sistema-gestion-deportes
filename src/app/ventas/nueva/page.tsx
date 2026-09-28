@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaShoppingCart, FaSearch, FaTrash, FaPlus } from 'react-icons/fa';
+import { variantLabel } from '@/lib/variant-label';
 
 interface ProductVariant {
   id: string;
@@ -137,7 +138,7 @@ export default function NuevaVentaPage() {
       const newItem: SaleItem = {
         productVariantId: variant.id,
         productName: product.name,
-        variantDetails: `${variant.size} - ${variant.color}`,
+        variantDetails: variantLabel(variant.size, variant.color),
         quantity: 1,
         unitPrice,
         subtotal: unitPrice,
@@ -394,7 +395,7 @@ export default function NuevaVentaPage() {
                           >
                             <div className="flex justify-between items-center">
                               <div>
-                                <span className="text-sm text-gray-700">{variant.size} - {variant.color}</span>
+                                <span className="text-sm text-gray-700">{variantLabel(variant.size, variant.color)}</span>
                                 <span className="text-xs text-gray-500 ml-2">SKU: {variant.sku}</span>
                               </div>
                               <div className="text-right">

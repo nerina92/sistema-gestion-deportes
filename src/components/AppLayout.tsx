@@ -1,10 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import Footer from './Footer';
+
+const BARE_ROUTES = ['/login', '/seleccionar-negocio', '/platform-admin'];
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -12,34 +15,20 @@ interface AppLayoutProps {
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const { data: session, status } = useSession();
   const pathname = usePathname();
 
-  // Rutas que no necesitan autenticación
-  const publicRoutes = ['/login', '/'];
+  // Rutas que se muestran sin sidebar/header (el proxy ya controla el acceso).
+  const isBareRoute = BARE_ROUTES.some((r) => pathname === r || pathname.startsWith(`${r}/`));
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/auth/me');
-        setIsAuthenticated(response.ok);
-      } catch {
-        setIsAuthenticated(false);
-      }
-    };
+  if (isBareRoute) return <>{children}</>;
 
-    checkAuth();
-  }, []);
-
-  // Mientras se verifica la autenticación, mostrar loading
-  if (isAuthenticated === null) {
+  if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-pulse">
-            <div className="h-8 w-8 bg-blue-600 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">DL</span>
-            </div>
+            <div className="h-8 w-8 bg-blue-600 rounded-full mx-auto mb-4" />
             <p className="text-gray-600">Cargando...</p>
           </div>
         </div>
@@ -47,13 +36,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     );
   }
 
-  const isPublicRoute = publicRoutes.includes(pathname);
-  const shouldShowLayout = isAuthenticated && !isPublicRoute;
-
-  if (!shouldShowLayout) {
-    // Para rutas públicas o usuarios no autenticados, mostrar solo el contenido
-    return <>{children}</>;
-  }
+  if (!session?.tenantId) return <>{children}</>;
 
   return (
     <div className="min-h-screen bg-gray-50 flex">

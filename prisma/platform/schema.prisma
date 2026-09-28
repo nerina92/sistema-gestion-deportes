@@ -1,0 +1,108 @@
+// ============================================
+// Schema de PLATAFORMA (schema `public` de Postgres)
+// ============================================
+// Mismo modelo que Mi Club: usuarios globales, tenants (negocios) y la tabla
+// N:M `user_tenant_roles` con los roles que cada usuario tiene en cada negocio.
+// Los datos de cada negocio (productos, ventas, etc.) viven en un schema
+// Postgres propio — ver prisma/tenant/schema.prisma.
+//
+// Migraciones: `npm run db:migrate:platform` (prisma migrate deploy).
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../src/generated/platform"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  image     String?
+  googleSub String?  @unique @map("google_sub")
+  isActive  Boolean  @default(true) @map("is_active")
+  lastLoginAt DateTime? @map("last_login_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenantRoles  UserTenantRole[]
+  globalRoles  UserGlobalRole[]
+  invitationsSent MemberInvitation[] @relation("InvitedBy")
+
+  @@map("users")
+}
+
+model Tenant {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  name         String
+  // Nombre del schema Postgres con los datos del negocio (ej. `tenant_mi_negocio`).
+  schemaName   String   @unique @map("schema_name")
+  businessType String?  @map("business_type")
+  isActive     Boolean  @default(true) @map("is_active")
+  // Prueba gratuita: fecha hasta la que el negocio está en período de prueba.
+  trialEndsAt  DateTime? @map("trial_ends_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  userRoles    UserTenantRole[]
+  invitations  MemberInvitation[]
+
+  @@map("tenants")
+}
+
+// Fuente de verdad de roles por usuario/negocio (N:M, un usuario puede tener
+// varios roles en el mismo negocio). Equivalente a public.user_tenant_roles de Mi Club.
+model UserTenantRole {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  tenantId  String   @map("tenant_id")
+  roleSlug  String   @map("role_slug")
+  isPrimary Boolean  @default(false) @map("is_primary")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId, roleSlug])
+  @@index([tenantId])
+  @@map("user_tenant_roles")
+}
+
+// Roles globales (no atados a un negocio). Hoy solo PLATFORM_ADMIN.
+model UserGlobalRole {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  role      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+  @@map("user_global_roles")
+}
+
+// Invitación a un negocio. El acceso es solo por invitación: la persona entra
+// con Google usando el email invitado y la invitación se acepta sola.
+model MemberInvitation {
+  id          String    @id @default(cuid())
+  tenantId    String    @map("tenant_id")
+  email       String
+  roleSlug    String    @map("role_slug")
+  invitedById String?   @map("invited_by_id")
+  expiresAt   DateTime  @map("expires_at")
+  acceptedAt  DateTime? @map("accepted_at")
+  revokedAt   DateTime? @map("revoked_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invitedBy User?  @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@index([email])
+  @@index([tenantId])
+  @@map("member_invitations")
+}

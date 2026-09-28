@@ -1,177 +1,97 @@
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
+import NextAuth from 'next-auth';
+import Google from 'next-auth/providers/google';
+import { authConfig } from './auth.config';
+import {
+  fetchUserTenants,
+  findUserIdByEmail,
+  isPlatformAdmin,
+  resolveGoogleSignIn,
+  type TenantSummary,
+} from './memberships';
 
-const prisma = new PrismaClient();
-
-// Tipos para el usuario
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-}
-
-export interface JWTPayload {
-  userId: string;
-  email: string;
-  name: string;
-  role: string;
-  iat?: number;
-  exp?: number;
-}
-
-// Configuración JWT
-const JWT_SECRET = process.env.JWT_SECRET || 'desarrollo-secreto-clave-2025';
-const JWT_EXPIRES_IN = '7d';
-
-/**
- * Genera un hash de la contraseña usando bcrypt
- */
-export async function hashPassword(password: string): Promise<string> {
-  const saltRounds = 12;
-  return await bcrypt.hash(password, saltRounds);
-}
-
-/**
- * Compara una contraseña en texto plano con su hash
- */
-export async function comparePassword(password: string, hash: string): Promise<boolean> {
-  return await bcrypt.compare(password, hash);
-}
-
-/**
- * Genera un token JWT para un usuario
- */
-export function generateToken(user: User): string {
-  const payload: JWTPayload = {
-    userId: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role,
-  };
-
-  return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN,
-  });
-}
-
-/**
- * Verifica y decodifica un token JWT
- */
-export function verifyToken(token: string): JWTPayload | null {
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    return decoded;
-  } catch (error) {
-    console.error('Error verifying JWT token:', error);
-    return null;
+declare module 'next-auth' {
+  interface Session {
+    userId?: string;
+    /** Negocio activo (Tenant.id). Se elige en /seleccionar-negocio. */
+    tenantId?: string;
+    tenants: TenantSummary[];
+    isPlatformAdmin: boolean;
   }
 }
 
-/**
- * Obtiene un usuario por email desde la base de datos
- */
-export async function getUserByEmail(email: string): Promise<User | null> {
-  try {
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        passwordHash: false, // No retornamos el hash por seguridad
-      },
-    });
-    
-    return user;
-  } catch (error) {
-    console.error('Error fetching user by email:', error);
-    return null;
+declare module '@auth/core/jwt' {
+  interface JWT {
+    userId?: string;
+    tenantId?: string;
+    tenants?: TenantSummary[];
+    tenantsFetchedAt?: number;
+    isPlatformAdmin?: boolean;
   }
 }
 
-/**
- * Obtiene un usuario por email incluyendo el hash de la contraseña (para login)
- */
-export async function getUserWithPasswordByEmail(email: string): Promise<(User & { passwordHash: string }) | null> {
-  try {
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        passwordHash: true,
-      },
-    });
-    
-    return user;
-  } catch (error) {
-    console.error('Error fetching user with password by email:', error);
-    return null;
-  }
-}
+// Cada cuánto se re-leen de la base los negocios/roles del usuario, para que
+// una invitación nueva o una baja se refleje sin volver a loguearse.
+const TENANTS_REFRESH_MS = 60_000;
 
-/**
- * Obtiene un usuario por ID desde la base de datos
- */
-export async function getUserById(id: string): Promise<User | null> {
-  try {
-    const user = await prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        passwordHash: false, // No retornamos el hash por seguridad
-      },
-    });
-    
-    return user;
-  } catch (error) {
-    console.error('Error fetching user by ID:', error);
-    return null;
-  }
-}
+export const { auth, handlers, signIn, signOut } = NextAuth({
+  ...authConfig,
+  providers: [
+    Google({
+      // Lee AUTH_GOOGLE_ID / AUTH_GOOGLE_SECRET del entorno.
+      authorization: { params: { prompt: 'select_account' } },
+    }),
+  ],
+  callbacks: {
+    ...authConfig.callbacks,
+    // Acceso solo por invitación: si el email no tiene usuario ni invitación
+    // pendiente, se rechaza el login.
+    async signIn({ account, profile }) {
+      if (account?.provider !== 'google' || !profile?.email) return false;
+      if (profile.email_verified === false) return false;
+      const userId = await resolveGoogleSignIn({
+        email: profile.email,
+        name: profile.name,
+        image: typeof profile.picture === 'string' ? profile.picture : null,
+        sub: profile.sub,
+      });
+      return userId ? true : '/login?error=NoInvitation';
+    },
+    async jwt({ token, user, trigger, session }) {
+      if (user?.email) {
+        token.userId = (await findUserIdByEmail(user.email)) ?? undefined;
+        token.tenantsFetchedAt = undefined;
+      }
+      if (!token.userId) return token;
 
-/**
- * Extrae el token JWT desde las cookies de la request
- */
-export function getTokenFromRequest(request: Request): string | null {
-  const cookieHeader = request.headers.get('cookie');
-  if (!cookieHeader) return null;
+      const mustRefresh =
+        !token.tenantsFetchedAt ||
+        Date.now() - token.tenantsFetchedAt > TENANTS_REFRESH_MS ||
+        (trigger === 'update' && session?.refreshTenants);
 
-  const cookies = cookieHeader.split(';');
-  for (const cookie of cookies) {
-    const [name, value] = cookie.trim().split('=');
-    if (name === 'auth-token') {
-      return value;
-    }
-  }
-  
-  return null;
-}
+      if (mustRefresh) {
+        const [tenants, platformAdmin] = await Promise.all([
+          fetchUserTenants(token.userId),
+          isPlatformAdmin(token.userId),
+        ]);
+        token.tenants = tenants;
+        token.isPlatformAdmin = platformAdmin;
+        token.tenantsFetchedAt = Date.now();
+      }
 
-/**
- * Valida las credenciales de login
- */
-export async function validateLoginCredentials(email: string, password: string): Promise<User | null> {
-  try {
-    const user = await getUserWithPasswordByEmail(email);
-    if (!user) return null;
-
-    const isValidPassword = await comparePassword(password, user.passwordHash);
-    if (!isValidPassword) return null;
-
-    // Retornamos el usuario sin el hash de la contraseña
-    const { passwordHash, ...userWithoutPassword } = user;
-    return userWithoutPassword;
-  } catch (error) {
-    console.error('Error validating login credentials:', error);
-    return null;
-  }
-}
+      const tenants = token.tenants ?? [];
+      // Cambio de negocio desde el selector: solo a uno donde tenga rol.
+      if (trigger === 'update' && typeof session?.tenantId === 'string') {
+        if (tenants.some((t) => t.tenantId === session.tenantId)) {
+          token.tenantId = session.tenantId;
+        }
+      }
+      if (token.tenantId && !tenants.some((t) => t.tenantId === token.tenantId)) {
+        token.tenantId = undefined;
+      }
+      if (!token.tenantId && tenants.length === 1) {
+        token.tenantId = tenants[0].tenantId;
+      }
+      return token;
+    },
+  },
+});
