@@ -66,6 +66,7 @@ model ProductVariant {
   product         Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
   purchaseItems   PurchaseItem[]
   saleItems       SaleItem[]
+  orderItems      OrderItem[]
 
   @@index([sku])
   @@index([productId])
@@ -107,6 +108,17 @@ model TenantSettings {
   // Múltiplo al que se redondean los precios calculados (0 = sin redondeo).
   priceRounding            Int      @default(100) @map("price_rounding")
   defaultMinStockAlert     Int      @default(1) @map("default_min_stock_alert")
+  // Tienda online (catálogo público con pedidos por WhatsApp).
+  storeEnabled             Boolean  @default(false) @map("store_enabled")
+  // Número de WhatsApp que recibe los pedidos, solo dígitos con código de país (ej. 5493385123456).
+  storeWhatsapp            String   @default("") @map("store_whatsapp")
+  // Lista de precios que ve el cliente: cash | debit | financed.
+  storePriceType           String   @default("cash") @map("store_price_type")
+  storeShowOutOfStock      Boolean  @default(false) @map("store_show_out_of_stock")
+  storePickup              Boolean  @default(true) @map("store_pickup")
+  storeDelivery            Boolean  @default(true) @map("store_delivery")
+  // Texto de bienvenida / condiciones que se muestra arriba del catálogo.
+  storeMessage             String   @default("") @map("store_message")
   updatedAt                DateTime @updatedAt @map("updated_at")
 
   @@map("tenant_settings")
@@ -183,6 +195,7 @@ model Sale {
 
   items         SaleItem[]
   invoice       Invoice?
+  order         Order?
 
   @@index([saleDate])
   @@map("sales")
@@ -272,4 +285,55 @@ model Invoice {
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
   @@map("invoices")
+}
+
+// ============================================
+// Pedidos de la tienda online
+// ============================================
+// Un pedido NO descuenta stock: el stock se descuenta cuando el negocio lo
+// registra como venta (queda vinculado en saleId). Los datos del producto se
+// guardan como copia para que el pedido no cambie si después se edita el producto.
+
+model Order {
+  id             String      @id @default(cuid())
+  number         Int         @unique @default(autoincrement())
+  // pending | confirmed | delivered | cancelled
+  status         String      @default("pending")
+  channel        String      @default("store")
+  customerName   String      @map("customer_name")
+  customerPhone  String      @map("customer_phone")
+  // pickup | delivery
+  deliveryMethod String      @map("delivery_method")
+  address        String?
+  notes          String?
+  priceType      String      @map("price_type")
+  totalAmount    Decimal     @map("total_amount") @db.Decimal(10, 2)
+  saleId         String?     @unique @map("sale_id")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  sale           Sale?       @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  items          OrderItem[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id               String         @id @default(cuid())
+  orderId          String         @map("order_id")
+  productVariantId String         @map("product_variant_id")
+  productName      String         @map("product_name")
+  variantLabel     String         @map("variant_label")
+  quantity         Int
+  unitPrice        Decimal        @map("unit_price") @db.Decimal(10, 2)
+  subtotal         Decimal        @db.Decimal(10, 2)
+
+  order            Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
+
+  @@index([orderId])
+  @@index([productVariantId])
+  @@map("order_items")
 }

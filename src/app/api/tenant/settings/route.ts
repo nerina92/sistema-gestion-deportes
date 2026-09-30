@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireTenant } from '@/lib/api-auth';
 import { getBusinessSettings } from '@/lib/settings';
+import { isStorePriceType, isValidWhatsapp, normalizeWhatsapp } from '@/lib/store';
 
 // GET /api/tenant/settings — configuración del negocio activo (cualquier usuario del negocio)
 export async function GET() {
@@ -46,6 +47,49 @@ export async function PUT(request: NextRequest) {
     data[f] = n;
   }
   if (body.useVariants !== undefined) data.useVariants = Boolean(body.useVariants);
+
+  // Tienda online
+  for (const f of ['storeEnabled', 'storeShowOutOfStock', 'storePickup', 'storeDelivery'] as const) {
+    if (body[f] !== undefined) data[f] = Boolean(body[f]);
+  }
+  if (body.storeWhatsapp !== undefined) {
+    const digits = normalizeWhatsapp(String(body.storeWhatsapp));
+    if (digits && !isValidWhatsapp(digits)) {
+      return NextResponse.json(
+        { success: false, error: 'Número de WhatsApp inválido: usá el formato internacional, ej. 5493385123456' },
+        { status: 400 }
+      );
+    }
+    data.storeWhatsapp = digits;
+  }
+  if (body.storePriceType !== undefined) {
+    if (!isStorePriceType(body.storePriceType)) {
+      return NextResponse.json({ success: false, error: 'Lista de precios inválida' }, { status: 400 });
+    }
+    data.storePriceType = body.storePriceType;
+  }
+  if (body.storeMessage !== undefined) {
+    if (typeof body.storeMessage !== 'string' || body.storeMessage.length > 1000) {
+      return NextResponse.json({ success: false, error: 'El mensaje de la tienda es demasiado largo' }, { status: 400 });
+    }
+    data.storeMessage = body.storeMessage.trim();
+  }
+
+  // Validaciones cruzadas con los valores resultantes.
+  const current = await getBusinessSettings(ctx.db);
+  const next = { ...current, ...data } as typeof current;
+  if (next.storeEnabled && !next.storeWhatsapp) {
+    return NextResponse.json(
+      { success: false, error: 'Para activar la tienda cargá el número de WhatsApp que recibe los pedidos' },
+      { status: 400 }
+    );
+  }
+  if (next.storeEnabled && !next.storePickup && !next.storeDelivery) {
+    return NextResponse.json(
+      { success: false, error: 'Habilitá al menos una forma de entrega (retiro o envío)' },
+      { status: 400 }
+    );
+  }
 
   await ctx.db.tenantSettings.upsert({ where: { id: 1 }, create: { id: 1, ...data }, update: data });
   return NextResponse.json({ success: true, settings: await getBusinessSettings(ctx.db) });

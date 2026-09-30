@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { FaCog, FaStore, FaTags, FaDatabase, FaUsers, FaSave } from 'react-icons/fa';
+import { FaCog, FaStore, FaTags, FaDatabase, FaUsers, FaSave, FaWhatsapp } from 'react-icons/fa';
+import { STORE_PRICE_TYPE_LABELS, STORE_PRICE_TYPES } from '@/lib/store';
 import { BUSINESS_TYPE_PRESETS, DEFAULT_SETTINGS, type BusinessSettings } from '@/lib/settings-defaults';
 import { invalidateBusinessSettings } from '@/lib/use-business-settings';
 
@@ -28,6 +29,10 @@ export default function ConfiguracionPage() {
   const [message, setMessage] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
 
   const activeTenant = session?.tenants.find((t) => t.tenantId === session.tenantId);
+  const [origin, setOrigin] = useState('');
+  const [copied, setCopied] = useState(false);
+  useEffect(() => setOrigin(window.location.origin), []);
+  const storeUrl = activeTenant ? `${origin}/tienda/${activeTenant.slug}` : '';
 
   useEffect(() => {
     fetch('/api/tenant/settings', { cache: 'no-store' })
@@ -157,6 +162,104 @@ export default function ConfiguracionPage() {
             <Field label="Alerta de stock mínimo por defecto" hint="Para productos importados desde Excel">
               <input type="number" min={0} step={1} className={inputClass} value={form.defaultMinStockAlert} onChange={(e) => set('defaultMinStockAlert', Number(e.target.value))} disabled={loading} />
             </Field>
+          </div>
+        </section>
+
+        {/* Tienda online */}
+        <section id="tienda" className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-lg font-medium text-gray-900 flex items-center">
+              <FaWhatsapp className="mr-2 text-green-600" />
+              Tienda online
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Catálogo público con tus productos y stock. Los clientes arman el pedido y te llega por WhatsApp; lo ves en Pedidos.
+            </p>
+          </div>
+          <div className="p-6 space-y-4">
+            <label className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                className="h-4 w-4"
+                checked={form.storeEnabled}
+                onChange={(e) => set('storeEnabled', e.target.checked)}
+                disabled={loading}
+              />
+              <span className="text-sm font-medium text-gray-900">Tienda activa (visible al público)</span>
+            </label>
+
+            {storeUrl && (
+              <div className="flex flex-wrap items-center gap-2 rounded-md bg-gray-50 p-3 text-sm">
+                <span className="text-gray-600">Link de tu tienda:</span>
+                <a href={storeUrl} target="_blank" rel="noopener noreferrer" className="break-all text-blue-600 underline">
+                  {storeUrl}
+                </a>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(storeUrl).then(() => {
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    });
+                  }}
+                  className="rounded border border-gray-300 bg-white px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-100"
+                >
+                  {copied ? 'Copiado' : 'Copiar'}
+                </button>
+                {!form.storeEnabled && <span className="w-full text-xs text-gray-500">Activá la tienda y guardá para que el link funcione.</span>}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Field label="WhatsApp que recibe los pedidos" hint="Con código de país, sin 0 ni 15. Ej.: 54 9 3385 123456">
+                <input
+                  className={inputClass}
+                  value={form.storeWhatsapp}
+                  onChange={(e) => set('storeWhatsapp', e.target.value)}
+                  placeholder="5493385123456"
+                  inputMode="tel"
+                  disabled={loading}
+                />
+              </Field>
+              <Field label="Precios que ve el cliente">
+                <select className={inputClass} value={form.storePriceType} onChange={(e) => set('storePriceType', e.target.value)} disabled={loading}>
+                  {STORE_PRICE_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {STORE_PRICE_TYPE_LABELS[t]}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+
+            <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-900">
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={form.storePickup} onChange={(e) => set('storePickup', e.target.checked)} disabled={loading} />
+                Retiro en el local
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={form.storeDelivery} onChange={(e) => set('storeDelivery', e.target.checked)} disabled={loading} />
+                Envío a domicilio
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={form.storeShowOutOfStock} onChange={(e) => set('storeShowOutOfStock', e.target.checked)} disabled={loading} />
+                Mostrar productos sin stock
+              </label>
+            </div>
+
+            <Field label="Mensaje de bienvenida (opcional)" hint="Horarios, zonas de envío, formas de pago, etc.">
+              <textarea
+                className={inputClass}
+                rows={3}
+                maxLength={1000}
+                value={form.storeMessage}
+                onChange={(e) => set('storeMessage', e.target.value)}
+                disabled={loading}
+              />
+            </Field>
+            <p className="text-xs text-gray-500">
+              Se publican los productos con precio y stock. Los pedidos no descuentan stock hasta que los registrás como venta desde Pedidos.
+            </p>
           </div>
         </section>
 

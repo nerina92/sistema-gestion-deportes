@@ -13,6 +13,14 @@ export interface BusinessSettings {
   defaultSurchargeFinanced: number;
   priceRounding: number;
   defaultMinStockAlert: number;
+  // Tienda online
+  storeEnabled: boolean;
+  storeWhatsapp: string;
+  storePriceType: string;
+  storeShowOutOfStock: boolean;
+  storePickup: boolean;
+  storeDelivery: boolean;
+  storeMessage: string;
 }
 
 export const DEFAULT_SETTINGS: BusinessSettings = {
@@ -29,6 +37,13 @@ export const DEFAULT_SETTINGS: BusinessSettings = {
   defaultSurchargeFinanced: 20,
   priceRounding: 100,
   defaultMinStockAlert: 1,
+  storeEnabled: false,
+  storeWhatsapp: '',
+  storePriceType: 'cash',
+  storeShowOutOfStock: false,
+  storePickup: true,
+  storeDelivery: true,
+  storeMessage: '',
 };
 
 /** Rubros sugeridos, con etiquetas de variantes pensadas para cada uno. */

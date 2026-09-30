@@ -15,7 +15,7 @@ import {
   FaTag,
   FaTags
 } from 'react-icons/fa';
-import { Building2, Users } from 'lucide-react';
+import { Building2, ClipboardList, Users } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { getModulesForRoles, type ModuleKey } from '@/lib/role-permissions';
 
@@ -36,6 +36,7 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: FaHome, module: 'dashboard' },
   { name: 'Ventas', href: '/ventas', icon: FaShoppingCart, module: 'ventas' },
+  { name: 'Pedidos', href: '/pedidos', icon: ClipboardList, module: 'pedidos' },
   { name: 'Productos', href: '/productos', icon: FaBox, module: 'productos' },
   { name: 'Categorías', href: '/categorias', icon: FaTags, module: 'categorias' },
   { name: 'Precios', href: '/precios', icon: FaTag, module: 'precios' },

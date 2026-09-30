@@ -22,6 +22,13 @@ export async function getBusinessSettings(db: TenantDb): Promise<BusinessSetting
     defaultSurchargeFinanced: Number(row.defaultSurchargeFinanced),
     priceRounding: row.priceRounding,
     defaultMinStockAlert: row.defaultMinStockAlert,
+    storeEnabled: row.storeEnabled,
+    storeWhatsapp: row.storeWhatsapp,
+    storePriceType: row.storePriceType,
+    storeShowOutOfStock: row.storeShowOutOfStock,
+    storePickup: row.storePickup,
+    storeDelivery: row.storeDelivery,
+    storeMessage: row.storeMessage,
   };
 }
 

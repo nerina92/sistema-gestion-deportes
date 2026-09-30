@@ -20,6 +20,8 @@ export default auth((req) => {
 
   // Rutas de NextAuth y healthcheck: públicas.
   if (pathname.startsWith('/api/auth/') || pathname === '/api/health') return NextResponse.next();
+  // Tienda online pública (catálogo y pedidos): con o sin sesión.
+  if (matches(pathname, ['/tienda']) || pathname.startsWith('/api/tienda/')) return NextResponse.next();
 
   const session = req.auth;
   if (!session?.userId) {

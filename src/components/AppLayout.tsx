@@ -7,7 +7,7 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import Footer from './Footer';
 
-const BARE_ROUTES = ['/login', '/seleccionar-negocio', '/platform-admin'];
+const BARE_ROUTES = ['/login', '/seleccionar-negocio', '/platform-admin', '/tienda'];
 
 interface AppLayoutProps {
   children: React.ReactNode;

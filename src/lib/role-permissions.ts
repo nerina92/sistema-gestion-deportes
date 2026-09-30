@@ -10,6 +10,7 @@
 export const MODULE_KEYS = [
   'dashboard',
   'ventas',
+  'pedidos', // pedidos de la tienda online
   'productos', // ver catálogo y stock
   'productos-editar', // alta/edición/baja de productos e importación
   'categorias',
@@ -36,8 +37,8 @@ export const ROLE_LABELS: Record<TenantRole, string> = {
 
 export const ROLE_DESCRIPTIONS: Record<TenantRole, string> = {
   ADMIN: 'Acceso total: configuración, usuarios e integraciones.',
-  ENCARGADO: 'Productos, precios, compras, proveedores, ventas y facturas.',
-  VENDEDOR: 'Ventas, consulta de productos y facturas.',
+  ENCARGADO: 'Productos, precios, compras, proveedores, ventas, pedidos y facturas.',
+  VENDEDOR: 'Ventas, pedidos, consulta de productos y facturas.',
 };
 
 const ROLE_MODULES: Record<TenantRole, readonly ModuleKey[] | '*'> = {
@@ -45,6 +46,7 @@ const ROLE_MODULES: Record<TenantRole, readonly ModuleKey[] | '*'> = {
   ENCARGADO: [
     'dashboard',
     'ventas',
+    'pedidos',
     'productos',
     'productos-editar',
     'categorias',
@@ -54,7 +56,7 @@ const ROLE_MODULES: Record<TenantRole, readonly ModuleKey[] | '*'> = {
     'facturas',
     'reportes',
   ],
-  VENDEDOR: ['dashboard', 'ventas', 'productos', 'facturas'],
+  VENDEDOR: ['dashboard', 'ventas', 'pedidos', 'productos', 'facturas'],
 };
 
 export function isTenantRole(value: string): value is TenantRole {
@@ -88,6 +90,7 @@ const PAGE_MODULES: [prefix: string, module: ModuleKey][] = [
   ['/categorias', 'categorias'],
   ['/precios', 'precios'],
   ['/ventas', 'ventas'],
+  ['/pedidos', 'pedidos'],
   ['/compras', 'compras'],
   ['/proveedores', 'proveedores'],
   ['/facturas', 'facturas'],
