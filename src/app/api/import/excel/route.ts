@@ -9,7 +9,7 @@ import type { TenantDb } from '@/lib/tenant-db';
 // Planilla genérica: cualquier hoja cuya primera fila tenga encabezados
 // reconocibles. Cada fila = 1 variante; las filas se agrupan en productos por
 // Nombre + Marca. Si no hay columna Categoría se usa el nombre de la hoja.
-type ColumnKey = 'name' | 'brand' | 'category' | 'sku' | 'barcode' | 'size' | 'color' | 'costPrice' | 'stock';
+type ColumnKey = 'name' | 'brand' | 'category' | 'sku' | 'barcode' | 'size' | 'color' | 'costPrice' | 'stock' | 'image';
 
 const HEADER_ALIASES: Record<ColumnKey, string[]> = {
   name: ['nombre', 'producto', 'descripcion', 'articulo'],
@@ -21,6 +21,7 @@ const HEADER_ALIASES: Record<ColumnKey, string[]> = {
   color: ['color', 'atributo 2', 'atributo2', 'presentacion'],
   costPrice: ['costo', 'precio costo', 'precio de costo', 'costo unitario'],
   stock: ['stock', 'cantidad', 'existencia'],
+  image: ['imagen', 'foto', 'image', 'url imagen', 'imagen url', 'url de imagen'],
 };
 
 function normalizeHeader(text: unknown): string {
@@ -68,10 +69,39 @@ function normalizeText(text: string): string {
   return text.toString().trim().toLowerCase();
 }
 
+/**
+ * Número desde una celda. Acepta formatos con separador de miles en cualquiera
+ * de las dos convenciones: "1.347,37", "1,347.37", "1347,37", "1347.37", "$ 1.500".
+ */
 function parseDecimal(value: unknown): number {
   if (value === null || value === undefined || value === '') return 0;
-  const num = typeof value === 'string' ? parseFloat(value.replace(',', '.')) : Number(value);
+  if (typeof value === 'number') return isFinite(value) ? value : 0;
+  let t = value.toString().replace(/[^0-9.,-]/g, '');
+  if (!t) return 0;
+  const lastDot = t.lastIndexOf('.');
+  const lastComma = t.lastIndexOf(',');
+  if (lastDot !== -1 && lastComma !== -1) {
+    // El último separador es el decimal; el otro, de miles.
+    t = lastComma > lastDot ? t.replace(/\./g, '').replace(',', '.') : t.replace(/,/g, '');
+  } else if (lastComma !== -1) {
+    t = /^-?\d{1,3}(,\d{3})+$/.test(t) ? t.replace(/,/g, '') : t.replace(',', '.');
+  } else if (lastDot !== -1 && /^-?\d{1,3}(\.\d{3})+$/.test(t)) {
+    t = t.replace(/\./g, '');
+  }
+  const num = parseFloat(t);
   return isNaN(num) ? 0 : num;
+}
+
+/** URL de imagen válida (http/https) o null. */
+function parseImageUrl(value: string): string | null {
+  const v = value.trim();
+  if (!v) return null;
+  try {
+    const u = new URL(v);
+    return u.protocol === 'http:' || u.protocol === 'https:' ? u.toString() : null;
+  } catch {
+    return null;
+  }
 }
 
 function cleanSku(sku: unknown): string {
@@ -103,6 +133,7 @@ interface ProductData {
   brand: string;
   category: string;
   barcode: string | null;
+  imageUrl: string | null;
   variants: VariantData[];
 }
 
@@ -135,6 +166,7 @@ function parseSheet(
       const category = cell(row, 'category') || sheetName;
       let sku = cleanSku(cell(row, 'sku'));
       const barcode = cell(row, 'barcode') || null;
+      const imageUrl = parseImageUrl(cell(row, 'image'));
       const size = cell(row, 'size');
       const color = cell(row, 'color');
       const costPrice = parseDecimal(cell(row, 'costPrice'));
@@ -152,9 +184,10 @@ function parseSheet(
 
       const productKey = `${normalizeText(name)}_${normalizeText(brand)}`;
       if (!sheetProductsMap.has(productKey)) {
-        sheetProductsMap.set(productKey, { name, brand, category, barcode, variants: [] });
+        sheetProductsMap.set(productKey, { name, brand, category, barcode, imageUrl, variants: [] });
       }
       const product = sheetProductsMap.get(productKey)!;
+      if (!product.imageUrl && imageUrl) product.imageUrl = imageUrl;
 
       if (product.variants.some(v => v.sku === sku)) {
         autoSkuCounter++;
@@ -208,12 +241,19 @@ async function insertProducts(
               brand: productData.brand || null,
               categoryId: categoryRow.id,
               barcode: barcodeTaken ? null : productData.barcode,
+              imageUrl: productData.imageUrl,
               marginCash: settings.defaultMarginCash,
               surchargeDebit: settings.defaultSurchargeDebit,
               surchargeFinanced: settings.defaultSurchargeFinanced,
             }
           });
           log.productsCreated++;
+        } else if (productData.imageUrl && product.imageUrl !== productData.imageUrl) {
+          // Producto existente: si la planilla trae imagen, se actualiza.
+          product = await tx.product.update({
+            where: { id: product.id },
+            data: { imageUrl: productData.imageUrl },
+          });
         }
 
         for (const variant of productData.variants) {
