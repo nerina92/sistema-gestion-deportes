@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
@@ -12,9 +12,15 @@ export default function SeleccionarNegocioPage() {
   const router = useRouter();
   const [selecting, setSelecting] = useState<string | null>(null);
 
-  // Refresca la lista de negocios al entrar (por si llegó una invitación nueva).
+  // Refresca la lista de negocios UNA vez al entrar (por si llegó una invitación
+  // nueva). update() pone el status en "loading" y lo vuelve a "authenticated",
+  // así que sin esta guarda el efecto se re-dispara en loop.
+  const refreshed = useRef(false);
   useEffect(() => {
-    if (status === 'authenticated') update({ refreshTenants: true });
+    if (status === 'authenticated' && !refreshed.current) {
+      refreshed.current = true;
+      update({ refreshTenants: true });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
@@ -39,7 +45,7 @@ export default function SeleccionarNegocioPage() {
           <p className="mt-1 text-sm text-gray-600">{session?.user?.email}</p>
         </div>
 
-        {status === 'loading' ? (
+        {status === 'loading' && !session ? (
           <p className="text-center text-gray-500">Cargando...</p>
         ) : tenants.length === 0 ? (
           <div className="bg-white shadow rounded-lg p-6 text-center text-sm text-gray-600">
