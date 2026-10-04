@@ -1,152 +1,28 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { signOut, useSession } from 'next-auth/react';
-import { FaBars, FaSignOutAlt, FaUser, FaExchangeAlt, FaShieldAlt } from 'react-icons/fa';
-import { ROLE_LABELS, isTenantRole } from '@/lib/role-permissions';
+import { usePathname } from 'next/navigation';
+import { Menu } from 'lucide-react';
+import { activeNavItem } from './navigation';
 
 interface HeaderProps {
   onMenuClick: () => void;
 }
 
+/** Barra superior: en mobile abre el menú; muestra la sección actual. */
 export default function Header({ onMenuClick }: HeaderProps) {
-  const { data: session } = useSession();
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [loggingOut, setLoggingOut] = useState(false);
-
-  const activeTenant = session?.tenants.find((t) => t.tenantId === session.tenantId);
-  const roleText = (activeTenant?.roles ?? [])
-    .map((r) => (isTenantRole(r) ? ROLE_LABELS[r] : r))
-    .join(' · ');
-
-  const handleLogout = async () => {
-    setLoggingOut(true);
-    await signOut({ redirectTo: '/login' });
-  };
+  const pathname = usePathname();
+  const section = activeNavItem(pathname);
 
   return (
-    <>
-      <header className="bg-white shadow-sm border-b border-gray-200 px-4 py-3 lg:px-6">
-        <div className="flex items-center justify-between">
-          {/* Botón hamburguesa (solo visible en móvil) */}
-          <button
-            onClick={onMenuClick}
-            className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 lg:hidden"
-          >
-            <FaBars className="h-5 w-5" />
-          </button>
-
-          {/* Título de la página (en móvil se centra) */}
-          <div className="lg:hidden flex-1 text-center">
-            <h1 className="text-lg font-semibold text-gray-900 truncate">{activeTenant?.name ?? ''}</h1>
-          </div>
-
-          {/* Negocio activo (desktop) */}
-          <div className="hidden lg:flex items-center gap-3">
-            <h1 className="text-lg font-semibold text-gray-900">{activeTenant?.name ?? ''}</h1>
-            {(session?.tenants.length ?? 0) > 1 && (
-              <Link
-                href="/seleccionar-negocio"
-                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
-              >
-                <FaExchangeAlt className="h-3 w-3" /> Cambiar negocio
-              </Link>
-            )}
-          </div>
-
-          {/* Información del usuario y logout */}
-          <div className="flex items-center space-x-4">
-            {session?.isPlatformAdmin && (
-              <Link
-                href="/platform-admin"
-                className="hidden sm:flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900"
-                title="Administración de la plataforma"
-              >
-                <FaShieldAlt className="h-3 w-3" /> Plataforma
-              </Link>
-            )}
-            {/* Información del usuario */}
-            <div className="hidden sm:flex items-center space-x-3">
-              {session?.user?.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={session.user.image} alt="" className="h-8 w-8 rounded-full" referrerPolicy="no-referrer" />
-              ) : (
-                <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <FaUser className="h-4 w-4 text-blue-600" />
-                </div>
-              )}
-              <div className="hidden md:block">
-                <p className="text-sm font-medium text-gray-900">
-                  {session?.user?.name || session?.user?.email || ''}
-                </p>
-                <p className="text-xs text-gray-500">{roleText}</p>
-              </div>
-            </div>
-
-            {/* Botón de logout */}
-            <button
-              onClick={() => setShowLogoutConfirm(true)}
-              className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
-              disabled={loggingOut}
-            >
-              <FaSignOutAlt className="h-4 w-4" />
-              <span className="hidden sm:inline">
-                {loggingOut ? 'Cerrando...' : 'Cerrar Sesión'}
-              </span>
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Modal de confirmación de logout */}
-      {showLogoutConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="p-6">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="h-10 w-10 bg-red-100 rounded-full flex items-center justify-center">
-                  <FaSignOutAlt className="h-5 w-5 text-red-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">Cerrar Sesión</h3>
-                </div>
-              </div>
-              
-              <p className="text-sm text-gray-600 mb-6">
-                ¿Querés cerrar sesión? Vas a volver a la pantalla de ingreso.
-              </p>
-
-              <div className="flex space-x-3 justify-end">
-                <button
-                  onClick={() => setShowLogoutConfirm(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-                  disabled={loggingOut}
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={loggingOut}
-                >
-                  {loggingOut ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Cerrando...
-                    </>
-                  ) : (
-                    'Cerrar Sesión'
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-zinc-200 bg-white/80 px-4 backdrop-blur lg:hidden">
+      <button
+        onClick={onMenuClick}
+        className="-ml-1 rounded-md p-2 text-zinc-600 hover:bg-zinc-100"
+        aria-label="Abrir menú"
+      >
+        <Menu className="size-5" />
+      </button>
+      <p className="truncate text-sm font-semibold text-zinc-900">{section?.name ?? ''}</p>
+    </header>
   );
 }

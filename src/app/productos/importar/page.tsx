@@ -182,11 +182,11 @@ export default function ImportarProductosPage() {
     <div className="max-w-4xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-          <FaFileExcel className="mr-3 text-green-600" />
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 flex items-center gap-3">
+          <FaFileExcel className="size-6 shrink-0 text-brand-600" />
           Importar Productos desde Excel
         </h1>
-        <p className="mt-2 text-gray-600">
+        <p className="mt-1 text-sm text-zinc-500">
           Importa tu inventario completo desde un archivo Excel. Se procesa hoja por hoja.
         </p>
       </div>
@@ -215,21 +215,21 @@ export default function ImportarProductosPage() {
       </div>
 
       {/* Instrucciones */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-        <h3 className="text-lg font-medium text-blue-900 flex items-center mb-3">
+      <div className="bg-brand-50 border border-brand-200 rounded-lg p-6 mb-6">
+        <h3 className="text-lg font-medium text-brand-900 flex items-center mb-3">
           <FaInfoCircle className="mr-2" />
           Formato del Archivo
         </h3>
-        <div className="text-sm text-blue-800 space-y-2">
+        <div className="text-sm text-brand-800 space-y-2">
           <p><strong>Encabezados (fila 1):</strong> Nombre (obligatorio), Marca, Categoría, SKU, Código de barras, {settings.variantAttr1Label}, {settings.variantAttr2Label}, Costo, Stock.</p>
           <p><strong>Lógica:</strong> Cada fila = 1 variante. Se agrupan por Nombre + Marca. Si no hay columna Categoría se usa el nombre de la hoja. Los SKU vacíos se generan solos y los precios se calculan desde el costo con los márgenes por defecto del negocio.</p>
         </div>
       </div>
 
       {/* Upload */}
-      <div className="bg-white shadow-md rounded-lg p-6 mb-6">
+      <div className="bg-white shadow-card rounded-card p-6 mb-6 border border-zinc-200">
         <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2">
+          <label className="block text-zinc-700 text-sm font-bold mb-2">
             Seleccionar Archivo Excel
           </label>
           <input
@@ -237,16 +237,16 @@ export default function ImportarProductosPage() {
             accept=".xlsx,.xls"
             onChange={handleFileChange}
             disabled={importing}
-            className="block w-full text-sm text-gray-500
+            className="block w-full text-sm text-zinc-500
               file:mr-4 file:py-2 file:px-4
               file:rounded-md file:border-0
               file:text-sm file:font-semibold
-              file:bg-blue-50 file:text-blue-700
-              hover:file:bg-blue-100
+              file:bg-brand-50 file:text-brand-700
+              hover:file:bg-brand-100
               cursor-pointer disabled:opacity-50"
           />
           {file && (
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-sm text-zinc-600">
               Archivo: <strong>{file.name}</strong> ({(file.size / 1024).toFixed(1)} KB)
             </p>
           )}
@@ -255,7 +255,7 @@ export default function ImportarProductosPage() {
         <button
           onClick={handleImport}
           disabled={!file || importing}
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+          className="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
         >
           {importing ? (
             <>
@@ -293,18 +293,18 @@ export default function ImportarProductosPage() {
 
       {/* Progreso por hoja */}
       {sheetResults.length > 0 && (
-        <div className="bg-white shadow-md rounded-lg p-6 mb-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Progreso de importación</h3>
+        <div className="bg-white shadow-card rounded-card p-6 mb-6 border border-zinc-200">
+          <h3 className="text-lg font-medium text-zinc-900 mb-4">Progreso de importación</h3>
           <div className="space-y-3">
             {sheetResults.map((result) => (
-              <div key={result.sheetName} className="border border-gray-200 rounded-lg p-4">
+              <div key={result.sheetName} className="border border-zinc-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center">
                     {result.status === 'pending' && (
-                      <div className="w-5 h-5 rounded-full border-2 border-gray-300 mr-3" />
+                      <div className="w-5 h-5 rounded-full border-2 border-zinc-300 mr-3" />
                     )}
                     {result.status === 'processing' && (
-                      <FaSpinner className="text-blue-500 animate-spin mr-3 w-5 h-5" />
+                      <FaSpinner className="text-brand-500 animate-spin mr-3 w-5 h-5" />
                     )}
                     {result.status === 'done' && (
                       <FaCheckCircle className="text-green-500 mr-3 w-5 h-5" />
@@ -312,11 +312,11 @@ export default function ImportarProductosPage() {
                     {result.status === 'error' && (
                       <FaExclamationTriangle className="text-red-500 mr-3 w-5 h-5" />
                     )}
-                    <span className="font-medium text-gray-900">Hoja: {result.sheetName}</span>
+                    <span className="font-medium text-zinc-900">Hoja: {result.sheetName}</span>
                   </div>
                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                    result.status === 'pending' ? 'bg-gray-100 text-gray-600' :
-                    result.status === 'processing' ? 'bg-blue-100 text-blue-700' :
+                    result.status === 'pending' ? 'bg-zinc-100 text-zinc-600' :
+                    result.status === 'processing' ? 'bg-brand-100 text-brand-700' :
                     result.status === 'done' ? 'bg-green-100 text-green-700' :
                     'bg-red-100 text-red-700'
                   }`}>
@@ -330,15 +330,15 @@ export default function ImportarProductosPage() {
                   <div className="grid grid-cols-3 gap-2 mt-2 text-sm">
                     <div className="text-center bg-green-50 rounded p-2">
                       <p className="font-bold text-green-700">{result.productsCreated}</p>
-                      <p className="text-gray-600 text-xs">Productos</p>
+                      <p className="text-zinc-600 text-xs">Productos</p>
                     </div>
-                    <div className="text-center bg-blue-50 rounded p-2">
-                      <p className="font-bold text-blue-700">{result.variantsCreated}</p>
-                      <p className="text-gray-600 text-xs">Variantes</p>
+                    <div className="text-center bg-brand-50 rounded p-2">
+                      <p className="font-bold text-brand-700">{result.variantsCreated}</p>
+                      <p className="text-zinc-600 text-xs">Variantes</p>
                     </div>
                     <div className="text-center bg-yellow-50 rounded p-2">
                       <p className="font-bold text-yellow-700">{result.skippedRows}</p>
-                      <p className="text-gray-600 text-xs">Omitidas</p>
+                      <p className="text-zinc-600 text-xs">Omitidas</p>
                     </div>
                   </div>
                 )}
@@ -372,25 +372,25 @@ export default function ImportarProductosPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
             <div className="bg-white rounded p-3 text-center">
               <p className="text-2xl font-bold text-green-600">{totalProducstCreated}</p>
-              <p className="text-sm text-gray-600">Productos</p>
+              <p className="text-sm text-zinc-600">Productos</p>
             </div>
             <div className="bg-white rounded p-3 text-center">
-              <p className="text-2xl font-bold text-blue-600">{totalVariantsCreated}</p>
-              <p className="text-sm text-gray-600">Variantes</p>
+              <p className="text-2xl font-bold text-brand-600">{totalVariantsCreated}</p>
+              <p className="text-sm text-zinc-600">Variantes</p>
             </div>
             <div className="bg-white rounded p-3 text-center">
               <p className="text-2xl font-bold text-yellow-600">{totalSkipped}</p>
-              <p className="text-sm text-gray-600">Omitidas</p>
+              <p className="text-sm text-zinc-600">Omitidas</p>
             </div>
             <div className="bg-white rounded p-3 text-center">
               <p className="text-2xl font-bold text-red-600">{totalErrors}</p>
-              <p className="text-sm text-gray-600">Errores</p>
+              <p className="text-sm text-zinc-600">Errores</p>
             </div>
           </div>
 
           <button
             onClick={() => router.push('/productos')}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg"
+            className="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 px-4 rounded-lg"
           >
             Ver Productos Importados
           </button>

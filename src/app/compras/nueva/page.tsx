@@ -16,6 +16,7 @@ import {
   Hash
 } from 'lucide-react';
 import { variantLabel } from '@/lib/variant-label';
+import { dateInputToInstant, todayISODate } from '@/lib/format';
 
 interface Supplier {
   id: string;
@@ -70,7 +71,7 @@ export default function NuevaCompraPage() {
 
   const [formData, setFormData] = useState<FormData>({
     supplierId: '',
-    purchaseDate: new Date().toISOString().split('T')[0],
+    purchaseDate: todayISODate(),
     notes: '',
     items: [{
       id: Date.now().toString(),
@@ -267,7 +268,7 @@ export default function NuevaCompraPage() {
     try {
       const purchaseData = {
         supplierId: formData.supplierId,
-        purchaseDate: new Date(formData.purchaseDate + 'T00:00:00Z').toISOString(),
+        purchaseDate: dateInputToInstant(formData.purchaseDate).toISOString(),
         notes: formData.notes.trim() || undefined,
         items: formData.items.map(item => ({
           productVariantId: item.productVariantId,
@@ -310,33 +311,33 @@ export default function NuevaCompraPage() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-          <Package className="mr-3 text-purple-600" />
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 flex items-center gap-3">
+          <Package className="size-6 shrink-0 text-brand-600" />
           Nueva Compra
         </h1>
-        <p className="mt-2 text-gray-600">
+        <p className="mt-1 text-sm text-zinc-500">
           Registra una nueva compra para actualizar el inventario
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
         
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Información de la compra</h2>
+        <div className="bg-white rounded-card shadow-card border border-zinc-200 p-6">
+          <h2 className="text-lg font-medium text-zinc-900 mb-4">Información de la compra</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label htmlFor="supplier" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="supplier" className="block text-sm font-medium text-zinc-700 mb-2">
                 Proveedor *
               </label>
               <div className="relative">
-                <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 h-4 w-4" />
                 <select
                   id="supplier"
                   value={formData.supplierId}
                   onChange={(e) => handleInputChange('supplierId', e.target.value)}
-                  className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                    errors.supplierId ? 'border-red-300' : 'border-gray-300'
+                  className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent ${
+                    errors.supplierId ? 'border-red-300' : 'border-zinc-300'
                   }`}
                 >
                   <option value="">Seleccione un proveedor</option>
@@ -353,47 +354,47 @@ export default function NuevaCompraPage() {
             </div>
 
             <div>
-              <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="date" className="block text-sm font-medium text-zinc-700 mb-2">
                 Fecha de compra
               </label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 h-4 w-4" />
                 <input
                   id="date"
                   type="date"
                   value={formData.purchaseDate}
                   onChange={(e) => handleInputChange('purchaseDate', e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                 />
               </div>
             </div>
           </div>
 
           <div className="mt-6">
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="notes" className="block text-sm font-medium text-zinc-700 mb-2">
               Notas (opcional)
             </label>
             <div className="relative">
-              <FileText className="absolute left-3 top-3 text-gray-400 h-4 w-4" />
+              <FileText className="absolute left-3 top-3 text-zinc-400 h-4 w-4" />
               <textarea
                 id="notes"
                 value={formData.notes}
                 onChange={(e) => handleInputChange('notes', e.target.value)}
                 rows={3}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                 placeholder="Información adicional sobre la compra..."
               />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="bg-white rounded-card shadow-card border border-zinc-200 p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-medium text-gray-900">Items de la compra</h2>
+            <h2 className="text-lg font-medium text-zinc-900">Items de la compra</h2>
             <button
               type="button"
               onClick={addItem}
-              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
             >
               <Plus className="h-4 w-4 mr-1" />
               Agregar item
@@ -402,13 +403,13 @@ export default function NuevaCompraPage() {
 
           <div className="mb-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 h-4 w-4" />
               <input
                 type="text"
                 placeholder="Buscar productos por nombre o marca..."
                 value={productSearch}
                 onChange={(e) => setProductSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -421,7 +422,7 @@ export default function NuevaCompraPage() {
               return (
                 <div
                   key={item.id}
-                  className="border border-gray-200 rounded-lg p-4 relative"
+                  className="border border-zinc-200 rounded-lg p-4 relative"
                 >
                   {formData.items.length > 1 && (
                     <button
@@ -435,7 +436,7 @@ export default function NuevaCompraPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-zinc-700 mb-1">
                         Producto *
                       </label>
                       <select
@@ -444,7 +445,7 @@ export default function NuevaCompraPage() {
                           handleItemChange(item.id, 'productId', e.target.value);
                           handleItemChange(item.id, 'productVariantId', '');
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                       >
                         <option value="">Seleccione producto</option>
                         {products.map((product) => (
@@ -456,14 +457,14 @@ export default function NuevaCompraPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-zinc-700 mb-1">
                         Variante *
                       </label>
                       <select
                         value={item.productVariantId}
                         onChange={(e) => handleItemChange(item.id, 'productVariantId', e.target.value)}
                         disabled={!item.productId}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
+                        className="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent disabled:bg-zinc-50 disabled:text-zinc-500"
                       >
                         <option value="">Seleccione variante</option>
                         {product?.variants.map((variant) => (
@@ -473,56 +474,56 @@ export default function NuevaCompraPage() {
                         ))}
                       </select>
                       {variant && (
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-zinc-500 mt-1">
                           Stock actual: {variant.stockQuantity}
                         </p>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-zinc-700 mb-1">
                         Cantidad *
                       </label>
                       <div className="relative">
-                        <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 h-4 w-4" />
                         <input
                           type="number"
                           min="1"
                           step="1"
                           value={item.quantity}
                           onChange={(e) => handleItemChange(item.id, 'quantity', parseInt(e.target.value) || 0)}
-                          className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          className="w-full pl-10 pr-3 py-2 border border-zinc-300 rounded-md text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-zinc-700 mb-1">
                         Costo unitario *
                       </label>
                       <div className="relative">
-                        <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 h-4 w-4" />
                         <input
                           type="number"
                           min="0"
                           step="0.01"
                           value={item.unitCost}
                           onChange={(e) => handleItemChange(item.id, 'unitCost', parseFloat(e.target.value) || 0)}
-                          className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          className="w-full pl-10 pr-3 py-2 border border-zinc-300 rounded-md text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                         />
                       </div>
                       {variant && variant.costPrice > 0 && (
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-zinc-500 mt-1">
                           Costo anterior: {formatPrice(variant.costPrice)}
                         </p>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-zinc-700 mb-1">
                         Subtotal
                       </label>
-                      <div className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm font-medium text-gray-900">
+                      <div className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-md text-sm font-medium text-zinc-900">
                         {formatPrice(item.subtotal)}
                       </div>
                     </div>
@@ -540,10 +541,10 @@ export default function NuevaCompraPage() {
             <p className="mt-4 text-sm text-red-600">{errors.general}</p>
           )}
 
-          <div className="mt-6 pt-4 border-t border-gray-200">
+          <div className="mt-6 pt-4 border-t border-zinc-200">
             <div className="flex justify-between items-center">
-              <span className="text-lg font-medium text-gray-900">Total:</span>
-              <span className="text-2xl font-bold text-gray-900">
+              <span className="text-lg font-medium text-zinc-900">Total:</span>
+              <span className="text-2xl font-bold text-zinc-900">
                 {formatPrice(totalAmount)}
               </span>
             </div>
@@ -554,7 +555,7 @@ export default function NuevaCompraPage() {
           <button
             type="button"
             onClick={() => router.push('/compras')}
-            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+            className="px-4 py-2 border border-zinc-300 rounded-md shadow-sm text-sm font-medium text-zinc-700 bg-white hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
           >
             <X className="h-4 w-4 mr-2 inline" />
             Cancelar
@@ -562,7 +563,7 @@ export default function NuevaCompraPage() {
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>

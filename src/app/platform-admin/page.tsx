@@ -6,6 +6,7 @@ import { signOut, useSession } from 'next-auth/react';
 import { FaShieldAlt, FaPlus, FaStore } from 'react-icons/fa';
 import { ROLE_LABELS, TENANT_ROLES, isTenantRole, type TenantRole } from '@/lib/role-permissions';
 import { BUSINESS_TYPE_PRESETS } from '@/lib/settings-defaults';
+import { formatDate } from '@/lib/format';
 
 interface TenantRow {
   id: string;
@@ -19,7 +20,7 @@ interface TenantRow {
   pendingInvitations: { id: string; email: string; roleSlug: string; expiresAt: string }[];
 }
 
-const inputClass = 'w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900';
+const inputClass = 'w-full px-3 py-2 border border-zinc-300 rounded-md text-sm text-zinc-900';
 
 function slugify(text: string) {
   return text
@@ -100,19 +101,19 @@ export default function PlatformAdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-gray-900 text-white">
+    <div className="min-h-screen bg-zinc-50">
+      <header className="bg-zinc-900 text-white">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-lg font-semibold flex items-center gap-2">
             <FaShieldAlt /> Administración de la plataforma
           </h1>
           <div className="flex items-center gap-4 text-sm">
             {(session?.tenants.length ?? 0) > 0 && (
-              <Link href="/seleccionar-negocio" className="text-gray-300 hover:text-white">
+              <Link href="/seleccionar-negocio" className="text-zinc-300 hover:text-white">
                 Ir a un negocio
               </Link>
             )}
-            <button onClick={() => signOut({ redirectTo: '/login' })} className="text-gray-300 hover:text-white">
+            <button onClick={() => signOut({ redirectTo: '/login' })} className="text-zinc-300 hover:text-white">
               Cerrar sesión
             </button>
           </div>
@@ -123,13 +124,13 @@ export default function PlatformAdminPage() {
         {error && <div className="bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-700">{error}</div>}
         {notice && <div className="bg-green-50 border border-green-200 rounded-md p-3 text-sm text-green-700">{notice}</div>}
 
-        <section className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2 mb-4">
-            <FaPlus className="text-blue-500" /> Nuevo negocio
+        <section className="bg-white rounded-card shadow-card border border-zinc-200 p-6">
+          <h2 className="text-lg font-medium text-zinc-900 flex items-center gap-2 mb-4">
+            <FaPlus className="text-brand-500" /> Nuevo negocio
           </h2>
           <form onSubmit={createTenant} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <label className="block">
-              <span className="block text-sm font-medium text-gray-700 mb-1">Nombre</span>
+              <span className="block text-sm font-medium text-zinc-700 mb-1">Nombre</span>
               <input
                 required
                 className={inputClass}
@@ -140,7 +141,7 @@ export default function PlatformAdminPage() {
               />
             </label>
             <label className="block">
-              <span className="block text-sm font-medium text-gray-700 mb-1">Identificador</span>
+              <span className="block text-sm font-medium text-zinc-700 mb-1">Identificador</span>
               <input
                 required
                 pattern="[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?"
@@ -151,10 +152,10 @@ export default function PlatformAdminPage() {
                   setForm((f) => ({ ...f, slug: e.target.value }));
                 }}
               />
-              <span className="block text-xs text-gray-500 mt-1">Minúsculas, números y guiones. No se puede cambiar.</span>
+              <span className="block text-xs text-zinc-500 mt-1">Minúsculas, números y guiones. No se puede cambiar.</span>
             </label>
             <label className="block">
-              <span className="block text-sm font-medium text-gray-700 mb-1">Rubro</span>
+              <span className="block text-sm font-medium text-zinc-700 mb-1">Rubro</span>
               <select
                 className={inputClass}
                 value={form.businessType}
@@ -168,7 +169,7 @@ export default function PlatformAdminPage() {
               </select>
             </label>
             <label className="block">
-              <span className="block text-sm font-medium text-gray-700 mb-1">Email de Google del dueño</span>
+              <span className="block text-sm font-medium text-zinc-700 mb-1">Email de Google del dueño</span>
               <input
                 required
                 type="email"
@@ -181,7 +182,7 @@ export default function PlatformAdminPage() {
               <button
                 type="submit"
                 disabled={busy}
-                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50"
+                className="px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-md hover:bg-brand-700 disabled:opacity-50"
               >
                 {busy ? 'Creando...' : 'Crear negocio'}
               </button>
@@ -190,44 +191,44 @@ export default function PlatformAdminPage() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-lg font-medium text-gray-900">Negocios ({tenants.length})</h2>
-          {loading && <p className="text-sm text-gray-500">Cargando...</p>}
+          <h2 className="text-lg font-medium text-zinc-900">Negocios ({tenants.length})</h2>
+          {loading && <p className="text-sm text-zinc-500">Cargando...</p>}
           {tenants.map((t) => (
-            <article key={t.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-4">
+            <article key={t.id} className="bg-white rounded-card shadow-card border border-zinc-200 p-6 space-y-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <FaStore className={t.isActive ? 'text-blue-600' : 'text-gray-400'} />
+                  <FaStore className={t.isActive ? 'text-brand-600' : 'text-zinc-400'} />
                   <div>
-                    <p className="font-semibold text-gray-900">
+                    <p className="font-semibold text-zinc-900">
                       {t.name} {!t.isActive && <span className="text-xs text-red-600">(inactivo)</span>}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-zinc-500">
                       {t.slug} · {BUSINESS_TYPE_PRESETS[t.businessType ?? '']?.label ?? t.businessType ?? '—'} · alta{' '}
-                      {new Date(t.createdAt).toLocaleDateString('es-AR')}
-                      {t.trialEndsAt && ` · prueba hasta ${new Date(t.trialEndsAt).toLocaleDateString('es-AR')}`}
+                      {formatDate(t.createdAt)}
+                      {t.trialEndsAt && ` · prueba hasta ${formatDate(t.trialEndsAt)}`}
                     </p>
                   </div>
                 </div>
                 <button
                   disabled={busy}
                   onClick={() => send(`/api/platform/tenants/${t.id}`, { method: 'PATCH', body: JSON.stringify({ isActive: !t.isActive }) })}
-                  className="text-xs text-gray-600 hover:text-gray-900 border border-gray-300 rounded px-2 py-1"
+                  className="text-xs text-zinc-600 hover:text-zinc-900 border border-zinc-300 rounded px-2 py-1"
                 >
                   {t.isActive ? 'Desactivar' : 'Activar'}
                 </button>
               </div>
 
               <div className="text-sm">
-                <p className="font-medium text-gray-700 mb-1">Usuarios</p>
-                {t.members.length === 0 && <p className="text-gray-500 text-xs">Todavía nadie entró.</p>}
+                <p className="font-medium text-zinc-700 mb-1">Usuarios</p>
+                {t.members.length === 0 && <p className="text-zinc-500 text-xs">Todavía nadie entró.</p>}
                 <ul className="space-y-1">
                   {t.members.map((m) => (
-                    <li key={m.email} className="text-gray-700">
-                      {m.name || m.email} <span className="text-xs text-gray-500">({m.roles.map((r) => (isTenantRole(r) ? ROLE_LABELS[r] : r)).join(', ')})</span>
+                    <li key={m.email} className="text-zinc-700">
+                      {m.name || m.email} <span className="text-xs text-zinc-500">({m.roles.map((r) => (isTenantRole(r) ? ROLE_LABELS[r] : r)).join(', ')})</span>
                     </li>
                   ))}
                   {t.pendingInvitations.map((inv) => (
-                    <li key={inv.id} className="text-gray-500 text-xs">
+                    <li key={inv.id} className="text-zinc-500 text-xs">
                       {inv.email} — invitación pendiente ({isTenantRole(inv.roleSlug) ? ROLE_LABELS[inv.roleSlug] : inv.roleSlug})
                     </li>
                   ))}
@@ -256,7 +257,7 @@ export default function PlatformAdminPage() {
                 <button
                   disabled={busy}
                   onClick={() => inviteTo(t.id)}
-                  className="px-3 py-2 bg-gray-800 text-white text-sm rounded-md hover:bg-gray-900 disabled:opacity-50"
+                  className="px-3 py-2 bg-zinc-800 text-white text-sm rounded-md hover:bg-zinc-900 disabled:opacity-50"
                 >
                   Invitar
                 </button>

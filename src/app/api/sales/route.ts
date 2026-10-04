@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@/generated/tenant';
 
 import { requireTenant } from '@/lib/api-auth';
+import { dateInputToInstant } from '@/lib/format';
 
 // Tipo para el body del POST
 interface CreateSaleItem {
@@ -104,7 +105,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validar fecha
-    const parsedDate = new Date(saleDate);
+    const parsedDate = dateInputToInstant(saleDate);
     if (isNaN(parsedDate.getTime())) {
       return NextResponse.json(
         {

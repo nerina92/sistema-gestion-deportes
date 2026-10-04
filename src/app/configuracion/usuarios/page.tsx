@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { FaUsers, FaUserPlus, FaTrash, FaEnvelope } from 'react-icons/fa';
 import { ROLE_DESCRIPTIONS, ROLE_LABELS, TENANT_ROLES, isTenantRole, type TenantRole } from '@/lib/role-permissions';
+import { formatDate } from '@/lib/format';
 
 interface Member {
   id: string;
@@ -101,11 +102,11 @@ export default function UsuariosPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-          <FaUsers className="mr-3 text-gray-600" />
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 flex items-center gap-3">
+          <FaUsers className="size-6 shrink-0 text-brand-600" />
           Usuarios
         </h1>
-        <p className="mt-2 text-gray-600">
+        <p className="mt-1 text-sm text-zinc-500">
           El acceso es solo por invitación: cada persona entra con su cuenta de Google.
         </p>
       </div>
@@ -114,9 +115,9 @@ export default function UsuariosPage() {
       {notice && <div className="bg-green-50 border border-green-200 rounded-md p-3 text-sm text-green-700">{notice}</div>}
 
       {/* Invitar */}
-      <section className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-medium text-gray-900 flex items-center mb-4">
-          <FaUserPlus className="mr-2 text-blue-500" /> Invitar
+      <section className="bg-white rounded-card shadow-card border border-zinc-200 p-6">
+        <h2 className="text-lg font-medium text-zinc-900 flex items-center mb-4">
+          <FaUserPlus className="mr-2 text-brand-500" /> Invitar
         </h2>
         <form onSubmit={invite} className="grid grid-cols-1 md:grid-cols-[1fr_200px_auto] gap-3 items-start">
           <input
@@ -125,12 +126,12 @@ export default function UsuariosPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="email@gmail.com"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900"
+            className="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm text-zinc-900"
           />
           <select
             value={role}
             onChange={(e) => setRole(e.target.value as TenantRole)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900"
+            className="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm text-zinc-900"
           >
             {TENANT_ROLES.map((r) => (
               <option key={r} value={r}>
@@ -141,21 +142,21 @@ export default function UsuariosPage() {
           <button
             type="submit"
             disabled={busy}
-            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-md hover:bg-brand-700 disabled:opacity-50"
           >
             Invitar
           </button>
         </form>
-        <p className="text-xs text-gray-500 mt-2">{ROLE_DESCRIPTIONS[role]}</p>
+        <p className="text-xs text-zinc-500 mt-2">{ROLE_DESCRIPTIONS[role]}</p>
       </section>
 
       {/* Miembros */}
-      <section className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <h2 className="text-lg font-medium text-gray-900 p-6 pb-0">Con acceso</h2>
+      <section className="bg-white rounded-card shadow-card border border-zinc-200">
+        <h2 className="text-lg font-medium text-zinc-900 p-6 pb-0">Con acceso</h2>
         {loading ? (
-          <p className="p-6 text-sm text-gray-500">Cargando...</p>
+          <p className="p-6 text-sm text-zinc-500">Cargando...</p>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-zinc-100">
             {members.map((m) => (
               <li key={m.id} className="p-6 flex flex-col md:flex-row md:items-center gap-3">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -163,13 +164,13 @@ export default function UsuariosPage() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={m.image} alt="" className="h-9 w-9 rounded-full" referrerPolicy="no-referrer" />
                   ) : (
-                    <div className="h-9 w-9 rounded-full bg-gray-200" />
+                    <div className="h-9 w-9 rounded-full bg-zinc-200" />
                   )}
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {m.name || m.email} {m.id === currentUserId && <span className="text-xs text-gray-500">(vos)</span>}
+                    <p className="text-sm font-medium text-zinc-900 truncate">
+                      {m.name || m.email} {m.id === currentUserId && <span className="text-xs text-zinc-500">(vos)</span>}
                     </p>
-                    <p className="text-xs text-gray-500 truncate">{m.email}</p>
+                    <p className="text-xs text-zinc-500 truncate">{m.email}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -181,8 +182,8 @@ export default function UsuariosPage() {
                       onClick={() => toggleRole(m, r)}
                       className={`px-2.5 py-1 rounded-full text-xs font-medium border ${
                         m.roles.includes(r)
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                          ? 'bg-brand-600 text-white border-brand-600'
+                          : 'bg-white text-zinc-600 border-zinc-300 hover:border-zinc-400'
                       }`}
                     >
                       {ROLE_LABELS[r]}
@@ -211,16 +212,16 @@ export default function UsuariosPage() {
 
       {/* Invitaciones pendientes */}
       {invitations.length > 0 && (
-        <section className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <h2 className="text-lg font-medium text-gray-900 p-6 pb-0">Invitaciones pendientes</h2>
-          <ul className="divide-y divide-gray-100">
+        <section className="bg-white rounded-card shadow-card border border-zinc-200">
+          <h2 className="text-lg font-medium text-zinc-900 p-6 pb-0">Invitaciones pendientes</h2>
+          <ul className="divide-y divide-zinc-100">
             {invitations.map((inv) => (
               <li key={inv.id} className="p-6 flex items-center gap-3">
-                <FaEnvelope className="h-4 w-4 text-gray-400" />
+                <FaEnvelope className="h-4 w-4 text-zinc-400" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-900 truncate">{inv.email}</p>
-                  <p className="text-xs text-gray-500">
-                    {roleLabel(inv.roleSlug)} · vence el {new Date(inv.expiresAt).toLocaleDateString('es-AR')}
+                  <p className="text-sm text-zinc-900 truncate">{inv.email}</p>
+                  <p className="text-xs text-zinc-500">
+                    {roleLabel(inv.roleSlug)} · vence el {formatDate(inv.expiresAt)}
                   </p>
                 </div>
                 <button

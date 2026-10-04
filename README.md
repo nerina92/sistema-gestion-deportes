@@ -47,6 +47,15 @@ Desde **Configuración** cada negocio define: rubro, datos fiscales (encabezado 
 
 La importación desde Excel usa una planilla genérica: la fila 1 lleva encabezados (`Nombre` obligatorio; `Marca`, `Categoría`, `SKU`, `Código de barras`, atributos, `Costo`, `Stock` opcionales).
 
+## Diseño (sistema visual)
+
+- **Tokens** en `src/app/globals.css` (Tailwind v4 `@theme`): `brand` (violeta Plexo, único color de acción), neutros `zinc`, estados `emerald`/`amber`/`red` solo para estados.
+- **Tipografía**: Inter (UI) y JetBrains Mono; los montos usan cifras tabulares.
+- **Componentes** en `src/components/ui/`: `Button`/`LinkButton`, `Card`, `Badge`, `PageHeader`, `StatCard`, `EmptyState`, `Skeleton` (mismos nombres que en Mi Club).
+- **Formatos** únicos en `src/lib/format.ts`: `formatMoney` ($ 1.234.567), `formatDate`, `formatDateTime`, y `dateInputToInstant` para guardar fechas sin corrimiento de zona horaria.
+- **Menú** agrupado en `src/components/navigation.ts`; se filtra por rol con `role-permissions.ts`. En las páginas, `useModules()` oculta acciones que el rol no puede hacer.
+- **Gráficos**: Recharts, una sola serie en el color de marca (`src/components/charts/SalesChart.tsx`).
+
 ## Desarrollo local
 
 ```bash

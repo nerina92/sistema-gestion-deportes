@@ -173,10 +173,10 @@ export default function EditarProveedorPage() {
   if (loadingData) {
     return (
       <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12">
+        <div className="bg-white rounded-card shadow-card border border-zinc-200 p-12">
           <div className="text-center">
-            <RefreshCw className="h-8 w-8 animate-spin text-indigo-600 mx-auto mb-4" />
-            <p className="text-gray-600">Cargando datos del proveedor...</p>
+            <RefreshCw className="h-8 w-8 animate-spin text-brand-600 mx-auto mb-4" />
+            <p className="text-zinc-600">Cargando datos del proveedor...</p>
           </div>
         </div>
       </div>
@@ -192,32 +192,32 @@ export default function EditarProveedorPage() {
     <div className="max-w-2xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-          <Building2 className="mr-3 text-indigo-600" />
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 flex items-center gap-3">
+          <Building2 className="size-6 shrink-0 text-brand-600" />
           Editar Proveedor
         </h1>
-        <p className="mt-2 text-gray-600">
+        <p className="mt-1 text-sm text-zinc-500">
           Modifica los datos de <strong>{supplier.name}</strong>
         </p>
       </div>
 
       {/* Formulario */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="bg-white rounded-card shadow-card border border-zinc-200">
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Nombre */}
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="name" className="block text-sm font-medium text-zinc-700 mb-2">
               Nombre del proveedor *
             </label>
             <div className="relative">
-              <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 h-4 w-4" />
               <input
                 id="name"
                 type="text"
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
-                className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
-                  errors.name ? 'border-red-300' : 'border-gray-300'
+                className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent ${
+                  errors.name ? 'border-red-300' : 'border-zinc-300'
                 }`}
                 placeholder="Ej: Nike Argentina S.A."
               />
@@ -229,18 +229,18 @@ export default function EditarProveedorPage() {
 
           {/* Email */}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="email" className="block text-sm font-medium text-zinc-700 mb-2">
               Email de contacto
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 h-4 w-4" />
               <input
                 id="email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
-                className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
-                  errors.email ? 'border-red-300' : 'border-gray-300'
+                className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent ${
+                  errors.email ? 'border-red-300' : 'border-zinc-300'
                 }`}
                 placeholder="contacto@proveedor.com"
               />
@@ -252,17 +252,17 @@ export default function EditarProveedorPage() {
 
           {/* Teléfono */}
           <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="phone" className="block text-sm font-medium text-zinc-700 mb-2">
               Teléfono
             </label>
             <div className="relative">
-              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 h-4 w-4" />
               <input
                 id="phone"
                 type="text"
                 value={formData.phone}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                 placeholder="+54 11 4567-8900"
               />
             </div>
@@ -270,17 +270,17 @@ export default function EditarProveedorPage() {
 
           {/* Dirección */}
           <div>
-            <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="address" className="block text-sm font-medium text-zinc-700 mb-2">
               Dirección
             </label>
             <div className="relative">
-              <MapPin className="absolute left-3 top-3 text-gray-400 h-4 w-4" />
+              <MapPin className="absolute left-3 top-3 text-zinc-400 h-4 w-4" />
               <textarea
                 id="address"
                 value={formData.address}
                 onChange={(e) => handleInputChange('address', e.target.value)}
                 rows={2}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                 placeholder="Av. Corrientes 1234, CABA, Buenos Aires"
               />
             </div>
@@ -288,17 +288,17 @@ export default function EditarProveedorPage() {
 
           {/* Notas */}
           <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="notes" className="block text-sm font-medium text-zinc-700 mb-2">
               Notas adicionales
             </label>
             <div className="relative">
-              <FileText className="absolute left-3 top-3 text-gray-400 h-4 w-4" />
+              <FileText className="absolute left-3 top-3 text-zinc-400 h-4 w-4" />
               <textarea
                 id="notes"
                 value={formData.notes}
                 onChange={(e) => handleInputChange('notes', e.target.value)}
                 rows={3}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                 placeholder="Información adicional sobre el proveedor, términos especiales, etc."
               />
             </div>
@@ -306,7 +306,7 @@ export default function EditarProveedorPage() {
 
           {/* Estado */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-zinc-700 mb-2">
               Estado del proveedor
             </label>
             <div className="flex items-center space-x-4">
@@ -316,9 +316,9 @@ export default function EditarProveedorPage() {
                   name="isActive"
                   checked={formData.isActive}
                   onChange={() => handleInputChange('isActive', true)}
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                  className="h-4 w-4 text-brand-600 focus:ring-brand-500 border-zinc-300"
                 />
-                <span className="ml-2 text-sm text-gray-900">🟢 Activo</span>
+                <span className="ml-2 text-sm text-zinc-900">🟢 Activo</span>
               </label>
               <label className="flex items-center">
                 <input
@@ -326,9 +326,9 @@ export default function EditarProveedorPage() {
                   name="isActive"
                   checked={!formData.isActive}
                   onChange={() => handleInputChange('isActive', false)}
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                  className="h-4 w-4 text-brand-600 focus:ring-brand-500 border-zinc-300"
                 />
-                <span className="ml-2 text-sm text-gray-900">⚫ Inactivo</span>
+                <span className="ml-2 text-sm text-zinc-900">⚫ Inactivo</span>
               </label>
             </div>
           </div>
@@ -338,7 +338,7 @@ export default function EditarProveedorPage() {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              className="flex-1 bg-brand-600 hover:bg-brand-700 text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
               {loading ? (
                 <>
@@ -357,7 +357,7 @@ export default function EditarProveedorPage() {
               type="button"
               onClick={() => router.push('/proveedores')}
               disabled={loading}
-              className="flex-1 sm:flex-none border border-gray-300 text-gray-700 px-6 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              className="flex-1 sm:flex-none border border-zinc-300 text-zinc-700 px-6 py-2 rounded-lg font-medium hover:bg-zinc-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
               <X className="mr-2 h-4 w-4" />
               Cancelar
@@ -367,8 +367,8 @@ export default function EditarProveedorPage() {
       </div>
 
       {/* Información adicional */}
-      <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="text-sm text-blue-800">
+      <div className="mt-6 bg-brand-50 border border-brand-200 rounded-lg p-4">
+        <p className="text-sm text-brand-800">
           <strong>Información:</strong> Los campos marcados con (*) son obligatorios. 
           Los cambios se aplicarán inmediatamente después de guardar.
         </p>

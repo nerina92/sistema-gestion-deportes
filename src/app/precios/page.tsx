@@ -194,11 +194,11 @@ export default function PreciosPage() {
       {/* Encabezado */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <FaTag className="text-blue-600" />
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 flex items-center gap-3">
+            <FaTag className="size-6 shrink-0 text-brand-600" />
             Actualización masiva de precios
           </h1>
-          <p className="text-gray-500 text-sm mt-1">
+          <p className="text-zinc-500 text-sm mt-1">
             Editá el precio de costo. Los precios de venta se calculan automáticamente según los porcentajes de cada producto. Guardá todos los cambios de una vez.
           </p>
         </div>
@@ -206,7 +206,7 @@ export default function PreciosPage() {
           <button
             onClick={fetchVariants}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-100 text-zinc-700 rounded-lg hover:bg-zinc-200 text-sm font-medium disabled:opacity-50"
           >
             <FaSync className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Recargar
@@ -214,7 +214,7 @@ export default function PreciosPage() {
           <button
             onClick={handleSave}
             disabled={saving || modifiedCount === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+            className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50 text-sm font-medium"
           >
             <FaSave className="h-4 w-4" />
             {saving ? 'Guardando...' : `Guardar${modifiedCount > 0 ? ` (${modifiedCount})` : ''}`}
@@ -235,22 +235,22 @@ export default function PreciosPage() {
       )}
 
       {/* Filtros */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+      <div className="bg-white border border-zinc-200 rounded-lg p-4 mb-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div className="relative md:col-span-2">
-            <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
             <input
               type="text"
               placeholder="Buscar por nombre o SKU..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-9 pr-3 py-2 border border-zinc-300 rounded-lg text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-zinc-300 rounded-lg px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="">Todas las categorías</option>
             {categories.map((c) => (
@@ -262,7 +262,7 @@ export default function PreciosPage() {
           <select
             value={filterBrand}
             onChange={(e) => setFilterBrand(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-zinc-300 rounded-lg px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="">Todas las marcas</option>
             {brands.map((b) => (
@@ -273,7 +273,7 @@ export default function PreciosPage() {
           </select>
         </div>
         <div className="flex items-center gap-4 mt-3">
-          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+          <label className="flex items-center gap-2 text-sm text-zinc-600 cursor-pointer">
             <input
               type="checkbox"
               checked={showOnlyModified}
@@ -282,7 +282,7 @@ export default function PreciosPage() {
             />
             Ver solo modificados
           </label>
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-zinc-500">
             {displayed.length} variante{displayed.length !== 1 ? 's' : ''}
             {modifiedCount > 0 && (
               <span className="ml-2 text-orange-600 font-medium">
@@ -295,95 +295,95 @@ export default function PreciosPage() {
 
       {/* Tabla */}
       {loading ? (
-        <div className="text-center py-16 text-gray-500">
-          <FaSync className="h-8 w-8 animate-spin mx-auto mb-3 text-blue-400" />
+        <div className="text-center py-16 text-zinc-500">
+          <FaSync className="h-8 w-8 animate-spin mx-auto mb-3 text-brand-400" />
           <p>Cargando variantes...</p>
         </div>
       ) : displayed.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-zinc-400">
           <FaTag className="h-10 w-10 mx-auto mb-3 opacity-30" />
           <p className="text-lg">No se encontraron variantes</p>
           <p className="text-sm">Probá con otros filtros</p>
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-zinc-50 border-b border-zinc-200">
                 <tr>
-                  <th className="text-left px-3 py-3 font-semibold text-gray-600 whitespace-nowrap">Producto</th>
-                  <th className="text-left px-3 py-3 font-semibold text-gray-600 whitespace-nowrap">SKU</th>
-                  <th className="text-left px-3 py-3 font-semibold text-gray-600 whitespace-nowrap">{settings.variantAttr1Label}/{settings.variantAttr2Label}</th>
-                  <th className="text-right px-3 py-3 font-semibold text-gray-600 whitespace-nowrap">
+                  <th className="text-left px-3 py-3 font-semibold text-zinc-600 whitespace-nowrap">Producto</th>
+                  <th className="text-left px-3 py-3 font-semibold text-zinc-600 whitespace-nowrap">SKU</th>
+                  <th className="text-left px-3 py-3 font-semibold text-zinc-600 whitespace-nowrap">{settings.variantAttr1Label}/{settings.variantAttr2Label}</th>
+                  <th className="text-right px-3 py-3 font-semibold text-zinc-600 whitespace-nowrap">
                     Costo
                   </th>
-                  <th className="text-right px-3 py-3 font-semibold text-green-700 whitespace-nowrap">
+                  <th className="text-right px-3 py-3 font-semibold text-zinc-600 whitespace-nowrap">
                     Contado
                   </th>
-                  <th className="text-right px-3 py-3 font-semibold text-blue-700 whitespace-nowrap">
+                  <th className="text-right px-3 py-3 font-semibold text-zinc-600 whitespace-nowrap">
                     Débito
                   </th>
-                  <th className="text-right px-3 py-3 font-semibold text-purple-700 whitespace-nowrap">
+                  <th className="text-right px-3 py-3 font-semibold text-zinc-600 whitespace-nowrap">
                     Financiado
                   </th>
-                  <th className="text-center px-3 py-3 font-semibold text-gray-600 whitespace-nowrap">Stock</th>
+                  <th className="text-center px-3 py-3 font-semibold text-zinc-600 whitespace-nowrap">Stock</th>
                   <th className="px-3 py-3 w-10"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-zinc-100">
                 {displayed.map((v) => {
                   const prices = previewPrices(v);
                   return (
                   <tr
                     key={v.id}
-                    className={`hover:bg-gray-50 transition-colors ${
+                    className={`hover:bg-zinc-50 transition-colors ${
                       v._modified ? 'bg-orange-50 hover:bg-orange-50' : ''
                     }`}
                   >
                     {/* Producto */}
                     <td className="px-3 py-2">
-                      <div className="font-medium text-gray-900 max-w-[200px] truncate" title={v.product.name}>
+                      <div className="font-medium text-zinc-900 max-w-[200px] truncate" title={v.product.name}>
                         {v.product.name}
                       </div>
-                      <div className="text-xs text-gray-400">
+                      <div className="text-xs text-zinc-400">
                         {v.product.category}
                         {v.product.brand ? ` · ${v.product.brand}` : ''}
                       </div>
                     </td>
 
                     {/* SKU */}
-                    <td className="px-3 py-2 text-gray-500 font-mono text-xs whitespace-nowrap">
+                    <td className="px-3 py-2 text-zinc-500 font-mono text-xs whitespace-nowrap">
                       {v.sku}
                     </td>
 
                     {/* Atributos de la variante */}
                     <td className="px-3 py-2 whitespace-nowrap">
-                      <span className="text-gray-700">{v.size}</span>
+                      <span className="text-zinc-700">{v.size}</span>
                       {v.color && v.color !== v.size && (
-                        <span className="text-gray-400"> / {v.color}</span>
+                        <span className="text-zinc-400"> / {v.color}</span>
                       )}
                     </td>
 
                     {/* Costo */}
                     <td className="px-3 py-2">
                       <div className="flex items-center justify-end gap-1">
-                        <span className="text-gray-400 text-xs">$</span>
+                        <span className="text-zinc-400 text-xs">$</span>
                         <input
                           type="number"
                           min="0"
                           step="1"
                           value={v._costPrice}
                           onChange={(e) => handleCostChange(v.id, e.target.value)}
-                          className="w-24 text-right border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 text-sm text-gray-900"
+                          className="w-24 text-right border border-zinc-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 text-sm text-zinc-900"
                         />
                       </div>
                     </td>
 
                     {/* Contado (solo lectura, calculado) */}
                     <td className="px-3 py-2">
-                      <div className="flex items-center justify-end gap-1 text-right text-gray-500">
-                        <span className="text-gray-400 text-xs">$</span>
-                        <span className="w-24 inline-block text-right bg-gray-50 border border-gray-200 rounded px-2 py-1 text-sm tabular-nums">
+                      <div className="flex items-center justify-end gap-1 text-right text-zinc-500">
+                        <span className="text-zinc-400 text-xs">$</span>
+                        <span className="w-24 inline-block text-right bg-zinc-50 border border-zinc-200 rounded px-2 py-1 text-sm tabular-nums">
                           {prices.priceCash.toLocaleString('es-AR')}
                         </span>
                       </div>
@@ -391,9 +391,9 @@ export default function PreciosPage() {
 
                     {/* Débito (solo lectura, calculado) */}
                     <td className="px-3 py-2">
-                      <div className="flex items-center justify-end gap-1 text-right text-gray-500">
-                        <span className="text-gray-400 text-xs">$</span>
-                        <span className="w-24 inline-block text-right bg-gray-50 border border-gray-200 rounded px-2 py-1 text-sm tabular-nums">
+                      <div className="flex items-center justify-end gap-1 text-right text-zinc-500">
+                        <span className="text-zinc-400 text-xs">$</span>
+                        <span className="w-24 inline-block text-right bg-zinc-50 border border-zinc-200 rounded px-2 py-1 text-sm tabular-nums">
                           {prices.priceDebit.toLocaleString('es-AR')}
                         </span>
                       </div>
@@ -401,9 +401,9 @@ export default function PreciosPage() {
 
                     {/* Financiado (solo lectura, calculado) */}
                     <td className="px-3 py-2">
-                      <div className="flex items-center justify-end gap-1 text-right text-gray-500">
-                        <span className="text-gray-400 text-xs">$</span>
-                        <span className="w-24 inline-block text-right bg-gray-50 border border-gray-200 rounded px-2 py-1 text-sm tabular-nums">
+                      <div className="flex items-center justify-end gap-1 text-right text-zinc-500">
+                        <span className="text-zinc-400 text-xs">$</span>
+                        <span className="w-24 inline-block text-right bg-zinc-50 border border-zinc-200 rounded px-2 py-1 text-sm tabular-nums">
                           {prices.priceFinanced.toLocaleString('es-AR')}
                         </span>
                       </div>
@@ -430,7 +430,7 @@ export default function PreciosPage() {
                         <button
                           onClick={() => revertRow(v.id)}
                           title="Descartar cambios de esta fila"
-                          className="text-gray-400 hover:text-red-500 transition-colors text-xs"
+                          className="text-zinc-400 hover:text-red-500 transition-colors text-xs"
                         >
                           ✕
                         </button>
@@ -452,7 +452,7 @@ export default function PreciosPage() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+                className="flex items-center gap-2 px-5 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50 text-sm font-medium"
               >
                 <FaSave className="h-4 w-4" />
                 {saving ? 'Guardando...' : `Guardar ${modifiedCount} cambio${modifiedCount !== 1 ? 's' : ''}`}

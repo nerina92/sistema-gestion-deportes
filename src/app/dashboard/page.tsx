@@ -1,406 +1,263 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { 
-  FaHome, 
-  FaBox, 
-  FaShoppingCart, 
-  FaTruck, 
-  FaChartLine, 
-  FaExclamationTriangle,
-  FaArrowRight,
-  FaCalendar
-} from 'react-icons/fa';
-import { variantLabel } from '@/lib/variant-label';
+import dynamic from 'next/dynamic';
+import { useSession } from 'next-auth/react';
+import {
+  AlertTriangle,
+  ArrowDownRight,
+  ArrowRight,
+  ArrowUpRight,
+  BarChart3,
+  ClipboardList,
+  Package,
+  PackagePlus,
+  Plus,
+  ShoppingCart,
+  Truck,
+  Wallet,
+  type LucideIcon,
+} from 'lucide-react';
+import { Card, CardHeader, EmptyState, LinkButton, Skeleton, StatCard } from '@/components/ui';
+import { cn } from '@/lib/cn';
+import { formatDate, formatMoney, formatNumber, formatPercent, PAYMENT_METHOD_LABELS } from '@/lib/format';
+import { getModulesForRoles, type ModuleKey } from '@/lib/role-permissions';
 
-interface DashboardStats {
-  salesToday: number;
-  salesMonth: number;
-  lowStockCount: number;
-  totalProducts: number;
+const SalesChart = dynamic(() => import('@/components/charts/SalesChart'), {
+  ssr: false,
+  loading: () => <Skeleton className="h-52 w-full" />,
+});
+
+interface DashboardData {
+  today: { revenue: number; count: number };
+  yesterday: { revenue: number; count: number };
+  month: { revenue: number; count: number };
+  daily: { date: string; revenue: number; count: number }[];
+  recentSales: { id: string; saleDate: string; totalAmount: number; paymentMethod: string; itemCount: number }[];
+  lowStock: { count: number; items: { id: string; productId: string; name: string; variant: string; stock: number; min: number }[] };
+  pendingOrders: number;
+  productsCount: number;
 }
 
-interface RecentSale {
-  id: string;
-  saleDate: string;
-  totalAmount: string;
-  paymentMethod: string;
-  itemCount: number;
-}
+const QUICK_ACTIONS: { href: string; label: string; description: string; icon: LucideIcon; module: ModuleKey }[] = [
+  { href: '/ventas/nueva', label: 'Nueva venta', description: 'Registrar una venta', icon: ShoppingCart, module: 'ventas' },
+  { href: '/compras/nueva', label: 'Nueva compra', description: 'Cargar mercadería', icon: Truck, module: 'compras' },
+  { href: '/productos/nuevo', label: 'Nuevo producto', description: 'Sumar al catálogo', icon: PackagePlus, module: 'productos-editar' },
+  { href: '/reportes', label: 'Reportes', description: 'Ver cómo viene el mes', icon: BarChart3, module: 'reportes' },
+];
 
-interface LowStockItem {
-  id: string;
-  productName: string;
-  size: string;
-  color: string;
-  stockQuantity: number;
-  minStockAlert: number;
+function greeting() {
+  const h = Number(new Date().toLocaleString('es-AR', { hour: 'numeric', hour12: false, timeZone: 'America/Argentina/Buenos_Aires' }));
+  return h < 13 ? 'Buen día' : h < 20 ? 'Buenas tardes' : 'Buenas noches';
 }
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats>({
-    salesToday: 0,
-    salesMonth: 0,
-    lowStockCount: 0,
-    totalProducts: 0
-  });
-  const [recentSales, setRecentSales] = useState<RecentSale[]>([]);
-  const [lowStockItems, setLowStockItems] = useState<LowStockItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: session } = useSession();
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [error, setError] = useState('');
+
+  const activeTenant = session?.tenants.find((t) => t.tenantId === session.tenantId);
+  const modules = getModulesForRoles(activeTenant?.roles ?? []);
+  const rawName = session?.user?.name ?? '';
+  const firstName = rawName.includes('@') ? '' : rawName.split(' ')[0];
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    fetch('/api/dashboard', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((d) => (d.success ? setData(d) : setError(d.error || 'No se pudo cargar el resumen')))
+      .catch(() => setError('No se pudo cargar el resumen'));
+  }, [session?.tenantId]);
 
-  const fetchDashboardData = async () => {
-    try {
-      // Fetch sales
-      const salesRes = await fetch('/api/sales');
-      const salesData = await salesRes.json();
-      
-      // Fetch products (todas las páginas: la API pagina con `limit`, máximo 100)
-      const allProducts: any[] = [];
-      let page = 1;
-      let totalPages = 1;
-      do {
-        const productsRes = await fetch(`/api/products?page=${page}&limit=100`);
-        const productsData = await productsRes.json();
-        if (!productsData.products) break;
-        allProducts.push(...productsData.products);
-        totalPages = productsData.pagination?.totalPages ?? 1;
-        page++;
-      } while (page <= totalPages);
-
-      if (salesData.success) {
-        calculateStats(salesData.data, allProducts);
-        setRecentSales(salesData.data.slice(0, 5));
-      }
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const calculateStats = (sales: RecentSale[], products: any[]) => {
-    const today = new Date().toISOString().split('T')[0];
-    const thisMonth = new Date().toISOString().substring(0, 7);
-
-    // Calculate sales
-    const salesToday = sales
-      .filter(s => s.saleDate.startsWith(today))
-      .reduce((sum, s) => sum + parseFloat(s.totalAmount), 0);
-
-    const salesMonth = sales
-      .filter(s => s.saleDate.startsWith(thisMonth))
-      .reduce((sum, s) => sum + parseFloat(s.totalAmount), 0);
-
-    // Calculate low stock items
-    const lowStock: LowStockItem[] = [];
-    products.forEach(product => {
-      product.variants?.forEach((variant: any) => {
-        if (variant.stockQuantity <= variant.minStockAlert) {
-          lowStock.push({
-            id: variant.id,
-            productName: product.name,
-            size: variant.size,
-            color: variant.color,
-            stockQuantity: variant.stockQuantity,
-            minStockAlert: variant.minStockAlert
-          });
-        }
-      });
-    });
-
-    setLowStockItems(lowStock.slice(0, 5));
-
-    setStats({
-      salesToday,
-      salesMonth,
-      lowStockCount: lowStock.length,
-      totalProducts: products.length
-    });
-  };
-
-  const paymentMethodLabels: Record<string, string> = {
-    cash: 'Efectivo',
-    card: 'Tarjeta',
-    transfer: 'Transferencia'
-  };
+  const todayVsYesterday =
+    data && data.yesterday.revenue > 0 ? (data.today.revenue - data.yesterday.revenue) / data.yesterday.revenue : null;
+  const fortnight = data?.daily.reduce((a, d) => a + d.revenue, 0) ?? 0;
 
   return (
-    <div className="max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-          <FaHome className="mr-3 text-blue-600" />
-          Dashboard
-        </h1>
-        <p className="mt-2 text-gray-600">
-          Resumen general del negocio - {new Date().toLocaleDateString('es-AR', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          })}
-        </p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {/* Sales Today */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Ventas de Hoy</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">
-                ${isLoading ? '...' : stats.salesToday.toFixed(0)}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">Total del día</p>
-            </div>
-            <div className="p-3 bg-green-100 rounded-lg">
-              <FaShoppingCart className="h-8 w-8 text-green-600" />
-            </div>
-          </div>
-        </div>
-
-        {/* Sales Month */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Ventas del Mes</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">
-                ${isLoading ? '...' : stats.salesMonth.toFixed(0)}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">Total mensual</p>
-            </div>
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <FaChartLine className="h-8 w-8 text-blue-600" />
-            </div>
-          </div>
-        </div>
-
-        {/* Low Stock */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Stock Bajo</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">
-                {isLoading ? '...' : stats.lowStockCount}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">Productos críticos</p>
-            </div>
-            <div className={`p-3 rounded-lg ${stats.lowStockCount > 0 ? 'bg-red-100' : 'bg-gray-100'}`}>
-              <FaExclamationTriangle className={`h-8 w-8 ${stats.lowStockCount > 0 ? 'text-red-600' : 'text-gray-400'}`} />
-            </div>
-          </div>
-          {stats.lowStockCount > 0 && (
-            <Link 
-              href="/productos?filter=lowStock"
-              className="mt-3 text-xs text-red-600 hover:text-red-800 font-medium flex items-center"
-            >
-              Ver productos <FaArrowRight className="ml-1" />
-            </Link>
-          )}
-        </div>
-
-        {/* Total Products */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Productos</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">
-                {isLoading ? '...' : stats.totalProducts}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">En inventario</p>
-            </div>
-            <div className="p-3 bg-purple-100 rounded-lg">
-              <FaBox className="h-8 w-8 text-purple-600" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Critical Stock Alert */}
-      {stats.lowStockCount > 0 && (
-        <div className="mb-8 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
-          <div className="flex items-start">
-            <FaExclamationTriangle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">
-                Alerta: {stats.lowStockCount} producto{stats.lowStockCount !== 1 ? 's' : ''} con stock crítico
-              </h3>
-              <p className="text-sm text-red-700 mt-1">
-                Algunos productos están por debajo del stock mínimo. Considera realizar una orden de compra.
-              </p>
-              <Link
-                href="/compras/nueva"
-                className="mt-2 inline-flex items-center text-sm font-medium text-red-800 hover:text-red-900"
-              >
-                Registrar compra <FaArrowRight className="ml-1" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Recent Sales */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-gray-900">Últimas Ventas</h3>
-            <Link 
-              href="/ventas"
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center"
-            >
-              Ver todas <FaArrowRight className="ml-1 h-3 w-3" />
-            </Link>
-          </div>
-          <div className="p-6">
-            {isLoading ? (
-              <div className="text-center py-8 text-gray-500">Cargando...</div>
-            ) : recentSales.length === 0 ? (
-              <div className="text-center py-8">
-                <FaShoppingCart className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500 text-sm">No hay ventas registradas</p>
-                <Link
-                  href="/ventas/nueva"
-                  className="mt-3 inline-block text-sm text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  Registrar primera venta
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {recentSales.map((sale) => (
-                  <div key={sale.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                    <div className="flex items-center">
-                      <div className="p-2 bg-green-100 rounded">
-                        <FaShoppingCart className="h-4 w-4 text-green-600" />
-                      </div>
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-900">
-                          ${parseFloat(sale.totalAmount).toFixed(2)}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(sale.saleDate).toLocaleDateString('es-AR')} • {paymentMethodLabels[sale.paymentMethod]} • {sale.itemCount} items
-                        </p>
-                      </div>
-                    </div>
-                    <Link
-                      href="/ventas"
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      <FaArrowRight className="h-4 w-4" />
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Low Stock Items */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-gray-900">Stock Crítico</h3>
-            <Link 
-              href="/productos?filter=lowStock"
-              className="text-sm text-red-600 hover:text-red-800 font-medium flex items-center"
-            >
-              Ver todos <FaArrowRight className="ml-1 h-3 w-3" />
-            </Link>
-          </div>
-          <div className="p-6">
-            {isLoading ? (
-              <div className="text-center py-8 text-gray-500">Cargando...</div>
-            ) : lowStockItems.length === 0 ? (
-              <div className="text-center py-8">
-                <FaBox className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500 text-sm">
-                  ✓ Todos los productos tienen stock adecuado
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {lowStockItems.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center">
-                      <div className={`p-2 rounded ${item.stockQuantity === 0 ? 'bg-red-100' : 'bg-yellow-100'}`}>
-                        <FaExclamationTriangle className={`h-4 w-4 ${item.stockQuantity === 0 ? 'text-red-600' : 'text-yellow-600'}`} />
-                      </div>
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-900">
-                          {item.productName}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {variantLabel(item.size, item.color)} • Stock: {item.stockQuantity} (Mín: {item.minStockAlert})
-                        </p>
-                      </div>
-                    </div>
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      item.stockQuantity === 0 
-                        ? 'bg-red-100 text-red-800' 
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {item.stockQuantity === 0 ? 'Sin stock' : 'Bajo'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Acciones Rápidas</h3>
-          <p className="text-sm text-gray-600 mt-1">
-            Accede rápidamente a las funcionalidades principales
+    <div>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm text-zinc-500 first-letter:uppercase">
+            {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900">
+            {greeting()}
+            {firstName ? `, ${firstName}` : ''}
+          </h1>
         </div>
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link
-              href="/ventas/nueva"
-              className="p-4 border-2 border-gray-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-all text-left group"
-            >
-              <FaShoppingCart className="h-8 w-8 text-green-600 mb-3 group-hover:scale-110 transition-transform" />
-              <h4 className="font-semibold text-gray-900">Nueva Venta</h4>
-              <p className="text-sm text-gray-600 mt-1">Registrar venta rápidamente</p>
-            </Link>
+        {modules.has('ventas') && (
+          <LinkButton href="/ventas/nueva">
+            <Plus /> Nueva venta
+          </LinkButton>
+        )}
+      </div>
 
-            <Link
-              href="/compras/nueva"
-              className="p-4 border-2 border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all text-left group"
-            >
-              <FaTruck className="h-8 w-8 text-purple-600 mb-3 group-hover:scale-110 transition-transform" />
-              <h4 className="font-semibold text-gray-900">Nueva Compra</h4>
-              <p className="text-sm text-gray-600 mt-1">Registrar orden de compra</p>
-            </Link>
+      {error && <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
-            <Link
-              href="/productos/nuevo"
-              className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all text-left group"
-            >
-              <FaBox className="h-8 w-8 text-blue-600 mb-3 group-hover:scale-110 transition-transform" />
-              <h4 className="font-semibold text-gray-900">Nuevo Producto</h4>
-              <p className="text-sm text-gray-600 mt-1">Agregar producto al inventario</p>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+        {!data ? (
+          Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-32" />)
+        ) : (
+          <>
+            <StatCard
+              label="Ventas de hoy"
+              icon={Wallet}
+              value={formatMoney(data.today.revenue)}
+              hint={
+                <span className="inline-flex flex-wrap items-center gap-1">
+                  {formatNumber(data.today.count)} {data.today.count === 1 ? 'venta' : 'ventas'}
+                  {todayVsYesterday !== null && (
+                    <span className={cn('inline-flex items-center font-medium', todayVsYesterday >= 0 ? 'text-emerald-700' : 'text-red-700')}>
+                      · {todayVsYesterday >= 0 ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}
+                      {formatPercent(Math.abs(todayVsYesterday))} vs. ayer
+                    </span>
+                  )}
+                </span>
+              }
+            />
+            <StatCard
+              label="Ventas del mes"
+              icon={BarChart3}
+              value={formatMoney(data.month.revenue)}
+              hint={`${formatNumber(data.month.count)} ventas · ticket promedio ${formatMoney(Math.round(data.month.count ? data.month.revenue / data.month.count : 0))}`}
+            />
+            {modules.has('pedidos') ? (
+              <Link href="/pedidos" className="block">
+                <StatCard
+                  label="Pedidos pendientes"
+                  icon={ClipboardList}
+                  tone={data.pendingOrders > 0 ? 'warning' : 'neutral'}
+                  value={formatNumber(data.pendingOrders)}
+                  hint={data.pendingOrders > 0 ? 'Tienda online · revisalos' : 'Tienda online · al día'}
+                  className="h-full transition hover:border-zinc-300"
+                />
+              </Link>
+            ) : (
+              <StatCard label="Productos" icon={Package} value={formatNumber(data.productsCount)} hint="En el catálogo" />
+            )}
+            <Link href="/productos?lowStock=1" className="block">
+              <StatCard
+                label="Stock bajo"
+                icon={AlertTriangle}
+                tone={data.lowStock.count > 0 ? 'danger' : 'neutral'}
+                value={formatNumber(data.lowStock.count)}
+                hint={data.lowStock.count > 0 ? 'Variantes en o bajo el mínimo' : 'Todo por encima del mínimo'}
+                className="h-full transition hover:border-zinc-300"
+              />
             </Link>
+          </>
+        )}
+      </div>
 
+      <Card className="mt-6">
+        <CardHeader
+          title="Últimos 14 días"
+          description={data ? `${formatMoney(fortnight)} vendidos en dos semanas` : undefined}
+          actions={
+            modules.has('reportes') ? (
+              <Link href="/reportes" className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:text-brand-900">
+                Ver reportes <ArrowRight className="size-4" />
+              </Link>
+            ) : undefined
+          }
+        />
+        <div className="p-4">{data ? <SalesChart data={data.daily} height={208} /> : <Skeleton className="h-52 w-full" />}</div>
+      </Card>
+
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card className="overflow-hidden">
+          <CardHeader
+            title="Últimas ventas"
+            actions={
+              <Link href="/ventas" className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:text-brand-900">
+                Ver todas <ArrowRight className="size-4" />
+              </Link>
+            }
+          />
+          {!data ? (
+            <div className="space-y-3 p-5">
+              {Array.from({ length: 4 }, (_, i) => (
+                <Skeleton key={i} className="h-10" />
+              ))}
+            </div>
+          ) : data.recentSales.length === 0 ? (
+            <EmptyState icon={ShoppingCart} title="Todavía no hay ventas" description="Cuando registres una venta va a aparecer acá." />
+          ) : (
+            <ul className="divide-y divide-zinc-100">
+              {data.recentSales.map((s) => (
+                <li key={s.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-zinc-900">{PAYMENT_METHOD_LABELS[s.paymentMethod] ?? s.paymentMethod}</p>
+                    <p className="text-xs text-zinc-500">
+                      {formatDate(s.saleDate)} · {s.itemCount} {s.itemCount === 1 ? 'ítem' : 'ítems'}
+                    </p>
+                  </div>
+                  <p className="text-sm font-semibold text-zinc-900 tabular">{formatMoney(s.totalAmount)}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <Card className="overflow-hidden">
+          <CardHeader
+            title="Para reponer"
+            description="Variantes con stock en o por debajo del mínimo"
+            actions={
+              modules.has('compras') ? (
+                <Link href="/compras/nueva" className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:text-brand-900">
+                  Registrar compra <ArrowRight className="size-4" />
+                </Link>
+              ) : undefined
+            }
+          />
+          {!data ? (
+            <div className="space-y-3 p-5">
+              {Array.from({ length: 4 }, (_, i) => (
+                <Skeleton key={i} className="h-10" />
+              ))}
+            </div>
+          ) : data.lowStock.items.length === 0 ? (
+            <EmptyState icon={Package} title="Todo el stock está en orden" />
+          ) : (
+            <ul className="divide-y divide-zinc-100">
+              {data.lowStock.items.map((item) => (
+                <li key={item.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-zinc-900">{item.name}</p>
+                    <p className="text-xs text-zinc-500">{item.variant}</p>
+                  </div>
+                  <span
+                    className={cn(
+                      'shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset',
+                      item.stock <= 0 ? 'bg-red-50 text-red-700 ring-red-200' : 'bg-amber-50 text-amber-800 ring-amber-200'
+                    )}
+                  >
+                    {item.stock <= 0 ? 'Sin stock' : `Quedan ${item.stock}`} · mín. {item.min}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </div>
+
+      {/* Accesos rápidos según el rol */}
+      <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {QUICK_ACTIONS.filter((a) => modules.has(a.module)).map((a) => {
+          const Icon = a.icon;
+          return (
             <Link
-              href="/reportes"
-              className="p-4 border-2 border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-all text-left group"
+              key={a.href}
+              href={a.href}
+              className="group rounded-card border border-zinc-200 bg-white p-4 shadow-card transition hover:border-brand-300"
             >
-              <FaChartLine className="h-8 w-8 text-orange-600 mb-3 group-hover:scale-110 transition-transform" />
-              <h4 className="font-semibold text-gray-900">Reportes</h4>
-              <p className="text-sm text-gray-600 mt-1">Ver análisis y métricas</p>
+              <Icon className="size-5 text-brand-600" />
+              <p className="mt-3 text-sm font-semibold text-zinc-900">{a.label}</p>
+              <p className="text-xs text-zinc-500">{a.description}</p>
             </Link>
-          </div>
-        </div>
+          );
+        })}
       </div>
     </div>
   );

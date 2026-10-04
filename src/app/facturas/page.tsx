@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { FaFileInvoice, FaDownload, FaCheckCircle, FaExclamationCircle, FaClock } from 'react-icons/fa';
+import { formatMoney, formatDate } from '@/lib/format';
 
 interface Invoice {
   id: string;
@@ -97,13 +98,13 @@ export default function FacturasPage() {
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-              <FaFileInvoice className="mr-3 text-blue-600" />
+            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 flex items-center gap-3">
+              <FaFileInvoice className="size-6 shrink-0 text-brand-600" />
               Facturas Electrónicas
             </h1>
-            <p className="mt-2 text-gray-600">
+            <p className="mt-1 text-sm text-zinc-500">
               Gestiona todas las facturas emitidas a través de AFIP
             </p>
           </div>
@@ -111,64 +112,64 @@ export default function FacturasPage() {
       </div>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-8">
+        <div className="bg-white p-6 rounded-card shadow-card border border-zinc-200">
           <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <FaFileInvoice className="h-6 w-6 text-blue-600" />
+            <div className="p-2 bg-zinc-100 rounded-lg">
+              <FaFileInvoice className="h-6 w-6 text-zinc-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Facturas</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+              <p className="text-sm font-medium text-zinc-600">Total Facturas</p>
+              <p className="text-2xl font-semibold tracking-tight text-zinc-900 tabular">{stats.total}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div className="bg-white p-6 rounded-card shadow-card border border-zinc-200">
           <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <FaCheckCircle className="h-6 w-6 text-green-600" />
+            <div className="p-2 bg-zinc-100 rounded-lg">
+              <FaCheckCircle className="h-6 w-6 text-zinc-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Emitidas</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.issued}</p>
+              <p className="text-sm font-medium text-zinc-600">Emitidas</p>
+              <p className="text-2xl font-semibold tracking-tight text-zinc-900 tabular">{stats.issued}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div className="bg-white p-6 rounded-card shadow-card border border-zinc-200">
           <div className="flex items-center">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <FaFileInvoice className="h-6 w-6 text-purple-600" />
+            <div className="p-2 bg-zinc-100 rounded-lg">
+              <FaFileInvoice className="h-6 w-6 text-zinc-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Hoy</p>
-              <p className="text-2xl font-bold text-gray-900">${stats.todayTotal.toFixed(0)}</p>
+              <p className="text-sm font-medium text-zinc-600">Hoy</p>
+              <p className="text-2xl font-semibold tracking-tight text-zinc-900 tabular">{formatMoney(stats.todayTotal)}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div className="bg-white p-6 rounded-card shadow-card border border-zinc-200">
           <div className="flex items-center">
-            <div className="p-2 bg-orange-100 rounded-lg">
-              <FaFileInvoice className="h-6 w-6 text-orange-600" />
+            <div className="p-2 bg-zinc-100 rounded-lg">
+              <FaFileInvoice className="h-6 w-6 text-zinc-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Mes</p>
-              <p className="text-2xl font-bold text-gray-900">${stats.monthTotal.toFixed(0)}</p>
+              <p className="text-sm font-medium text-zinc-600">Mes</p>
+              <p className="text-2xl font-semibold tracking-tight text-zinc-900 tabular">{formatMoney(stats.monthTotal)}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+      <div className="mb-6 bg-white p-4 rounded-card shadow-card border border-zinc-200">
         <div className="flex items-center space-x-4">
-          <label className="text-sm font-medium text-gray-700">Filtrar por estado:</label>
+          <label className="text-sm font-medium text-zinc-700">Filtrar por estado:</label>
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-zinc-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="all">Todas</option>
             <option value="issued">Emitidas</option>
@@ -179,92 +180,92 @@ export default function FacturasPage() {
       </div>
 
       {/* Invoices table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Listado de Facturas</h2>
+      <div className="bg-white rounded-card shadow-card border border-zinc-200">
+        <div className="px-6 py-4 border-b border-zinc-200">
+          <h2 className="text-lg font-semibold text-zinc-900">Listado de Facturas</h2>
         </div>
 
         {isLoading ? (
-          <div className="p-12 text-center text-gray-500">Cargando facturas...</div>
+          <div className="p-12 text-center text-zinc-500">Cargando facturas...</div>
         ) : invoices.length === 0 ? (
           <div className="p-12 text-center">
             <div className="max-w-md mx-auto">
-              <div className="h-24 w-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <FaFileInvoice className="h-12 w-12 text-blue-600" />
+              <div className="h-24 w-24 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <FaFileInvoice className="h-12 w-12 text-brand-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+              <h3 className="text-xl font-semibold text-zinc-900 mb-3">
                 No hay facturas registradas
               </h3>
-              <p className="text-gray-600">
+              <p className="text-zinc-600">
                 Las facturas aparecerán aquí cuando emitas tu primera factura desde el módulo de ventas
               </p>
             </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-zinc-200">
+              <thead className="bg-zinc-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
                     Nº Factura
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
                     Fecha
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
                     Cliente
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
                     CAE
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
                     Total
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
                     Estado
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
                     Acciones
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-zinc-200">
                 {invoices.map((invoice) => (
-                  <tr key={invoice.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <tr key={invoice.id} className="hover:bg-zinc-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-zinc-900">
                       {invoice.invoiceNumber}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {new Date(invoice.invoiceDate).toLocaleDateString('es-AR')}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-600">
+                      {formatDate(invoice.invoiceDate)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-600">
                       {invoice.customerName || 'Consumidor Final'}
                       {invoice.customerDni && (
-                        <span className="block text-xs text-gray-500">DNI: {invoice.customerDni}</span>
+                        <span className="block text-xs text-zinc-500">DNI: {invoice.customerDni}</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-600 font-mono">
                       {invoice.cae || '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                      ${parseFloat(invoice.totalAmount).toFixed(2)}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-zinc-900">
+                      {formatMoney(parseFloat(invoice.totalAmount))}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {getStatusBadge(invoice.status)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-600">
                       {invoice.pdfPath && invoice.status === 'issued' ? (
                         <a
                           href={`/api/invoices/${invoice.id}/pdf`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-900 font-medium flex items-center"
+                          className="text-brand-600 hover:text-brand-900 font-medium flex items-center"
                         >
                           <FaDownload className="mr-1" />
                           Descargar PDF
                         </a>
                       ) : (
-                        <span className="text-gray-400">No disponible</span>
+                        <span className="text-zinc-400">No disponible</span>
                       )}
                     </td>
                   </tr>

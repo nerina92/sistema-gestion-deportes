@@ -15,6 +15,7 @@ import {
   type OrderStatus,
 } from '@/lib/store';
 import { getModulesForRoles } from '@/lib/role-permissions';
+import { formatDateTime } from '@/lib/format';
 
 interface OrderItem {
   id: string;
@@ -42,9 +43,9 @@ interface Order {
 
 const STATUS_STYLES: Record<OrderStatus, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
-  confirmed: 'bg-blue-100 text-blue-800',
+  confirmed: 'bg-brand-100 text-brand-800',
   delivered: 'bg-green-100 text-green-800',
-  cancelled: 'bg-gray-200 text-gray-600',
+  cancelled: 'bg-zinc-200 text-zinc-600',
 };
 
 const FILTERS: (OrderStatus | '')[] = ['', ...ORDER_STATUSES];
@@ -134,20 +135,20 @@ export default function PedidosPage() {
     <div className="max-w-5xl mx-auto">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            <ClipboardList className="mr-3 h-7 w-7 text-gray-600" />
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 flex items-center gap-3">
+            <ClipboardList className="size-6 shrink-0 text-brand-600" />
             Pedidos
           </h1>
-          <p className="mt-2 text-gray-600">
+          <p className="mt-1 text-sm text-zinc-500">
             Pedidos recibidos desde la tienda online.{' '}
-            <Link href="/configuracion#tienda" className="text-blue-600 hover:text-blue-800 underline">
+            <Link href="/configuracion#tienda" className="text-brand-600 hover:text-brand-800 underline">
               Configurar tienda
             </Link>
           </p>
         </div>
         <button
           onClick={load}
-          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          className="inline-flex items-center gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50"
         >
           <RefreshCw className="h-4 w-4" /> Actualizar
         </button>
@@ -160,7 +161,7 @@ export default function PedidosPage() {
               key={key || 'all'}
               onClick={() => setFilter(key)}
               className={`rounded-full border px-3 py-1 text-sm ${
-                filter === key ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                filter === key ? 'border-brand-600 bg-brand-600 text-white' : 'border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50'
               }`}
             >
               {key ? ORDER_STATUS_LABELS[key] : 'Todos'}
@@ -172,57 +173,57 @@ export default function PedidosPage() {
 
       {error && <p className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p>}
 
-      <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
+      <div className="rounded-card border border-zinc-200 bg-white shadow-card">
         {loading ? (
-          <p className="p-8 text-center text-gray-500">Cargando...</p>
+          <p className="p-8 text-center text-zinc-500">Cargando...</p>
         ) : orders.length === 0 ? (
-          <p className="p-8 text-center text-gray-500">{filter ? `No hay pedidos con estado "${ORDER_STATUS_LABELS[filter]}".` : 'Todavía no recibiste pedidos.'}</p>
+          <p className="p-8 text-center text-zinc-500">{filter ? `No hay pedidos con estado "${ORDER_STATUS_LABELS[filter]}".` : 'Todavía no recibiste pedidos.'}</p>
         ) : (
-          <ul className="divide-y divide-gray-200">
+          <ul className="divide-y divide-zinc-200">
             {orders.map((o) => {
               const open = expanded === o.id;
               return (
                 <li key={o.id}>
                   <button
                     onClick={() => setExpanded(open ? null : o.id)}
-                    className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-left hover:bg-gray-50"
+                    className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-left hover:bg-zinc-50"
                   >
-                    <span className="font-mono text-sm text-gray-500">#{o.number}</span>
-                    <span className="flex-1 font-medium text-gray-900">{o.customerName}</span>
+                    <span className="font-mono text-sm text-zinc-500">#{o.number}</span>
+                    <span className="flex-1 font-medium text-zinc-900">{o.customerName}</span>
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[o.status]}`}>
                       {ORDER_STATUS_LABELS[o.status]}
                     </span>
                     {o.saleId && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">Venta registrada</span>}
-                    <span className="w-28 text-right font-semibold text-gray-900">{formatMoney(o.totalAmount)}</span>
-                    <span className="w-full text-xs text-gray-500 sm:w-auto">
-                      {new Date(o.createdAt).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
+                    <span className="w-28 text-right font-semibold text-zinc-900">{formatMoney(o.totalAmount)}</span>
+                    <span className="w-full text-xs text-zinc-500 sm:w-auto">
+                      {formatDateTime(o.createdAt)}
                     </span>
                   </button>
 
                   {open && (
-                    <div className="space-y-4 bg-gray-50 px-4 py-4 text-sm">
+                    <div className="space-y-4 bg-zinc-50 px-4 py-4 text-sm">
                       <div className="grid gap-2 sm:grid-cols-2">
-                        <p><span className="text-gray-500">Teléfono:</span> {o.customerPhone}</p>
-                        <p><span className="text-gray-500">Entrega:</span> {DELIVERY_LABELS[o.deliveryMethod]}</p>
-                        {o.address && <p className="sm:col-span-2"><span className="text-gray-500">Dirección:</span> {o.address}</p>}
-                        {o.notes && <p className="sm:col-span-2"><span className="text-gray-500">Notas:</span> {o.notes}</p>}
+                        <p><span className="text-zinc-500">Teléfono:</span> {o.customerPhone}</p>
+                        <p><span className="text-zinc-500">Entrega:</span> {DELIVERY_LABELS[o.deliveryMethod]}</p>
+                        {o.address && <p className="sm:col-span-2"><span className="text-zinc-500">Dirección:</span> {o.address}</p>}
+                        {o.notes && <p className="sm:col-span-2"><span className="text-zinc-500">Notas:</span> {o.notes}</p>}
                       </div>
 
                       <table className="w-full">
                         <thead>
-                          <tr className="text-left text-xs uppercase text-gray-500">
+                          <tr className="text-left text-xs uppercase text-zinc-500">
                             <th className="py-1">Producto</th>
                             <th className="py-1 text-right">Cant.</th>
                             <th className="py-1 text-right">Precio</th>
                             <th className="py-1 text-right">Subtotal</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200">
+                        <tbody className="divide-y divide-zinc-200">
                           {o.items.map((i) => (
                             <tr key={i.id}>
-                              <td className="py-1.5 text-gray-900">
+                              <td className="py-1.5 text-zinc-900">
                                 {i.productName}
-                                {i.variantLabel !== 'Único' && <span className="text-gray-500"> — {i.variantLabel}</span>}
+                                {i.variantLabel !== 'Único' && <span className="text-zinc-500"> — {i.variantLabel}</span>}
                               </td>
                               <td className="py-1.5 text-right">{i.quantity}</td>
                               <td className="py-1.5 text-right">{formatMoney(i.unitPrice)}</td>
@@ -247,7 +248,7 @@ export default function PedidosPage() {
                             value={o.status}
                             disabled={busy === o.id}
                             onChange={(e) => changeStatus(o, e.target.value as OrderStatus)}
-                            className="rounded-md border border-gray-300 bg-white px-2 py-1.5 text-gray-900"
+                            className="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-zinc-900"
                             aria-label="Estado del pedido"
                           >
                             {ORDER_STATUSES.filter((s) => s !== 'cancelled' || !o.saleId).map((s) => (
@@ -261,7 +262,7 @@ export default function PedidosPage() {
                           <button
                             onClick={() => changeStatus(o, 'pending')}
                             disabled={busy === o.id}
-                            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-gray-700 hover:bg-gray-100"
+                            className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-zinc-700 hover:bg-zinc-100"
                           >
                             Reabrir
                           </button>
@@ -269,13 +270,13 @@ export default function PedidosPage() {
 
                         {canSell && !o.saleId && o.status !== 'cancelled' && (
                           <span className="inline-flex items-center gap-1">
-                            <span className="text-gray-600">Registrar venta:</span>
+                            <span className="text-zinc-600">Registrar venta:</span>
                             {(Object.keys(PAYMENT_LABELS) as (keyof typeof PAYMENT_LABELS)[]).map((pm) => (
                               <button
                                 key={pm}
                                 onClick={() => registerSale(o, pm)}
                                 disabled={busy === o.id}
-                                className="rounded-md border border-blue-600 px-2 py-1 text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                                className="rounded-md border border-brand-600 px-2 py-1 text-brand-700 hover:bg-brand-50 disabled:opacity-50"
                               >
                                 {PAYMENT_LABELS[pm]}
                               </button>
@@ -283,7 +284,7 @@ export default function PedidosPage() {
                           </span>
                         )}
                         {o.saleId && (
-                          <Link href="/ventas" className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 underline">
+                          <Link href="/ventas" className="inline-flex items-center gap-1 text-brand-600 hover:text-brand-800 underline">
                             Ver en ventas <ExternalLink className="h-3.5 w-3.5" />
                           </Link>
                         )}

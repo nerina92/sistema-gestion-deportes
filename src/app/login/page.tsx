@@ -24,21 +24,47 @@ export default async function LoginPage({
   const redirectTo = safeCallbackUrl(callbackUrl);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center">
-            <span className="text-2xl font-bold text-white">GC</span>
-          </div>
-          <h1 className="mt-6 text-3xl font-extrabold text-gray-900">Gestión Comercial</h1>
-          <p className="mt-2 text-sm text-gray-600">Ingresá con la cuenta de Google con la que te invitaron</p>
+    <div className="grid min-h-dvh bg-white lg:grid-cols-2">
+      {/* Panel de marca */}
+      <div className="relative hidden overflow-hidden bg-ink p-12 text-white lg:flex lg:flex-col lg:justify-between">
+        <div className="pointer-events-none absolute -left-32 -top-32 size-[28rem] rounded-full bg-brand-600/40 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-40 right-0 size-[24rem] rounded-full bg-cyan-500/20 blur-3xl" />
+        <div className="relative flex items-center gap-3">
+          <span className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold">GC</span>
+          <span className="text-sm font-semibold tracking-wide">Gestión Comercial</span>
         </div>
+        <div className="relative max-w-md">
+          <h2 className="text-4xl font-semibold leading-tight tracking-tight">
+            Todo tu comercio,{' '}
+            <span className="bg-gradient-to-r from-brand-300 via-brand-200 to-cyan-300 bg-clip-text italic text-transparent">
+              en un solo sistema
+            </span>
+          </h2>
+          <ul className="mt-8 space-y-3 text-sm text-zinc-300">
+            <li>Stock y precios siempre al día</li>
+            <li>Ventas, compras y facturación electrónica</li>
+            <li>Reportes para decidir con datos</li>
+          </ul>
+        </div>
+        <p className="relative text-xs text-zinc-500">Plexo Labs</p>
+      </div>
 
-        <div className="bg-white shadow rounded-lg p-6 space-y-4">
+      {/* Ingreso */}
+      <div className="flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-sm">
+          <div className="mb-8 flex items-center gap-3 lg:hidden">
+            <span className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold text-white">GC</span>
+            <span className="text-sm font-semibold text-zinc-900">Gestión Comercial</span>
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Ingresá a tu negocio</h1>
+          <p className="mt-2 text-sm text-zinc-500">Usá la cuenta de Google con la que te invitaron.</p>
+
           {errorMessage && (
-            <div className="bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-700">{errorMessage}</div>
+            <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{errorMessage}</div>
           )}
+
           <form
+            className="mt-8"
             action={async () => {
               'use server';
               await signIn('google', { redirectTo });
@@ -46,7 +72,7 @@ export default async function LoginPage({
           >
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-3 py-2.5 px-4 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+              className="flex h-11 w-full items-center justify-center gap-3 rounded-lg border border-zinc-300 bg-white text-sm font-medium text-zinc-800 shadow-xs transition hover:bg-zinc-50"
             >
               <svg className="h-5 w-5" viewBox="0 0 48 48" aria-hidden="true">
                 <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z" />
@@ -57,6 +83,9 @@ export default async function LoginPage({
               Continuar con Google
             </button>
           </form>
+          <p className="mt-6 text-xs text-zinc-500">
+            ¿No tenés acceso? Pedile al administrador de tu negocio que te invite con tu email de Google.
+          </p>
         </div>
       </div>
     </div>

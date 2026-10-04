@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { formatDateTime } from '@/lib/format';
 
 export default function TiendaNubeConfigPage() {
   const router = useRouter();
@@ -91,7 +92,7 @@ export default function TiendaNubeConfigPage() {
 
   return (
     <div className="max-w-3xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">Integración con Tienda Nube</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 mb-6">Integración con Tienda Nube</h1>
 
       {configured && (
         <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded">
@@ -100,43 +101,43 @@ export default function TiendaNubeConfigPage() {
           </p>
           {lastSync && (
             <p className="text-sm text-green-600 mt-1">
-              Última sincronización: {new Date(lastSync).toLocaleString('es-AR')}
+              Última sincronización: {formatDateTime(lastSync)}
             </p>
           )}
         </div>
       )}
 
-      <form onSubmit={handleSave} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+      <form onSubmit={handleSave} className="bg-white shadow-card rounded-card px-8 pt-6 pb-8 mb-4 border border-zinc-200">
         <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2">
+          <label className="block text-zinc-700 text-sm font-bold mb-2">
             Store ID
           </label>
           <input
             type="text"
             value={storeId}
             onChange={(e) => setStoreId(e.target.value)}
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-zinc-700"
             placeholder="12345"
             required
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-zinc-500 mt-1">
             Encontralo en tu panel de Tienda Nube: Configuración → API
           </p>
         </div>
 
         <div className="mb-6">
-          <label className="block text-gray-700 text-sm font-bold mb-2">
+          <label className="block text-zinc-700 text-sm font-bold mb-2">
             Access Token
           </label>
           <input
             type="password"
             value={accessToken}
             onChange={(e) => setAccessToken(e.target.value)}
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-zinc-700"
             placeholder="xxxxxxxxxxxxxxxxxxxxxxxx"
             required
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-zinc-500 mt-1">
             Token de autenticación OAuth 2.0 de tu aplicación
           </p>
         </div>
@@ -158,7 +159,7 @@ export default function TiendaNubeConfigPage() {
             type="button"
             onClick={handleTestConnection}
             disabled={testing || !storeId || !accessToken}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-700 shadow-xs transition hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {testing ? 'Probando...' : 'Probar Conexión'}
           </button>
@@ -166,7 +167,7 @@ export default function TiendaNubeConfigPage() {
           <button
             type="submit"
             disabled={loading}
-            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 text-sm font-medium text-white shadow-xs transition hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Guardando...' : 'Guardar Configuración'}
           </button>
@@ -177,14 +178,14 @@ export default function TiendaNubeConfigPage() {
         <div className="mt-6">
           <button
             onClick={() => router.push('/integraciones/tiendanube/sincronizar')}
-            className="w-full bg-purple-500 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 text-sm font-medium text-white shadow-xs transition hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed w-full"
           >
             Ir a Sincronización
           </button>
         </div>
       )}
 
-      <div className="mt-8 p-4 bg-gray-50 rounded">
+      <div className="mt-8 p-4 bg-zinc-50 rounded">
         <h3 className="font-bold mb-2">Como obtener las credenciales:</h3>
         <ol className="list-decimal list-inside space-y-1 text-sm">
           <li>Ingresa a tu panel de Tienda Nube</li>

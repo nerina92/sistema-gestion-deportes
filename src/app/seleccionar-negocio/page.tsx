@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
-import { FaStore, FaShieldAlt } from 'react-icons/fa';
+import { FaShieldAlt } from 'react-icons/fa';
 import { ROLE_LABELS, isTenantRole } from '@/lib/role-permissions';
 
 export default function SeleccionarNegocioPage() {
@@ -37,56 +37,76 @@ export default function SeleccionarNegocioPage() {
 
   const tenants = session?.tenants ?? [];
 
+  const initials = (name: string) =>
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase())
+      .join('');
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
-      <div className="max-w-lg w-full space-y-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Elegí un negocio</h1>
-          <p className="mt-1 text-sm text-gray-600">{session?.user?.email}</p>
+    <div className="flex min-h-dvh items-center justify-center bg-canvas px-4 py-12">
+      <div className="w-full max-w-md">
+        <div className="mb-8 text-center">
+          <span className="mx-auto flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold text-white">
+            GC
+          </span>
+          <h1 className="mt-5 text-2xl font-semibold tracking-tight text-zinc-900">Elegí un negocio</h1>
+          <p className="mt-1 text-sm text-zinc-500">{session?.user?.email}</p>
         </div>
 
         {status === 'loading' && !session ? (
-          <p className="text-center text-gray-500">Cargando...</p>
+          <div className="space-y-3">
+            {[0, 1].map((i) => (
+              <div key={i} className="h-[72px] animate-pulse rounded-card bg-zinc-200/70" />
+            ))}
+          </div>
         ) : tenants.length === 0 ? (
-          <div className="bg-white shadow rounded-lg p-6 text-center text-sm text-gray-600">
+          <div className="rounded-card border border-zinc-200 bg-white p-6 text-center text-sm text-zinc-600 shadow-card">
             Todavía no tenés acceso a ningún negocio. Pedile al administrador que te invite con este email.
           </div>
         ) : (
           <ul className="space-y-3">
-            {tenants.map((t) => (
-              <li key={t.tenantId}>
-                <button
-                  onClick={() => selectTenant(t.tenantId)}
-                  disabled={selecting !== null}
-                  className={`w-full flex items-center gap-4 p-4 bg-white rounded-lg shadow hover:shadow-md border-2 transition text-left disabled:opacity-60 ${
-                    session?.tenantId === t.tenantId ? 'border-blue-500' : 'border-transparent'
-                  }`}
-                >
-                  <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                    <FaStore className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-gray-900 truncate">{t.name}</p>
-                    <p className="text-xs text-gray-500">
-                      {t.roles.map((r) => (isTenantRole(r) ? ROLE_LABELS[r] : r)).join(' · ')}
-                    </p>
-                  </div>
-                  {selecting === t.tenantId && <span className="text-xs text-gray-500">Entrando...</span>}
-                </button>
-              </li>
-            ))}
+            {tenants.map((t) => {
+              const current = session?.tenantId === t.tenantId;
+              return (
+                <li key={t.tenantId}>
+                  <button
+                    onClick={() => selectTenant(t.tenantId)}
+                    disabled={selecting !== null}
+                    className={`group flex w-full items-center gap-4 rounded-card border bg-white p-4 text-left shadow-card transition hover:border-brand-300 disabled:opacity-60 ${
+                      current ? 'border-brand-500 ring-2 ring-brand-500/20' : 'border-zinc-200'
+                    }`}
+                  >
+                    <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-sm font-semibold text-brand-700">
+                      {initials(t.name)}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-semibold text-zinc-900">{t.name}</span>
+                      <span className="block text-xs text-zinc-500">
+                        {t.roles.map((r) => (isTenantRole(r) ? ROLE_LABELS[r] : r)).join(' · ')}
+                      </span>
+                    </span>
+                    <span className="text-xs text-zinc-400 group-hover:text-brand-700">
+                      {selecting === t.tenantId ? 'Entrando…' : current ? 'Actual' : 'Entrar →'}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
 
-        <div className="flex items-center justify-between text-sm">
+        <div className="mt-8 flex items-center justify-between text-sm">
           {session?.isPlatformAdmin ? (
-            <Link href="/platform-admin" className="flex items-center gap-1 text-gray-600 hover:text-gray-900">
-              <FaShieldAlt className="h-3 w-3" /> Administración de la plataforma
+            <Link href="/platform-admin" className="flex items-center gap-1.5 text-zinc-600 hover:text-zinc-900">
+              <FaShieldAlt className="size-3.5" /> Administración de la plataforma
             </Link>
           ) : (
             <span />
           )}
-          <button onClick={() => signOut({ redirectTo: '/login' })} className="text-gray-600 hover:text-gray-900">
+          <button onClick={() => signOut({ redirectTo: '/login' })} className="text-zinc-600 hover:text-zinc-900">
             Cerrar sesión
           </button>
         </div>

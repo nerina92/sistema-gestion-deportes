@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaShoppingCart, FaSearch, FaTrash, FaPlus } from 'react-icons/fa';
 import { variantLabel } from '@/lib/variant-label';
+import { formatMoney, todayISODate } from '@/lib/format';
 
 interface ProductVariant {
   id: string;
@@ -44,7 +45,7 @@ export default function NuevaVentaPage() {
   const router = useRouter();
   
   // Form state
-  const [saleDate, setSaleDate] = useState(new Date().toISOString().split('T')[0]);
+  const [saleDate, setSaleDate] = useState(todayISODate());
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [priceType, setPriceType] = useState<PriceType>('cash');
   const [notes, setNotes] = useState('');
@@ -256,11 +257,11 @@ export default function NuevaVentaPage() {
     <div className="max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-          <FaShoppingCart className="mr-3 text-green-600" />
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 flex items-center gap-3">
+          <FaShoppingCart className="size-6 shrink-0 text-brand-600" />
           Nueva Venta
         </h1>
-        <p className="mt-2 text-gray-600">
+        <p className="mt-1 text-sm text-zinc-500">
           Registra una nueva venta y el stock se actualizará automáticamente
         </p>
       </div>
@@ -277,27 +278,27 @@ export default function NuevaVentaPage() {
           {/* Left column - Form */}
           <div className="lg:col-span-2 space-y-6">
             {/* Basic info card */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="bg-white rounded-card shadow-card border border-zinc-200 p-6">
               <h2 className="text-lg font-semibold mb-4">Información de la Venta</h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Date */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-zinc-700 mb-2">
                     Fecha
                   </label>
                   <input
                     type="date"
                     value={saleDate}
                     onChange={(e) => setSaleDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     required
                   />
                 </div>
 
                 {/* Payment method */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-zinc-700 mb-2">
                     Método de Pago
                   </label>
                   <div className="flex gap-2">
@@ -308,8 +309,8 @@ export default function NuevaVentaPage() {
                         onClick={() => setPaymentMethod(method)}
                         className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                           paymentMethod === method
-                            ? 'bg-green-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            ? 'bg-brand-600 text-white'
+                            : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
                         }`}
                       >
                         {paymentMethodLabels[method]}
@@ -321,7 +322,7 @@ export default function NuevaVentaPage() {
 
               {/* Price type */}
               <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-zinc-700 mb-2">
                   Tipo de Precio
                 </label>
                 <div className="flex gap-2">
@@ -332,58 +333,58 @@ export default function NuevaVentaPage() {
                       onClick={() => setPriceType(type)}
                       className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                         priceType === type
-                          ? 'bg-green-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          ? 'bg-brand-600 text-white'
+                          : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
                       }`}
                     >
                       {priceTypeLabels[type]}
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-zinc-500 mt-1">
                   El precio se calculará automáticamente según el tipo seleccionado
                 </p>
               </div>
 
               {/* Notes */}
               <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-zinc-700 mb-2">
                   Notas (opcional)
                 </label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                   placeholder="Observaciones sobre la venta..."
                 />
               </div>
             </div>
 
             {/* Product search */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="bg-white rounded-card shadow-card border border-zinc-200 p-6">
               <h2 className="text-lg font-semibold mb-4">Agregar Productos</h2>
               
               <div className="relative">
                 <div className="relative">
-                  <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" />
                   <input
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Buscar por nombre, marca o SKU..."
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                   />
                 </div>
 
                 {/* Search results dropdown */}
                 {showResults && searchResults.length > 0 && (
-                  <div className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 overflow-y-auto">
+                  <div className="absolute z-10 w-full mt-2 bg-white border border-zinc-200 rounded-card shadow-card max-h-96 overflow-y-auto">
                     {searchResults.map(product => (
-                      <div key={product.id} className="border-b border-gray-100 last:border-0">
-                        <div className="px-4 py-2 bg-gray-50">
-                          <div className="font-medium text-gray-900">{product.name}</div>
-                          <div className="text-xs text-gray-500">{product.brand} - {product.category?.name ?? ''}</div>
+                      <div key={product.id} className="border-b border-zinc-100 last:border-0">
+                        <div className="px-4 py-2 bg-zinc-50">
+                          <div className="font-medium text-zinc-900">{product.name}</div>
+                          <div className="text-xs text-zinc-500">{product.brand} - {product.category?.name ?? ''}</div>
                         </div>
                         {product.variants.map(variant => (
                           <button
@@ -391,15 +392,15 @@ export default function NuevaVentaPage() {
                             type="button"
                             onClick={() => addItem(product, variant)}
                             disabled={variant.stockQuantity === 0 || variant.priceCash === 0}
-                            className="w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full px-4 py-2 text-left hover:bg-zinc-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <div className="flex justify-between items-center">
                               <div>
-                                <span className="text-sm text-gray-700">{variantLabel(variant.size, variant.color)}</span>
-                                <span className="text-xs text-gray-500 ml-2">SKU: {variant.sku}</span>
+                                <span className="text-sm text-zinc-700">{variantLabel(variant.size, variant.color)}</span>
+                                <span className="text-xs text-zinc-500 ml-2">SKU: {variant.sku}</span>
                               </div>
                               <div className="text-right">
-                                <div className="text-sm font-medium text-gray-900">
+                                <div className="text-sm font-medium text-zinc-900">
                                   ${priceType === 'cash' ? variant.priceCash : priceType === 'debit' ? variant.priceDebit : variant.priceFinanced}
                                 </div>
                                 <div className={`text-xs ${variant.stockQuantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -415,13 +416,13 @@ export default function NuevaVentaPage() {
                 )}
 
                 {isSearching && searchTerm.trim() && (
-                  <div className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg p-4 text-center text-gray-500">
+                  <div className="absolute z-10 w-full mt-2 bg-white border border-zinc-200 rounded-card shadow-card p-4 text-center text-zinc-500">
                     Buscando...
                   </div>
                 )}
 
                 {!isSearching && showResults && searchResults.length === 0 && searchTerm.trim() && (
-                  <div className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg p-4 text-center text-gray-500">
+                  <div className="absolute z-10 w-full mt-2 bg-white border border-zinc-200 rounded-card shadow-card p-4 text-center text-zinc-500">
                     No se encontraron productos
                   </div>
                 )}
@@ -430,24 +431,24 @@ export default function NuevaVentaPage() {
 
             {/* Items list */}
             {items.length > 0 && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="bg-white rounded-card shadow-card border border-zinc-200 p-6">
                 <h2 className="text-lg font-semibold mb-4">Productos en la Venta</h2>
                 
                 <div className="space-y-3">
                   {items.map((item, index) => (
-                    <div key={index} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                    <div key={index} className="flex items-center gap-4 p-3 bg-zinc-50 rounded-lg">
                       <div className="flex-1">
-                        <div className="font-medium text-gray-900">{item.productName}</div>
-                        <div className="text-sm text-gray-500">{item.variantDetails}</div>
+                        <div className="font-medium text-zinc-900">{item.productName}</div>
+                        <div className="text-sm text-zinc-500">{item.variantDetails}</div>
                         <div className="flex gap-4 mt-1 text-xs">
-                          <span className={`${priceType === 'cash' ? 'text-green-600 font-semibold' : 'text-gray-400'}`}>
-                            Contado: ${item.priceCash}
+                          <span className={`${priceType === 'cash' ? 'text-green-600 font-semibold' : 'text-zinc-400'}`}>
+                            Contado: {formatMoney(item.priceCash)}
                           </span>
-                          <span className={`${priceType === 'debit' ? 'text-green-600 font-semibold' : 'text-gray-400'}`}>
-                            Débito: ${item.priceDebit}
+                          <span className={`${priceType === 'debit' ? 'text-green-600 font-semibold' : 'text-zinc-400'}`}>
+                            Débito: {formatMoney(item.priceDebit)}
                           </span>
-                          <span className={`${priceType === 'financed' ? 'text-green-600 font-semibold' : 'text-gray-400'}`}>
-                            Financiado: ${item.priceFinanced}
+                          <span className={`${priceType === 'financed' ? 'text-green-600 font-semibold' : 'text-zinc-400'}`}>
+                            Financiado: {formatMoney(item.priceFinanced)}
                           </span>
                         </div>
                       </div>
@@ -459,14 +460,14 @@ export default function NuevaVentaPage() {
                           max={item.stock}
                           value={item.quantity}
                           onChange={(e) => updateQuantity(index, parseInt(e.target.value) || 1)}
-                          className="w-20 px-2 py-1 border border-gray-300 rounded text-center"
+                          className="w-20 px-2 py-1 border border-zinc-300 rounded text-center"
                         />
-                        <span className="text-xs text-gray-500">de {item.stock}</span>
+                        <span className="text-xs text-zinc-500">de {item.stock}</span>
                       </div>
 
                       <div className="text-right min-w-[100px]">
-                        <div className="font-semibold text-gray-900">${item.subtotal.toFixed(2)}</div>
-                        <div className="text-xs text-gray-500">${item.unitPrice} x {item.quantity}</div>
+                        <div className="font-semibold text-zinc-900">{formatMoney(item.subtotal)}</div>
+                        <div className="text-xs text-zinc-500">{formatMoney(item.unitPrice)} x {item.quantity}</div>
                       </div>
 
                       <button
@@ -485,39 +486,39 @@ export default function NuevaVentaPage() {
 
           {/* Right column - Summary */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-6">
+            <div className="bg-white rounded-card shadow-card border border-zinc-200 p-6 sticky top-6">
               <h2 className="text-lg font-semibold mb-4">Resumen</h2>
               
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Productos:</span>
+                  <span className="text-zinc-600">Productos:</span>
                   <span className="font-medium">{items.length}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Items totales:</span>
+                  <span className="text-zinc-600">Items totales:</span>
                   <span className="font-medium">{items.reduce((sum, item) => sum + item.quantity, 0)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Tipo de precio:</span>
+                  <span className="text-zinc-600">Tipo de precio:</span>
                   <span className="font-medium">{priceTypeLabels[priceType]}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Método de pago:</span>
+                  <span className="text-zinc-600">Método de pago:</span>
                   <span className="font-medium">{paymentMethodLabels[paymentMethod]}</span>
                 </div>
               </div>
 
-              <div className="border-t border-gray-200 pt-4 mb-6">
+              <div className="border-t border-zinc-200 pt-4 mb-6">
                 <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold text-gray-900">Total:</span>
-                  <span className="text-2xl font-bold text-green-600">${calculateTotal().toFixed(2)}</span>
+                  <span className="text-lg font-semibold text-zinc-900">Total:</span>
+                  <span className="text-2xl font-semibold text-zinc-900">{formatMoney(calculateTotal())}</span>
                 </div>
               </div>
 
               <button
                 type="submit"
                 disabled={isSubmitting || items.length === 0}
-                className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center"
+                className="w-full bg-brand-600 hover:bg-brand-700 text-white px-4 py-3 rounded-lg font-medium transition-colors disabled:bg-zinc-300 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 {isSubmitting ? (
                   <>Registrando...</>
@@ -532,7 +533,7 @@ export default function NuevaVentaPage() {
               <button
                 type="button"
                 onClick={() => router.push('/ventas')}
-                className="w-full mt-3 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-medium transition-colors"
+                className="w-full mt-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 px-4 py-3 rounded-lg font-medium transition-colors"
               >
                 Cancelar
               </button>
