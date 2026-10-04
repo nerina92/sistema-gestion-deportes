@@ -1,5 +1,6 @@
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
+import Credentials from 'next-auth/providers/credentials';
 import { authConfig } from './auth.config';
 import {
   fetchUserTenants,
@@ -33,6 +34,26 @@ declare module '@auth/core/jwt' {
 // una invitación nueva o una baja se refleje sin volver a loguearse.
 const TENANTS_REFRESH_MS = 60_000;
 
+/**
+ * Ingreso sin Google SOLO para probar en una máquina local: requiere `next dev`
+ * (NODE_ENV=development) y AUTH_DEV_LOGIN=true. En producción no existe.
+ * Igual respeta las invitaciones: el email tiene que estar invitado.
+ */
+export const devLoginEnabled = process.env.NODE_ENV === 'development' && process.env.AUTH_DEV_LOGIN === 'true';
+
+const devLoginProvider = Credentials({
+  id: 'dev-login',
+  name: 'Ingreso de desarrollo',
+  credentials: { email: { label: 'Email', type: 'email' } },
+  async authorize(credentials) {
+    if (!devLoginEnabled) return null;
+    const email = typeof credentials?.email === 'string' ? credentials.email.trim() : '';
+    if (!email) return null;
+    const userId = await resolveGoogleSignIn({ email, name: email.split('@')[0] });
+    return userId ? { id: userId, email, name: email.split('@')[0] } : null;
+  },
+});
+
 export const { auth, handlers, signIn, signOut } = NextAuth({
   ...authConfig,
   providers: [
@@ -40,12 +61,14 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       // Lee AUTH_GOOGLE_ID / AUTH_GOOGLE_SECRET del entorno.
       authorization: { params: { prompt: 'select_account' } },
     }),
+    ...(devLoginEnabled ? [devLoginProvider] : []),
   ],
   callbacks: {
     ...authConfig.callbacks,
     // Acceso solo por invitación: si el email no tiene usuario ni invitación
     // pendiente, se rechaza el login.
     async signIn({ account, profile }) {
+      if (account?.provider === 'dev-login') return devLoginEnabled;
       if (account?.provider !== 'google' || !profile?.email) return false;
       if (profile.email_verified === false) return false;
       const userId = await resolveGoogleSignIn({

@@ -1,4 +1,4 @@
-import { signIn } from '@/lib/auth';
+import { devLoginEnabled, signIn } from '@/lib/auth';
 
 const ERROR_MESSAGES: Record<string, string> = {
   NoInvitation:
@@ -83,6 +83,23 @@ export default async function LoginPage({
               Continuar con Google
             </button>
           </form>
+          {devLoginEnabled && (
+            <form
+              className="mt-6 rounded-lg border border-dashed border-amber-300 bg-amber-50 p-4"
+              action={async (formData: FormData) => {
+                'use server';
+                await signIn('dev-login', { email: String(formData.get('email') ?? ''), redirectTo });
+              }}
+            >
+              <p className="text-xs font-medium text-amber-900">Ingreso de desarrollo (solo local)</p>
+              <div className="mt-2 flex gap-2">
+                <input name="email" type="email" required defaultValue="demo@local.test" className="field-input" />
+                <button type="submit" className="rounded-lg bg-zinc-900 px-3 text-sm font-medium text-white hover:bg-zinc-800">
+                  Entrar
+                </button>
+              </div>
+            </form>
+          )}
           <p className="mt-6 text-xs text-zinc-500">
             ¿No tenés acceso? Pedile al administrador de tu negocio que te invite con tu email de Google.
           </p>

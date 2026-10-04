@@ -56,6 +56,34 @@ La importación desde Excel usa una planilla genérica: la fila 1 lleva encabeza
 - **Menú** agrupado en `src/components/navigation.ts`; se filtra por rol con `role-permissions.ts`. En las páginas, `useModules()` oculta acciones que el rol no puede hacer.
 - **Gráficos**: Recharts, una sola serie en el color de marca (`src/components/charts/SalesChart.tsx`).
 
+## Probar en tu máquina (con datos de demo, sin configurar Google)
+
+Necesitás Node 20.9+ y Docker (para Postgres).
+
+```bash
+docker run -d --name gestion-db -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=gestion -p 5432:5432 postgres:16
+git clone https://github.com/PlexoLabs605/sistema-gestion-comercial-online.git
+cd sistema-gestion-comercial-online
+git checkout claude/affectionate-franklin-7yr7oj
+```
+
+Crear un archivo `.env` con:
+
+```
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/gestion"
+AUTH_SECRET="cualquier-texto-largo"
+AUTH_DEV_LOGIN=true
+```
+
+```bash
+npm install
+npm run db:migrate
+npm run demo
+npm run dev
+```
+
+Abrir http://localhost:3000 y usar **Ingreso de desarrollo** con `demo@local.test`. Ese ingreso solo existe con `npm run dev` y `AUTH_DEV_LOGIN=true`; en producción no está.
+
 ## Desarrollo local
 
 ```bash
