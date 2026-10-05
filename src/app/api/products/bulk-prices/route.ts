@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const category = searchParams.get('category');
+    const category = searchParams.get('categoryId') ?? searchParams.get('category');
     const brand = searchParams.get('brand');
     const search = searchParams.get('search');
 
