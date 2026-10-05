@@ -141,7 +141,7 @@ export default function PedidosPage() {
           </h1>
           <p className="mt-1 text-sm text-zinc-500">
             Pedidos recibidos desde la tienda online.{' '}
-            <Link href="/configuracion#tienda" className="text-brand-600 hover:text-brand-800 underline">
+            <Link href="/integraciones/tienda" className="text-brand-600 hover:text-brand-800 underline">
               Configurar tienda
             </Link>
           </p>

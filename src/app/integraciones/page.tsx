@@ -54,7 +54,7 @@ export default function IntegracionesPage() {
             : { tone: 'neutral' as const, text: 'Sin configurar' },
     },
     {
-      href: '/configuracion#tienda',
+      href: '/integraciones/tienda',
       icon: Store,
       title: 'Tienda online propia',
       description: 'Catálogo público con pedidos por WhatsApp.',
