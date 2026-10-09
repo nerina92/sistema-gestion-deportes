@@ -54,3 +54,6 @@ test-import-api.js
 example-frontend-usage.tsx
 afip-cert/
 certs/
+
+# Sesiones/cookies de pruebas locales
+cookies.txt
