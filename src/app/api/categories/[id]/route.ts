@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { requireTenant } from '@/lib/api-auth';
 
-const prisma = new PrismaClient();
 
 // PUT /api/categories/:id — renombrar
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const ctx = await requireTenant('categorias');
+  if (ctx instanceof NextResponse) return ctx;
+  const prisma = ctx.db;
+
   try {
     const { id } = await params;
     const { name } = await request.json();
@@ -32,6 +35,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const ctx = await requireTenant('categorias');
+  if (ctx instanceof NextResponse) return ctx;
+  const prisma = ctx.db;
+
   try {
     const { id } = await params;
     const count = await prisma.product.count({ where: { categoryId: id } });

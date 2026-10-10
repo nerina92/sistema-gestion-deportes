@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import Afip from '@afipsdk/afip.js';
+import { requireTenant } from '@/lib/api-auth';
 
-const prisma = new PrismaClient();
 
 // POST - Probar conexión con AFIP
 export async function POST() {
+  const ctx = await requireTenant('integraciones');
+  if (ctx instanceof NextResponse) return ctx;
+  const prisma = ctx.db;
+
   try {
     const config = await prisma.afipConfig.findFirst({
       where: { isActive: true }

@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { requireTenant } from '@/lib/api-auth';
 
 // POST - Probar conexión con Tienda Nube
 export async function POST() {
+  const ctx = await requireTenant('integraciones');
+  if (ctx instanceof NextResponse) return ctx;
+  const prisma = ctx.db;
+
   try {
     const config = await prisma.tiendanubeConfig.findFirst({
       where: { isActive: true }
@@ -21,7 +25,7 @@ export async function POST() {
       {
         headers: {
           'Authentication': `bearer ${config.accessToken}`,
-          'User-Agent': 'Sistema Gestion Deportes (sistema@deporteslaboulaye.com)'
+          'User-Agent': 'Gestion Comercial (contacto.plexolabs@gmail.com)'
         }
       }
     );

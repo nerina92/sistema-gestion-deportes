@@ -1,5 +1,5 @@
 export interface PricingPercentages {
-  /** % de margen sobre el costo para el precio contado (default 90) */
+  /** % de margen sobre el costo para el precio contado (default del negocio, 90 si no se configuró) */
   marginCash: number;
   /** % de recargo sobre el contado para débito (default 5) */
   surchargeDebit: number;
@@ -13,10 +13,22 @@ export const DEFAULT_PRICING: PricingPercentages = {
   surchargeFinanced: 20,
 };
 
+/** Múltiplo de redondeo por defecto (configurable por negocio en TenantSettings.priceRounding). */
+export const DEFAULT_ROUNDING = 100;
+
+/**
+ * Redondea al múltiplo de `step` más cercano (.5 hacia arriba).
+ * step = 0 → sin redondeo (2 decimales).
+ */
+export function roundToStep(value: number, step: number = DEFAULT_ROUNDING): number {
+  if (!isFinite(value) || value <= 0) return 0;
+  if (!step || step <= 0) return Math.round(value * 100) / 100;
+  return Math.round(value / step) * step;
+}
+
 /** Redondea al múltiplo de 100 más cercano (.5 hacia arriba). */
 export function roundToHundred(value: number): number {
-  if (!isFinite(value) || value <= 0) return 0;
-  return Math.round(value / 100) * 100;
+  return roundToStep(value, 100);
 }
 
 export interface ComputedPrices {
@@ -32,15 +44,16 @@ export interface ComputedPrices {
  */
 export function computeVariantPrices(
   costPrice: number,
-  pct: PricingPercentages = DEFAULT_PRICING
+  pct: PricingPercentages = DEFAULT_PRICING,
+  rounding: number = DEFAULT_ROUNDING
 ): ComputedPrices {
   const cost = Number(costPrice) || 0;
   const rawCash = cost * (1 + (Number(pct.marginCash) || 0) / 100);
   const rawDebit = rawCash * (1 + (Number(pct.surchargeDebit) || 0) / 100);
   const rawFinanced = rawCash * (1 + (Number(pct.surchargeFinanced) || 0) / 100);
   return {
-    priceCash: roundToHundred(rawCash),
-    priceDebit: roundToHundred(rawDebit),
-    priceFinanced: roundToHundred(rawFinanced),
+    priceCash: roundToStep(rawCash, rounding),
+    priceDebit: roundToStep(rawDebit, rounding),
+    priceFinanced: roundToStep(rawFinanced, rounding),
   };
 }

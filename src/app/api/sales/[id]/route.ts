@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { requireTenant } from '@/lib/api-auth';
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -9,6 +9,10 @@ export async function GET(
   request: NextRequest,
   context: RouteContext
 ) {
+  const ctx = await requireTenant('ventas');
+  if (ctx instanceof NextResponse) return ctx;
+  const prisma = ctx.db;
+
   try {
     const { id } = await context.params;
 

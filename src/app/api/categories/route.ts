@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { requireTenant } from '@/lib/api-auth';
 
-const prisma = new PrismaClient();
 
 // GET /api/categories — lista con conteo de productos
 export async function GET() {
+  const ctx = await requireTenant('productos');
+  if (ctx instanceof NextResponse) return ctx;
+  const prisma = ctx.db;
+
   try {
     const categories = await prisma.category.findMany({
       orderBy: { name: 'asc' },
@@ -26,6 +29,10 @@ export async function GET() {
 
 // POST /api/categories — crear
 export async function POST(request: NextRequest) {
+  const ctx = await requireTenant('categorias');
+  if (ctx instanceof NextResponse) return ctx;
+  const prisma = ctx.db;
+
   try {
     const { name } = await request.json();
     if (!name || typeof name !== 'string' || name.trim().length === 0) {

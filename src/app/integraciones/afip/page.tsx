@@ -107,8 +107,8 @@ export default function AfipConfigPage() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Configuración AFIP</h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Configuración AFIP</h1>
+        <p className="mt-1 text-sm text-zinc-500">
           Configura la conexión con AFIP para emitir facturas electrónicas tipo C (Monotributo)
         </p>
       </div>
@@ -127,9 +127,9 @@ export default function AfipConfigPage() {
         </div>
       )}
 
-      <form onSubmit={handleSave} className="bg-white shadow-md rounded-lg px-8 pt-6 pb-8 mb-6">
+      <form onSubmit={handleSave} className="bg-white shadow-card rounded-card px-8 pt-6 pb-8 mb-6 border border-zinc-200">
         <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2">
+          <label className="block text-zinc-700 text-sm font-bold mb-2">
             CUIT (11 dígitos)
             <span className="text-red-500 ml-1">*</span>
           </label>
@@ -140,18 +140,18 @@ export default function AfipConfigPage() {
               const value = e.target.value.replace(/\D/g, '');
               if (value.length <= 11) setCuit(value);
             }}
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-zinc-700 leading-tight focus:outline-none focus:ring-2 focus:ring-brand-500"
             placeholder="20123456789"
             pattern="[0-9]{11}"
             required
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-zinc-500 mt-1">
             Ingresa el CUIT de tu empresa sin guiones
           </p>
         </div>
 
         <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2">
+          <label className="block text-zinc-700 text-sm font-bold mb-2">
             Punto de Venta
             <span className="text-red-500 ml-1">*</span>
           </label>
@@ -159,19 +159,19 @@ export default function AfipConfigPage() {
             type="number"
             value={puntoVenta}
             onChange={(e) => setPuntoVenta(e.target.value)}
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-zinc-700 leading-tight focus:outline-none focus:ring-2 focus:ring-brand-500"
             placeholder="1"
             min="1"
             max="9999"
             required
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-zinc-500 mt-1">
             Número de punto de venta asignado por AFIP
           </p>
         </div>
 
         <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2">
+          <label className="block text-zinc-700 text-sm font-bold mb-2">
             Access Token (Afip SDK)
             {!hasAccessToken && <span className="text-red-500 ml-1">*</span>}
           </label>
@@ -179,16 +179,16 @@ export default function AfipConfigPage() {
             type="password"
             value={accessToken}
             onChange={(e) => setAccessToken(e.target.value)}
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-zinc-700 leading-tight focus:outline-none focus:ring-2 focus:ring-brand-500"
             placeholder={hasAccessToken ? '••••••••• (ya configurado)' : 'Pega tu access token aquí'}
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-zinc-500 mt-1">
             Obtené tu token gratis en{' '}
             <a
               href="https://app.afipsdk.com/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 underline hover:text-blue-800"
+              className="text-brand-600 underline hover:text-brand-800"
             >
               app.afipsdk.com
             </a>
@@ -196,7 +196,7 @@ export default function AfipConfigPage() {
         </div>
 
         <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2">
+          <label className="block text-zinc-700 text-sm font-bold mb-2">
             Certificado (.crt)
             {!configured && <span className="text-red-500 ml-1">*</span>}
           </label>
@@ -204,7 +204,7 @@ export default function AfipConfigPage() {
             type="file"
             accept=".crt"
             onChange={(e) => setCertFile(e.target.files?.[0] || null)}
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-zinc-700 leading-tight focus:outline-none focus:ring-2 focus:ring-brand-500"
             required={!configured}
           />
           {certFile && (
@@ -215,7 +215,7 @@ export default function AfipConfigPage() {
         </div>
 
         <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2">
+          <label className="block text-zinc-700 text-sm font-bold mb-2">
             Clave Privada (.key)
             {!configured && <span className="text-red-500 ml-1">*</span>}
           </label>
@@ -223,7 +223,7 @@ export default function AfipConfigPage() {
             type="file"
             accept=".key"
             onChange={(e) => setKeyFile(e.target.files?.[0] || null)}
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-zinc-700 leading-tight focus:outline-none focus:ring-2 focus:ring-brand-500"
             required={!configured}
           />
           {keyFile && (
@@ -239,11 +239,11 @@ export default function AfipConfigPage() {
               type="checkbox"
               checked={productionMode}
               onChange={(e) => setProductionMode(e.target.checked)}
-              className="mr-3 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              className="mr-3 h-4 w-4 text-brand-600 border-zinc-300 rounded focus:ring-brand-500"
             />
             <div>
-              <span className="text-sm font-semibold text-gray-700">Modo Producción</span>
-              <p className="text-xs text-gray-500">
+              <span className="text-sm font-semibold text-zinc-700">Modo Producción</span>
+              <p className="text-xs text-zinc-500">
                 Desmarcar para usar modo Homologación (testing)
               </p>
             </div>
@@ -269,7 +269,7 @@ export default function AfipConfigPage() {
             type="button"
             onClick={handleTest}
             disabled={testing || !configured}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-700 shadow-xs transition hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {testing ? (
               <>
@@ -284,7 +284,7 @@ export default function AfipConfigPage() {
           <button
             type="submit"
             disabled={loading}
-            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 text-sm font-medium text-white shadow-xs transition hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <>
@@ -299,34 +299,34 @@ export default function AfipConfigPage() {
       </form>
 
       {testResult && testResult.success && (
-        <div className="bg-white shadow-md rounded-lg p-6 mb-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Resultado del Test</h3>
+        <div className="bg-white shadow-card rounded-card p-6 mb-6 border border-zinc-200">
+          <h3 className="text-lg font-bold text-zinc-900 mb-4">Resultado del Test</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-600">CUIT:</span>
+              <span className="text-zinc-600">CUIT:</span>
               <span className="font-semibold">{testResult.config.cuit}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Punto de Venta:</span>
+              <span className="text-zinc-600">Punto de Venta:</span>
               <span className="font-semibold">{testResult.config.puntoVenta}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Modo:</span>
+              <span className="text-zinc-600">Modo:</span>
               <span className="font-semibold">{testResult.config.mode}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Último Comprobante:</span>
+              <span className="text-zinc-600">Último Comprobante:</span>
               <span className="font-semibold">{testResult.lastInvoiceNumber}</span>
             </div>
           </div>
         </div>
       )}
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="font-bold text-blue-900 mb-3 text-lg">
+      <div className="bg-brand-50 border border-brand-200 rounded-lg p-6">
+        <h3 className="font-bold text-brand-900 mb-3 text-lg">
           Cómo obtener certificado AFIP
         </h3>
-        <ol className="list-decimal list-inside space-y-2 text-sm text-blue-800">
+        <ol className="list-decimal list-inside space-y-2 text-sm text-brand-800">
           <li>Ingresa a <strong>AFIP</strong> con tu Clave Fiscal</li>
           <li>Ve a <strong>Administrador de Relaciones de Clave Fiscal</strong></li>
           <li>Selecciona <strong>Adherir Servicio</strong></li>

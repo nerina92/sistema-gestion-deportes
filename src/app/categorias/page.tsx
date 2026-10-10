@@ -148,20 +148,20 @@ export default function CategoriasPage() {
     <div className="max-w-5xl mx-auto">
       {/* Header de la página */}
       <div className="mb-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-              <FaTags className="mr-3 text-blue-600" />
+            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 flex items-center gap-3">
+              <FaTags className="size-6 shrink-0 text-brand-600" />
               Categorías
             </h1>
-            <p className="mt-2 text-gray-600">
+            <p className="mt-1 text-sm text-zinc-500">
               Gestiona las categorías de tus productos
             </p>
           </div>
           <button
             onClick={loadCategories}
             disabled={loading}
-            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors flex items-center disabled:opacity-50"
+            className="bg-zinc-100 hover:bg-zinc-200 text-zinc-700 px-4 py-2 rounded-lg font-medium transition-colors flex items-center disabled:opacity-50"
           >
             <FaSync className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Actualizar
@@ -178,9 +178,9 @@ export default function CategoriasPage() {
       )}
 
       {/* Área de contenido principal */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="bg-white rounded-card shadow-card border border-zinc-200">
         {/* Crear nueva categoría */}
-        <div className="p-6 border-b border-gray-200">
+        <div className="p-6 border-b border-zinc-200">
           <div className="flex flex-col sm:flex-row gap-3">
             <input
               ref={newNameInputRef}
@@ -191,12 +191,12 @@ export default function CategoriasPage() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleCreate();
               }}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 px-4 py-2 border border-zinc-300 rounded-lg text-zinc-900 focus:ring-2 focus:ring-brand-500 focus:border-transparent"
             />
             <button
               onClick={handleCreate}
               disabled={creating}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center disabled:opacity-50"
+              className="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center disabled:opacity-50"
             >
               <FaPlus className="mr-2 h-4 w-4" />
               Nueva categoría
@@ -207,34 +207,34 @@ export default function CategoriasPage() {
         {/* Estado de carga */}
         {loading && (
           <div className="p-12 text-center">
-            <FaSync className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-            <p className="text-gray-600">Cargando categorías...</p>
+            <FaSync className="h-8 w-8 animate-spin text-brand-600 mx-auto mb-4" />
+            <p className="text-zinc-600">Cargando categorías...</p>
           </div>
         )}
 
         {/* Tabla de categorías */}
         {!loading && categories.length > 0 && (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-zinc-200">
+              <thead className="bg-zinc-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
                     Categoría
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
                     Productos
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
                     Acciones
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-zinc-200">
                 {categories.map((category) => {
                   const isEditing = editingId === category.id;
                   const hasProducts = category.productCount > 0;
                   return (
-                    <tr key={category.id} className="hover:bg-gray-50">
+                    <tr key={category.id} className="hover:bg-zinc-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         {isEditing ? (
                           <input
@@ -246,15 +246,15 @@ export default function CategoriasPage() {
                               if (e.key === 'Escape') cancelEdit();
                             }}
                             autoFocus
-                            className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-1.5 border border-zinc-300 rounded-lg text-zinc-900 focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                           />
                         ) : (
-                          <span className="text-sm font-medium text-gray-900">
+                          <span className="text-sm font-medium text-zinc-900">
                             {category.name}
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-500">
                         {category.productCount} producto
                         {category.productCount !== 1 ? 's' : ''}
                       </td>
@@ -272,7 +272,7 @@ export default function CategoriasPage() {
                             <button
                               onClick={cancelEdit}
                               disabled={savingEdit}
-                              className="text-gray-500 hover:text-gray-700 inline-flex items-center disabled:opacity-50"
+                              className="text-zinc-500 hover:text-zinc-700 inline-flex items-center disabled:opacity-50"
                             >
                               <FaTimes className="h-4 w-4 mr-1" />
                               Cancelar
@@ -282,7 +282,7 @@ export default function CategoriasPage() {
                           <>
                             <button
                               onClick={() => startEdit(category)}
-                              className="text-blue-600 hover:text-blue-900 inline-flex items-center"
+                              className="text-brand-600 hover:text-brand-900 inline-flex items-center"
                             >
                               <FaEdit className="h-4 w-4 mr-1" />
                               Editar
@@ -314,11 +314,11 @@ export default function CategoriasPage() {
         {/* Estado vacío */}
         {!loading && categories.length === 0 && (
           <div className="p-12 text-center">
-            <FaTags className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <FaTags className="h-12 w-12 text-zinc-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-zinc-900 mb-2">
               No hay categorías
             </h3>
-            <p className="text-gray-600">
+            <p className="text-zinc-600">
               Aún no tienes categorías. Crea la primera usando el formulario de arriba.
             </p>
           </div>
