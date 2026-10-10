@@ -1,16 +1,13 @@
 import { NextResponse } from 'next/server';
-import { requireTenant } from '@/lib/api-auth';
+import { PrismaClient } from '@prisma/client';
 
+const prisma = new PrismaClient();
 
 // Borra todas las variantes y productos.
 // Orden correcto por foreign keys:
 //   SaleItem → PurchaseItem → ProductVariant → Product
 // Las cabeceras de ventas y compras quedan, solo se borran los items de detalle.
 export async function POST() {
-  const ctx = await requireTenant('configuracion');
-  if (ctx instanceof NextResponse) return ctx;
-  const prisma = ctx.db;
-
   try {
     await prisma.$transaction(async (tx) => {
       // 1. Borrar items de ventas (referencian variantes)

@@ -1,12 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import Header from './Header';
-
-const BARE_ROUTES = ['/login', '/seleccionar-negocio', '/platform-admin', '/tienda'];
+import Footer from './Footer';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -14,35 +12,66 @@ interface AppLayoutProps {
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { data: session, status } = useSession();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const pathname = usePathname();
 
-  // Rutas que se muestran sin sidebar/header (el proxy ya controla el acceso).
-  const isBareRoute = BARE_ROUTES.some((r) => pathname === r || pathname.startsWith(`${r}/`));
+  // Rutas que no necesitan autenticación
+  const publicRoutes = ['/login', '/'];
 
-  if (isBareRoute) return <>{children}</>;
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        setIsAuthenticated(response.ok);
+      } catch {
+        setIsAuthenticated(false);
+      }
+    };
 
-  // Solo la primera carga muestra el loader; un update() de sesión no debe
-  // desmontar la pantalla.
-  if (status === 'loading' && !session) {
+    checkAuth();
+  }, []);
+
+  // Mientras se verifica la autenticación, mostrar loading
+  if (isAuthenticated === null) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-canvas">
-        <div className="size-8 animate-spin rounded-full border-2 border-brand-200 border-t-brand-600" />
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-pulse">
+            <div className="h-8 w-8 bg-blue-600 rounded-full mx-auto mb-4 flex items-center justify-center">
+              <span className="text-white font-bold text-sm">DL</span>
+            </div>
+            <p className="text-gray-600">Cargando...</p>
+          </div>
+        </div>
       </div>
     );
   }
 
-  if (!session?.tenantId) return <>{children}</>;
+  const isPublicRoute = publicRoutes.includes(pathname);
+  const shouldShowLayout = isAuthenticated && !isPublicRoute;
+
+  if (!shouldShowLayout) {
+    // Para rutas públicas o usuarios no autenticados, mostrar solo el contenido
+    return <>{children}</>;
+  }
 
   return (
-    <div className="flex min-h-dvh bg-canvas">
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col lg:ml-0">
+        {/* Header */}
         <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1">
-          <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</div>
+
+        {/* Main content */}
+        <main className="flex-1 p-4 lg:p-6 overflow-auto">
+          {children}
         </main>
+
+        {/* Footer */}
+        <Footer />
       </div>
     </div>
   );

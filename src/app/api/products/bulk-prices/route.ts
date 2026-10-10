@@ -1,18 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
 import { computeVariantPrices } from '@/lib/pricing';
-import { getBusinessSettings } from '@/lib/settings';
-import { requireTenant } from '@/lib/api-auth';
 
+const prisma = new PrismaClient();
 
 // GET: obtener todas las variantes con info del producto para el actualizador de precios
 export async function GET(request: NextRequest) {
-  const ctx = await requireTenant('precios');
-  if (ctx instanceof NextResponse) return ctx;
-  const prisma = ctx.db;
-
   try {
     const { searchParams } = new URL(request.url);
-    const category = searchParams.get('categoryId') ?? searchParams.get('category');
+    const category = searchParams.get('category');
     const brand = searchParams.get('brand');
     const search = searchParams.get('search');
 
@@ -100,10 +96,6 @@ export async function GET(request: NextRequest) {
 
 // PUT: actualizar precios de múltiples variantes
 export async function PUT(request: NextRequest) {
-  const ctx = await requireTenant('precios');
-  if (ctx instanceof NextResponse) return ctx;
-  const prisma = ctx.db;
-
   try {
     const body = await request.json();
     const { updates } = body as {
@@ -116,8 +108,6 @@ export async function PUT(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    const settings = await getBusinessSettings(prisma);
 
     // Actualizar en transacción, de a lotes de 50 para no agotar el timeout
     const BATCH_SIZE = 50;
@@ -135,7 +125,7 @@ export async function PUT(request: NextRequest) {
           surchargeDebit: Number(variant.product.surchargeDebit),
           surchargeFinanced: Number(variant.product.surchargeFinanced),
         };
-        const prices = computeVariantPrices(u.costPrice, pct, settings.priceRounding);
+        const prices = computeVariantPrices(u.costPrice, pct);
         return { id: u.id, costPrice: u.costPrice, prices };
       }));
       const ops = planned

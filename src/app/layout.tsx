@@ -1,40 +1,36 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AppLayout from "@/components/AppLayout";
-import Providers from "@/components/Providers";
-import { auth } from "@/lib/auth";
 
-const inter = Inter({
-  variable: "--font-inter",
+const geistSans = Geist({
+  variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
-const jetbrains = JetBrains_Mono({
-  variable: "--font-jetbrains",
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Gestión Comercial",
-  description: "Sistema de gestión para comercios: stock, precios, compras, ventas y facturación",
+  title: "Sistema de Gestión - Deportes Laboulaye",
+  description: "Sistema integral de gestión para venta de ropa deportiva",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await auth();
-
   return (
-    <html lang="es" className={`${inter.variable} ${jetbrains.variable}`}>
-      <body className="antialiased">
-        <Providers session={session}>
-          <AppLayout>
-            {children}
-          </AppLayout>
-        </Providers>
+    <html lang="es">
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        <AppLayout>
+          {children}
+        </AppLayout>
       </body>
     </html>
   );

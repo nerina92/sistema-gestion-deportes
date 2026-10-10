@@ -1,12 +1,8 @@
 import { NextResponse } from 'next/server';
-import { requireTenant } from '@/lib/api-auth';
+import { prisma } from '@/lib/prisma';
 
 // GET - Obtener logs de sincronización
 export async function GET() {
-  const ctx = await requireTenant('integraciones');
-  if (ctx instanceof NextResponse) return ctx;
-  const prisma = ctx.db;
-
   try {
     const logs = await prisma.syncLog.findMany({
       orderBy: {

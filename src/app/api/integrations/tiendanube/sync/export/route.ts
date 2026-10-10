@@ -1,12 +1,8 @@
 import { NextResponse } from 'next/server';
-import { requireTenant } from '@/lib/api-auth';
+import { prisma } from '@/lib/prisma';
 
 // POST - Exportar stock local a Tienda Nube
 export async function POST() {
-  const ctx = await requireTenant('integraciones');
-  if (ctx instanceof NextResponse) return ctx;
-  const prisma = ctx.db;
-
   try {
     const config = await prisma.tiendanubeConfig.findFirst({
       where: { isActive: true }
@@ -40,7 +36,7 @@ export async function POST() {
             headers: {
               'Authentication': `bearer ${config.accessToken}`,
               'Content-Type': 'application/json',
-              'User-Agent': 'Gestion Comercial (contacto.plexolabs@gmail.com)'
+              'User-Agent': 'Sistema Gestion Deportes'
             },
             body: JSON.stringify({
               stock: variant.stockQuantity

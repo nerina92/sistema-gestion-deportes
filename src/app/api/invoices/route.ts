@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireTenant } from '@/lib/api-auth';
+import { PrismaClient } from '@prisma/client';
 
+const prisma = new PrismaClient();
 
 // GET - Listar todas las facturas
 export async function GET(request: NextRequest) {
-  const ctx = await requireTenant('facturas');
-  if (ctx instanceof NextResponse) return ctx;
-  const prisma = ctx.db;
-
   try {
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');

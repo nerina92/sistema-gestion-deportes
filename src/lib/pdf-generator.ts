@@ -13,14 +13,6 @@ interface AfipConfig {
   puntoVenta: number;
 }
 
-/** Datos del emisor (TenantSettings del negocio). */
-export interface InvoiceIssuer {
-  businessName: string;
-  taxCondition: string;
-  address: string;
-  city: string;
-}
-
 /**
  * Genera un PDF de factura en memoria usando pdf-lib.
  * 100% compatible con Vercel (sin dependencias de filesystem).
@@ -30,8 +22,7 @@ export async function generateInvoicePDF(
   invoiceId: string,
   sale: any,
   config: AfipConfig,
-  invoiceData: InvoiceData,
-  issuer: InvoiceIssuer
+  invoiceData: InvoiceData
 ): Promise<string> {
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([595.28, 841.89]); // A4
@@ -98,18 +89,14 @@ export async function generateInvoicePDF(
   y -= 20;
 
   // ========== DATOS DEL EMISOR ==========
-  drawText((issuer.businessName || 'Emisor').toUpperCase(), margin, y, { font: helveticaBold, size: 14 });
+  drawText('DEPORTES LABOULAYE', margin, y, { font: helveticaBold, size: 14 });
   y -= 18;
   drawText(`CUIT: ${config.cuit}`, margin, y, { size: 10 });
   y -= 14;
-  drawText(issuer.taxCondition || 'Monotributista', margin, y, { size: 10 });
+  drawText('Monotributista', margin, y, { size: 10 });
   y -= 14;
-  const location = [issuer.address, issuer.city].filter(Boolean).join(', ');
-  if (location) {
-    drawText(location, margin, y, { size: 10, color: gray });
-    y -= 14;
-  }
-  y -= 6;
+  drawText('Laboulaye, Córdoba', margin, y, { size: 10, color: gray });
+  y -= 20;
 
   drawLine(y);
   y -= 20;

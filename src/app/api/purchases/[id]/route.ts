@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireTenant } from '@/lib/api-auth';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const ctx = await requireTenant('compras');
-  if (ctx instanceof NextResponse) return ctx;
-  const prisma = ctx.db;
-
   try {
     const { id } = await params;
 
@@ -93,10 +89,6 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const ctx = await requireTenant('compras');
-  if (ctx instanceof NextResponse) return ctx;
-  const prisma = ctx.db;
-
   try {
     const { id } = await params;
 
@@ -199,10 +191,6 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const ctx = await requireTenant('compras');
-  if (ctx instanceof NextResponse) return ctx;
-  const prisma = ctx.db;
-
   try {
     const { id } = await params;
     const body = await request.json();
