@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireTenant } from '@/lib/api-auth';
+import { PrismaClient } from '@prisma/client';
 
+const prisma = new PrismaClient();
 
 // GET - Obtener factura de una venta
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ saleId: string }> }
 ) {
-  const ctx = await requireTenant('facturas');
-  if (ctx instanceof NextResponse) return ctx;
-  const prisma = ctx.db;
-
   try {
     const { saleId } = await params;
 

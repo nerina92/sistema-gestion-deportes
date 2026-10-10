@@ -1,22 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Product, ProductVariant, Category } from '@/generated/tenant';
+import { PrismaClient, Product, ProductVariant, Category } from '@prisma/client';
 import { validateProductInput, sanitizeProductInput, validateProductsQueryParams } from '@/lib/validation';
 import { ProductInput, ProductsListResponse } from '@/types/products';
 import { computeVariantPrices } from '@/lib/pricing';
-import { getBusinessSettings } from '@/lib/settings';
-import { requireTenant } from '@/lib/api-auth';
 
 type ProductWithVariants = Product & { variants: ProductVariant[]; category: Category | null };
 
+const prisma = new PrismaClient();
 
 /**
  * GET /api/products - Listar productos con paginación y filtros
  */
 export async function GET(request: NextRequest) {
-  const ctx = await requireTenant('productos');
-  if (ctx instanceof NextResponse) return ctx;
-  const prisma = ctx.db;
-
   try {
     const { searchParams } = new URL(request.url);
     const params = Object.fromEntries(searchParams);
@@ -158,10 +153,6 @@ export async function GET(request: NextRequest) {
  * POST /api/products - Crear producto con variantes
  */
 export async function POST(request: NextRequest) {
-  const ctx = await requireTenant('productos-editar');
-  if (ctx instanceof NextResponse) return ctx;
-  const prisma = ctx.db;
-
   try {
     const body = await request.json();
     
@@ -203,7 +194,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Crear producto y variantes en una transacción
-    const settings = await getBusinessSettings(prisma);
     const result = await prisma.$transaction(async (tx) => {
       // Crear el producto
       const product = await tx.product.create({
@@ -211,9 +201,9 @@ export async function POST(request: NextRequest) {
           name: productData.name,
           brand: productData.brand,
           categoryId: productData.categoryId,
-          marginCash: productData.marginCash ?? settings.defaultMarginCash,
-          surchargeDebit: productData.surchargeDebit ?? settings.defaultSurchargeDebit,
-          surchargeFinanced: productData.surchargeFinanced ?? settings.defaultSurchargeFinanced,
+          marginCash: productData.marginCash ?? 90,
+          surchargeDebit: productData.surchargeDebit ?? 5,
+          surchargeFinanced: productData.surchargeFinanced ?? 20,
           description: productData.description,
           barcode: productData.barcode,
           imageUrl: productData.imageUrl,
@@ -222,15 +212,15 @@ export async function POST(request: NextRequest) {
 
       // Porcentajes efectivos para el cálculo de precios
       const pct = {
-        marginCash: productData.marginCash ?? settings.defaultMarginCash,
-        surchargeDebit: productData.surchargeDebit ?? settings.defaultSurchargeDebit,
-        surchargeFinanced: productData.surchargeFinanced ?? settings.defaultSurchargeFinanced,
+        marginCash: productData.marginCash ?? 90,
+        surchargeDebit: productData.surchargeDebit ?? 5,
+        surchargeFinanced: productData.surchargeFinanced ?? 20,
       };
 
       // Crear las variantes
       const variants = await Promise.all(
         productData.variants.map(variant => {
-          const prices = computeVariantPrices(variant.costPrice, pct, settings.priceRounding);
+          const prices = computeVariantPrices(variant.costPrice, pct);
           return tx.productVariant.create({
             data: {
               productId: product.id,

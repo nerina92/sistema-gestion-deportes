@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireTenant } from '@/lib/api-auth';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
-  const ctx = await requireTenant('proveedores');
-  if (ctx instanceof NextResponse) return ctx;
-  const prisma = ctx.db;
-
   try {
     const { searchParams } = new URL(request.url);
     const isActive = searchParams.get('isActive');
@@ -47,10 +43,6 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const ctx = await requireTenant('proveedores');
-  if (ctx instanceof NextResponse) return ctx;
-  const prisma = ctx.db;
-
   try {
     const body = await request.json();
     const { name, email, phone, address, notes } = body;

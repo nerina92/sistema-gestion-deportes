@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { computeVariantPrices } from '@/lib/pricing';
-import { useBusinessSettings } from '@/lib/use-business-settings';
 import { 
   Package, 
   Plus, 
@@ -80,13 +79,15 @@ interface Product {
 }
 
 // Opciones para los dropdowns (reutilizando del US-004)
-// Sugerencias para los atributos cuando el negocio usa las etiquetas Talle/Color.
-const SIZE_SUGGESTIONS = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'Único'];
-const COLOR_SUGGESTIONS = ['Negro', 'Blanco', 'Gris', 'Azul', 'Rojo', 'Verde', 'Amarillo', 'Rosa', 'Beige'];
+const SIZES = ['4', '6', '8', '10', '12', '14', '16', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'Único'];
+
+const COLORS = [
+  'Negro', 'Blanco', 'Gris', 'Azul', 'Rojo', 'Verde', 'Amarillo', 
+  'Rosa', 'Violeta', 'Naranja', 'Marrón', 'Beige', 'Celeste', 'Marino', 'Otros'
+];
 
 export default function EditarProductoPage() {
   const router = useRouter();
-  const settings = useBusinessSettings();
   const params = useParams();
   const productId = params.id as string;
   
@@ -237,7 +238,7 @@ export default function EditarProductoPage() {
         if (index === variantIndex) {
           const updatedVariant = { ...variant, [field]: value };
           
-          // Auto-generar SKU si se actualiza algún atributo de la variante
+          // Auto-generar SKU si se actualiza talla o color
           if (field === 'size' || field === 'color') {
             updatedVariant.sku = generateSKU(formData.name, updatedVariant.size, updatedVariant.color);
           }
@@ -344,6 +345,12 @@ export default function EditarProductoPage() {
       variantErrors[indexStr] = {};
 
       // Validar campos requeridos
+      if (!variant.size) {
+        variantErrors[indexStr].size = 'Talla requerida';
+      }
+      if (!variant.color) {
+        variantErrors[indexStr].color = 'Color requerido';
+      }
       if (!variant.sku) {
         variantErrors[indexStr].sku = 'SKU requerido';
       }
@@ -446,8 +453,8 @@ export default function EditarProductoPage() {
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-brand-600 mx-auto mb-4" />
-            <p className="text-zinc-600">Cargando producto...</p>
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+            <p className="text-gray-600">Cargando producto...</p>
           </div>
         </div>
       </div>
@@ -460,13 +467,13 @@ export default function EditarProductoPage() {
       <div className="max-w-4xl mx-auto">
         <div className="text-center py-12">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-zinc-900 mb-2">Producto no encontrado</h2>
-          <p className="text-zinc-600 mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Producto no encontrado</h2>
+          <p className="text-gray-600 mb-6">
             El producto que intentas editar no existe o ha sido eliminado.
           </p>
           <button
             onClick={() => router.push('/productos')}
-            className="inline-flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Volver a Productos
@@ -480,28 +487,28 @@ export default function EditarProductoPage() {
     <div className="max-w-4xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center text-sm text-zinc-500 mb-2">
+        <div className="flex items-center text-sm text-gray-500 mb-2">
           <span>Productos</span>
           <span className="mx-2">›</span>
           <span>Editar</span>
           <span className="mx-2">›</span>
-          <span className="text-zinc-900">{product?.name}</span>
+          <span className="text-gray-900">{product?.name}</span>
         </div>
         
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 flex items-center gap-3">
-              <Edit3 className="size-6 shrink-0 text-brand-600" />
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+              <Edit3 className="mr-3 text-blue-600" />
               Editar Producto
             </h1>
-            <p className="mt-1 text-sm text-zinc-500">
+            <p className="mt-2 text-gray-600">
               Modifica la información del producto y sus variantes
             </p>
           </div>
           
           <button
             onClick={() => router.push('/productos')}
-            className="inline-flex items-center px-3 py-2 text-zinc-600 hover:text-zinc-900 transition-colors"
+            className="inline-flex items-center px-3 py-2 text-gray-600 hover:text-gray-900 transition-colors"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Volver
@@ -511,25 +518,15 @@ export default function EditarProductoPage() {
 
       {/* Formulario */}
       <form onSubmit={handleSubmit} className="space-y-8">
-        <datalist id="attr-size-options">
-          {(settings.variantAttr1Label.toLowerCase() === 'talle' ? SIZE_SUGGESTIONS : []).map((v) => (
-            <option key={v} value={v} />
-          ))}
-        </datalist>
-        <datalist id="attr-color-options">
-          {(settings.variantAttr2Label.toLowerCase() === 'color' ? COLOR_SUGGESTIONS : []).map((v) => (
-            <option key={v} value={v} />
-          ))}
-        </datalist>
         
         {/* Información del Producto */}
-        <div className="bg-white rounded-card shadow-card border border-zinc-200 p-6">
-          <h2 className="text-lg font-medium text-zinc-900 mb-4">Información del Producto</h2>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Información del Producto</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Nombre */}
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-zinc-700 mb-2">
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
                 Nombre del Producto *
               </label>
               <input
@@ -537,17 +534,17 @@ export default function EditarProductoPage() {
                 type="text"
                 value={formData.name}
                 onChange={(e) => updateProductData('name', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent text-zinc-900 ${
-                  errors.name ? 'border-red-300' : 'border-zinc-300'
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${
+                  errors.name ? 'border-red-300' : 'border-gray-300'
                 }`}
-                placeholder="Nombre del producto"
+                placeholder="Ej: Remera Deportiva Nike"
               />
               {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
             </div>
 
             {/* Marca */}
             <div>
-              <label htmlFor="brand" className="block text-sm font-medium text-zinc-700 mb-2">
+              <label htmlFor="brand" className="block text-sm font-medium text-gray-700 mb-2">
                 Marca
               </label>
               <input
@@ -555,21 +552,21 @@ export default function EditarProductoPage() {
                 type="text"
                 value={formData.brand}
                 onChange={(e) => updateProductData('brand', e.target.value)}
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent text-zinc-900"
-                placeholder="Marca (opcional)"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                placeholder="Ej: Nike, Adidas, Puma"
               />
             </div>
 
             {/* Categoría */}
             <div>
-              <label htmlFor="category" className="block text-sm font-medium text-zinc-700 mb-2">
+              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
                 Categoría
               </label>
               <select
                 id="category"
                 value={formData.categoryId}
                 onChange={(e) => updateProductData('categoryId', e.target.value)}
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent text-zinc-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
               >
                 <option value="">Seleccionar categoría</option>
                 {categories.map(c => (
@@ -580,46 +577,46 @@ export default function EditarProductoPage() {
 
             {/* Margen contado */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-2">Margen contado (%)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Margen contado (%)</label>
               <input
                 type="number"
                 min="0"
                 step="0.01"
                 value={formData.marginCash}
                 onChange={(e) => setFormData(prev => ({ ...prev, marginCash: parseFloat(e.target.value) || prev.marginCash }))}
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent text-zinc-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
               />
             </div>
 
             {/* Recargo débito */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-2">Recargo débito (%)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Recargo débito (%)</label>
               <input
                 type="number"
                 min="0"
                 step="0.01"
                 value={formData.surchargeDebit}
                 onChange={(e) => setFormData(prev => ({ ...prev, surchargeDebit: parseFloat(e.target.value) || prev.surchargeDebit }))}
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent text-zinc-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
               />
             </div>
 
             {/* Recargo financiado */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-2">Recargo financiado (%)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Recargo financiado (%)</label>
               <input
                 type="number"
                 min="0"
                 step="0.01"
                 value={formData.surchargeFinanced}
                 onChange={(e) => setFormData(prev => ({ ...prev, surchargeFinanced: parseFloat(e.target.value) || prev.surchargeFinanced }))}
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent text-zinc-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
               />
             </div>
 
             {/* Código de Barras */}
             <div>
-              <label htmlFor="barcode" className="block text-sm font-medium text-zinc-700 mb-2">
+              <label htmlFor="barcode" className="block text-sm font-medium text-gray-700 mb-2">
                 Código de Barras
               </label>
               <input
@@ -627,7 +624,7 @@ export default function EditarProductoPage() {
                 type="text"
                 value={formData.barcode}
                 onChange={(e) => updateProductData('barcode', e.target.value)}
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent text-zinc-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                 placeholder="Ej: 1234567890123"
               />
             </div>
@@ -635,7 +632,7 @@ export default function EditarProductoPage() {
 
           {/* Descripción */}
           <div className="mt-6">
-            <label htmlFor="description" className="block text-sm font-medium text-zinc-700 mb-2">
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
               Descripción
             </label>
             <textarea
@@ -643,14 +640,14 @@ export default function EditarProductoPage() {
               value={formData.description}
               onChange={(e) => updateProductData('description', e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent text-zinc-900"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
               placeholder="Describe las características del producto..."
             />
           </div>
 
           {/* URL de Imagen */}
           <div className="mt-6">
-            <label htmlFor="imageUrl" className="block text-sm font-medium text-zinc-700 mb-2">
+            <label htmlFor="imageUrl" className="block text-sm font-medium text-gray-700 mb-2">
               URL de Imagen
             </label>
             <input
@@ -658,14 +655,14 @@ export default function EditarProductoPage() {
               type="text"
               value={formData.imageUrl}
               onChange={(e) => updateProductData('imageUrl', e.target.value)}
-              className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent text-zinc-900"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
               placeholder="Pegá el link de la imagen (Google Fotos, Drive, cualquier URL)"
             />
             {formData.imageUrl && (
               <div className="mt-3">
-                <p className="text-xs text-zinc-500 mb-1">Preview:</p>
+                <p className="text-xs text-gray-500 mb-1">Preview:</p>
                 {imageError ? (
-                  <div className="h-32 w-32 flex items-center justify-center bg-zinc-100 rounded-lg border border-zinc-200">
+                  <div className="h-32 w-32 flex items-center justify-center bg-gray-100 rounded-lg border border-gray-200">
                     <p className="text-xs text-red-500 text-center px-2">No se pudo cargar. Verificá el link.</p>
                   </div>
                 ) : (
@@ -673,26 +670,26 @@ export default function EditarProductoPage() {
                   <img
                     src={formData.imageUrl}
                     alt="Preview"
-                    className="h-32 w-32 object-cover rounded-lg border border-zinc-200"
+                    className="h-32 w-32 object-cover rounded-lg border border-gray-200"
                     onError={() => setImageError(true)}
                   />
                 )}
               </div>
             )}
-            <p className="mt-1 text-xs text-zinc-400">
+            <p className="mt-1 text-xs text-gray-400">
               💡 <strong>Imgur (recomendado):</strong> entrá a imgur.com → subí la foto → clic derecho en la imagen → &quot;Copiar dirección de imagen&quot; → pegá el link acá. El link debe terminar en .jpg o .png
             </p>
           </div>
         </div>
 
         {/* Variantes */}
-        <div className="bg-white rounded-card shadow-card border border-zinc-200 p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-zinc-900">Variantes del Producto</h2>
+            <h2 className="text-lg font-medium text-gray-900">Variantes del Producto</h2>
             <button
               type="button"
               onClick={addVariant}
-              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
+              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               <Plus className="h-4 w-4 mr-1" />
               Agregar Variante
@@ -713,19 +710,19 @@ export default function EditarProductoPage() {
                 marginCash: Number(formData.marginCash) || 0,
                 surchargeDebit: Number(formData.surchargeDebit) || 0,
                 surchargeFinanced: Number(formData.surchargeFinanced) || 0,
-              }, settings.priceRounding);
+              });
 
               return (
                 <div
                   key={variant.id || `new-${index}`}
-                  className="border border-zinc-200 rounded-lg p-4 relative"
+                  className="border border-gray-200 rounded-lg p-4 relative"
                 >
                   {/* Badge para indicar si es existente o nueva */}
                   <div className="absolute top-2 right-2 flex items-center gap-2">
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                       isExisting 
                         ? 'bg-green-100 text-green-800' 
-                        : 'bg-brand-100 text-brand-800'
+                        : 'bg-blue-100 text-blue-800'
                     }`}>
                       {isExisting ? 'Existente' : 'Nueva'}
                     </span>
@@ -741,53 +738,57 @@ export default function EditarProductoPage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-                    {/* Atributo 1 (configurable: talle, medida, tamaño...) */}
+                    {/* Talla */}
                     <div>
-                      <label className="block text-sm font-medium text-zinc-700 mb-1">
-                      {settings.variantAttr1Label}
-                    </label>
-                    <input
-                      type="text"
-                      list="attr-size-options"
-                      value={variant.size}
-                      onChange={(e) => updateVariant(index, 'size', e.target.value)}
-                      placeholder="Opcional"
-                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-brand-500 focus:border-transparent text-zinc-900 text-sm ${
-                        variantErrors.size ? 'border-red-300' : 'border-zinc-300'
-                      }`}
-                    />
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Talla *
+                      </label>
+                      <select
+                        value={variant.size}
+                        onChange={(e) => updateVariant(index, 'size', e.target.value)}
+                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${
+                          variantErrors.size ? 'border-red-300' : 'border-gray-300'
+                        }`}
+                      >
+                        <option value="">Seleccionar</option>
+                        {SIZES.map(size => (
+                          <option key={size} value={size}>{size}</option>
+                        ))}
+                      </select>
                       {variantErrors.size && <p className="mt-1 text-xs text-red-600">{variantErrors.size}</p>}
                     </div>
 
-                    {/* Atributo 2 (configurable: color, material, sabor...) */}
+                    {/* Color */}
                     <div>
-                      <label className="block text-sm font-medium text-zinc-700 mb-1">
-                      {settings.variantAttr2Label}
-                    </label>
-                    <input
-                      type="text"
-                      list="attr-color-options"
-                      value={variant.color}
-                      onChange={(e) => updateVariant(index, 'color', e.target.value)}
-                      placeholder="Opcional"
-                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-brand-500 focus:border-transparent text-zinc-900 text-sm ${
-                        variantErrors.color ? 'border-red-300' : 'border-zinc-300'
-                      }`}
-                    />
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Color *
+                      </label>
+                      <select
+                        value={variant.color}
+                        onChange={(e) => updateVariant(index, 'color', e.target.value)}
+                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${
+                          variantErrors.color ? 'border-red-300' : 'border-gray-300'
+                        }`}
+                      >
+                        <option value="">Seleccionar</option>
+                        {COLORS.map(color => (
+                          <option key={color} value={color}>{color}</option>
+                        ))}
+                      </select>
                       {variantErrors.color && <p className="mt-1 text-xs text-red-600">{variantErrors.color}</p>}
                     </div>
 
                     {/* SKU */}
                     <div>
-                      <label className="block text-sm font-medium text-zinc-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
                         SKU *
                       </label>
                       <input
                         type="text"
                         value={variant.sku}
                         onChange={(e) => updateVariant(index, 'sku', e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent text-zinc-900 ${
-                          variantErrors.sku ? 'border-red-300' : 'border-zinc-300'
+                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${
+                          variantErrors.sku ? 'border-red-300' : 'border-gray-300'
                         }`}
                         placeholder="AUTO-M-NEG"
                       />
@@ -796,7 +797,7 @@ export default function EditarProductoPage() {
 
                     {/* Stock Actual */}
                     <div>
-                      <label className="block text-sm font-medium text-zinc-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
                         Stock Actual *
                       </label>
                       <input
@@ -804,8 +805,8 @@ export default function EditarProductoPage() {
                         min="0"
                         value={variant.stockQuantity || 0}
                         onChange={(e) => updateVariant(index, 'stockQuantity', parseInt(e.target.value) || 0)}
-                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent text-zinc-900 ${
-                          variantErrors.stockQuantity ? 'border-red-300' : 'border-zinc-300'
+                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${
+                          variantErrors.stockQuantity ? 'border-red-300' : 'border-gray-300'
                         }`}
                       />
                       {variantErrors.stockQuantity && <p className="mt-1 text-xs text-red-600">{variantErrors.stockQuantity}</p>}
@@ -815,7 +816,7 @@ export default function EditarProductoPage() {
                   {/* Precios */}
                   <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
                     <div>
-                      <label className="block text-sm font-medium text-zinc-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
                         Precio Costo *
                       </label>
                       <input
@@ -824,51 +825,51 @@ export default function EditarProductoPage() {
                         step="0.01"
                         value={variant.costPrice || 0}
                         onChange={(e) => updateVariant(index, 'costPrice', parseFloat(e.target.value) || 0)}
-                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent text-zinc-900 ${
-                          variantErrors.costPrice ? 'border-red-300' : 'border-zinc-300'
+                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${
+                          variantErrors.costPrice ? 'border-red-300' : 'border-gray-300'
                         }`}
                       />
                       {variantErrors.costPrice && <p className="mt-1 text-xs text-red-600">{variantErrors.costPrice}</p>}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-zinc-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
                         Precio Contado
                       </label>
                       <input
                         type="number"
                         value={prices.priceCash}
                         readOnly
-                        className="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm bg-zinc-100 text-zinc-700 cursor-not-allowed"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100 text-gray-700 cursor-not-allowed"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-zinc-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
                         Precio Débito
                       </label>
                       <input
                         type="number"
                         value={prices.priceDebit}
                         readOnly
-                        className="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm bg-zinc-100 text-zinc-700 cursor-not-allowed"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100 text-gray-700 cursor-not-allowed"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-zinc-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
                         Precio Financiado
                       </label>
                       <input
                         type="number"
                         value={prices.priceFinanced}
                         readOnly
-                        className="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm bg-zinc-100 text-zinc-700 cursor-not-allowed"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100 text-gray-700 cursor-not-allowed"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-zinc-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
                         Alerta Stock Mínimo *
                       </label>
                       <input
@@ -876,8 +877,8 @@ export default function EditarProductoPage() {
                         min="0"
                         value={variant.minStockAlert || 0}
                         onChange={(e) => updateVariant(index, 'minStockAlert', parseInt(e.target.value) || 0)}
-                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent text-zinc-900 ${
-                          variantErrors.minStockAlert ? 'border-red-300' : 'border-zinc-300'
+                        className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${
+                          variantErrors.minStockAlert ? 'border-red-300' : 'border-gray-300'
                         }`}
                       />
                       {variantErrors.minStockAlert && <p className="mt-1 text-xs text-red-600">{variantErrors.minStockAlert}</p>}
@@ -885,11 +886,11 @@ export default function EditarProductoPage() {
                   </div>
 
                   {/* Campos de Tienda Nube */}
-                  <div className="mt-4 pt-4 border-t border-zinc-200">
-                    <h4 className="text-sm font-medium text-zinc-700 mb-3">Integración Tienda Nube (Opcional)</h4>
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <h4 className="text-sm font-medium text-gray-700 mb-3">Integración Tienda Nube (Opcional)</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-zinc-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                           Product ID
                         </label>
                         <input
@@ -897,13 +898,13 @@ export default function EditarProductoPage() {
                           value={variant.tiendanubeProductId || ''}
                           onChange={(e) => updateVariant(index, 'tiendanubeProductId', e.target.value)}
                           placeholder="123456"
-                          className="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent text-zinc-900"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                         />
-                        <p className="mt-1 text-xs text-zinc-500">ID del producto en Tienda Nube</p>
+                        <p className="mt-1 text-xs text-gray-500">ID del producto en Tienda Nube</p>
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-zinc-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                           Variant ID
                         </label>
                         <input
@@ -911,9 +912,9 @@ export default function EditarProductoPage() {
                           value={variant.tiendanubeVariantId || ''}
                           onChange={(e) => updateVariant(index, 'tiendanubeVariantId', e.target.value)}
                           placeholder="789012"
-                          className="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent text-zinc-900"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                         />
-                        <p className="mt-1 text-xs text-zinc-500">ID de la variante en Tienda Nube</p>
+                        <p className="mt-1 text-xs text-gray-500">ID de la variante en Tienda Nube</p>
                       </div>
                     </div>
                   </div>
@@ -928,7 +929,7 @@ export default function EditarProductoPage() {
           <button
             type="button"
             onClick={() => router.push('/productos')}
-            className="px-4 py-2 border border-zinc-300 rounded-md shadow-sm text-sm font-medium text-zinc-700 bg-white hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
+            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             <X className="h-4 w-4 mr-2 inline" />
             Cancelar
@@ -936,7 +937,7 @@ export default function EditarProductoPage() {
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />

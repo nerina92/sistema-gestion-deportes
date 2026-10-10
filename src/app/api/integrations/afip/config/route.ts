@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireTenant } from '@/lib/api-auth';
+import { PrismaClient } from '@prisma/client';
 
+const prisma = new PrismaClient();
 
 // GET - Obtener configuración
 export async function GET() {
-  const ctx = await requireTenant('integraciones');
-  if (ctx instanceof NextResponse) return ctx;
-  const prisma = ctx.db;
-
   try {
     const config = await prisma.afipConfig.findFirst({
       where: { isActive: true }
@@ -32,10 +29,6 @@ export async function GET() {
 
 // POST - Guardar configuración
 export async function POST(request: NextRequest) {
-  const ctx = await requireTenant('integraciones');
-  if (ctx instanceof NextResponse) return ctx;
-  const prisma = ctx.db;
-
   try {
     const formData = await request.formData();
 
